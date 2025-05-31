@@ -1,37 +1,81 @@
 import React from 'react';
-import logo from './public/logo.png'; // Update with your actual logo path
-import bgImage from './assets/background.jpg'; // Background image path
-import { useNavigate } from 'react-router-dom';
 
-const WelcomePage = () => {
-  const navigate = useNavigate();
-
+function WelcomePage() {
   return (
-    <div
-      className="min-h-screen bg-cover bg-center flex flex-col"
-      style={{ backgroundImage: `url(${bgImage})` }}
-    >
-      {/* Navbar */}
-      <div className="bg-blue-900 text-white p-4 flex items-center">
-        <img src={logo} alt="Kerala Police Logo" className="h-10 w-10 mr-3" />
-        <h1 className="text-xl font-bold">Kerala Police Academy</h1>
+    <div style={{
+      backgroundColor: 'white',
+      height: '100vh',
+      fontFamily: 'Arial, sans-serif',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      {/* Top Blue Bar */}
+      <div style={{
+        backgroundColor: '#00008B',
+        color: 'white',
+        padding: '10px 20px',
+        display: 'flex',
+        alignItems: 'center',
+      }}>
+        <img
+          src="/logo.png"
+          alt="Kerala Police Logo"
+          style={{ height: '60px', marginRight: '20px' }}
+        />
+        <div>
+          <div style={{ fontSize: '20px', fontWeight: 'bold' }}>RMS</div>
+          <div style={{ fontSize: '12px' }}>Kerala Police Academy</div>
+        </div>
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col items-center justify-center text-white text-center px-4">
-        <h2 className="text-5xl font-bold mb-4">Room Management System</h2>
-        <p className="text-xl mb-8">
-          Efficiently manage training facilities and accommodations at Kerala Police Academy
-        </p>
-        <button
-          onClick={() => navigate('/login')}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded shadow-md transition"
+      {/* Main Section */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        textAlign: 'center'
+      }}>
+        <h1 style={{
+          fontSize: '42px',
+          fontWeight: '800',
+          color: '#000',
+          animation: 'fadeIn 2s ease-in-out'
+        }}>
+          ROOM MANAGEMENT SYSTEM
+        </h1>
+
+        <button style={{
+          marginTop: '30px',
+          padding: '12px 24px',
+          fontSize: '16px',
+          backgroundColor: '#00008B',
+          color: 'white',
+          border: 'none',
+          borderRadius: '6px',
+          cursor: 'pointer',
+          transition: 'background-color 0.3s'
+        }}
+        onMouseOver={(e) => e.target.style.backgroundColor = '#1a1aff'}
+        onMouseOut={(e) => e.target.style.backgroundColor = '#00008B'}
         >
           Login
         </button>
       </div>
+
+      {/* Animation keyframes */}
+      <style>
+        {`
+          @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(-20px); }
+            100% { opacity: 1; transform: translateY(0); }
+          }
+        `}
+      </style>
     </div>
   );
-};
+}
 
 export default WelcomePage;
+
