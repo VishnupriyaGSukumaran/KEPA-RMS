@@ -1,0 +1,51 @@
+.login-container {
+  max-width: 400px;
+  margin: 50px auto;
+  padding: 40px;
+  background: white;
+  text-align: center;
+  font-family: Arial, sans-serif;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+}
+
+.header img {
+  height: 60px;
+}
+
+.input-field {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin: 15px 0;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background-color: #eee;
+}
+
+.forgot {
+  cursor: pointer;
+  font-size: 14px;
+  color: #000;
+  margin: 10px 0;
+}
+
+.button-group {
+  display: flex;
+  justify-content: space-between;
+}
+
+.back-btn,
+.sign-btn {
+  background-color: #0b0a88;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
