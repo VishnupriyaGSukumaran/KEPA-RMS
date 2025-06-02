@@ -1,60 +1,58 @@
 import React, { useState } from 'react';
-import './LoginPage.css';
 import { useNavigate } from 'react-router-dom';
+import './LoginPage.css';
 
-function LoginPage() {
-  const [username, setUsername] = useState('');
+const Login = () => {
+  const [pen, setPen] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
-    const response = await fetch('http://localhost:5000/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-
-    const data = await response.json();
-    if (data.success) {
-      if (data.role === 'admin') navigate('/admin');
-      else if (data.role === 'superadmin') navigate('/superadmin');
-      else if (data.role === 'blockhead') navigate('/blockhead');
-    } else {
-      alert('Invalid credentials');
-    }
+  const handleLogin = () => {
+    // Handle login API call here
   };
 
   return (
-    <div className="login-container">
-      <div className="header">
-        <img src="/logo.png" alt="Logo" />
-        <h2>RAMS<br /><small>Kerala Police Academy</small></h2>
-      </div>
+    <div className="login-page">
+      <header className="login-header">
+        <img src="/logo.png" alt="Kerala Police Logo" className="logo" />
+        <div className="title-group">
+        <div>
+          <div className="title-section">RMS</div>
+          <div className="subtitle-section">Kerala Police Academy</div>
+        </div>
+        </div>
+           <button className="home-button" onClick={() => navigate(-1)} >Home</button>
+      
+      </header>
 
-      <h3>LOGIN</h3>
+      <h2 className="login-title">LOGIN</h2>
 
-      <input
-        type="text"
-        placeholder="Username"
-        value={username}
-        onChange={e => setUsername(e.target.value)}
-        className="input-field"
-      />
+      <div className="login-form">
+        <input
+          type="text"
+          placeholder="pen"
+          value={pen}
+          onChange={(e) => setPen(e.target.value)}
+          className="input-box"
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="input-box"
+        />
 
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-        className="input-field"
-      />
+        
 
-      <div className="button-group">
-        <button className="back-btn" onClick={() => navigate('/')}>BACK</button>
-        <button className="sign-btn" onClick={handleLogin}>SIGN IN</button>
+        <div className="button-group">
+          <button onClick={() => navigate(-1)} className="back-button">BACK</button>
+          <button onClick={handleLogin} className="signin-button">SIGN IN</button>
+        
+        </div>
       </div>
     </div>
   );
-}
+};
 
-export default LoginPage;
+export default Login;
