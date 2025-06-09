@@ -1,0 +1,115 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+.container {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 250px;
+  background-color: #1e3a8a;
+  color: white;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 30px;
+}
+
+.admin-user {
+  font-size: 14px;
+  margin-bottom: 30px;
+}
+
+.admin-user span {
+  font-size: 12px;
+}
+
+.nav button {
+  background: none;
+  border: none;
+  color: white;
+  text-align: left;
+  padding: 10px 0;
+  cursor: pointer;
+}
+
+.nav-section {
+  margin-top: 20px;
+  font-weight: bold;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.nav .active {
+  background-color: #1d4ed8;
+  padding: 8px;
+  border-radius: 5px;
+}
+
+.logout {
+  margin-top: auto;
+  background: none;
+  border: none;
+  color: white;
+  padding-top: 20px;
+  cursor: pointer;
+}
+
+.main-content {
+  flex-grow: 1;
+  padding: 20px;
+  background-color: #ffffff;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header input {
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.data-table th {
+  background-color: #f3f4f6;
+}
+
+.edit {
+  color: blue;
+  background: none;
+  border: none;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.remove {
+  color: red;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+

@@ -30,7 +30,8 @@ const Login = () => {
         } else if (data.role === 'superadmin') {
           navigate('/superadmin/dashboard');
         } else if (data.role === 'blockhead') {
-          navigate('/blockhead/dashboard');
+          navigate("/BlockHeadDashboard");
+
         } else {
           alert('Unknown user role');
         }
