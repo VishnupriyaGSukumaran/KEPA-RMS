@@ -22,31 +22,61 @@ const DesignBlock = () => {
     }
   };
 
+  // const clearForm = () => {
+  //   setBlockName('');
+  //   setBlockTypes([]);
+  //   setMessage('');
+  // };
+
+  // const saveBlock = async () => {
+  //   try {
+  //     const res = await fetch('http://localhost:5000/api/block', {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ blockName, blockTypes }),
+  //     });
+
+  //     const data = await res.json();
+  //     if (res.ok) {
+  //       setMessage('Block saved successfully!');
+  //       clearForm();
+  //     } else {
+  //       alert(data.message || 'Failed to save block');
+  //     }
+  //   } catch (err) {
+  //     alert('Server error');
+  //   }
+  // };
+
   const clearForm = () => {
-    setBlockName('');
-    setBlockTypes([]);
-    setMessage('');
-  };
+  setBlockName('');
+  setBlockTypes([]);
+  // Do NOT clear message here
+};
 
-  const saveBlock = async () => {
-    try {
-      const res = await fetch('http://localhost:5000/api/block', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ blockName, blockTypes }),
-      });
+const saveBlock = async () => {
+  try {
+    const res = await fetch('http://localhost:5000/api/block', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ blockName, blockTypes }),
+    });
 
-      const data = await res.json();
-      if (res.ok) {
-        setMessage('Block saved successfully!');
-        clearForm();
-      } else {
-        alert(data.message || 'Failed to save block');
-      }
-    } catch (err) {
-      alert('Server error');
+    const data = await res.json();
+    if (res.ok) {
+      setMessage('Block saved successfully!');
+      clearForm();
+
+      // Optional: hide message after 3 seconds
+      setTimeout(() => setMessage(''), 3000);
+    } else {
+      alert(data.message || 'Failed to save block');
     }
-  };
+  } catch (err) {
+    alert('Server error');
+  }
+};
+
 
   useEffect(() => {
     const handleClickOutside = (event) => {

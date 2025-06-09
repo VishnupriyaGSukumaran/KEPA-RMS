@@ -8,7 +8,7 @@ const SuperAdminDashboard = () => {
 
   const cardData = [
     { title: "Create User", desc: "Create Admin and Block Heads", path: "/superadmin/create-user" },
-    { title: "Design Block", desc: "Maintain and Allocate Rooms for Blocks", path: "/superadmin/design-block" },
+    { title: "Design Block", desc: "Maintain and Allocate Rooms for Blocks", path: "/superadmin/add-block" },
     { title: "Course", desc: "Add & Modify Police Training Courses", path: "/superadmin/create-course" },
     { title: "Display Block", desc: "Showcase all details of Admins and Block Info Modules", path: "/superadmin/display-block" },
     { title: "Generate Report", desc: "View, Download, and Print usage and allocation", path: "/superadmin/generate-report" },

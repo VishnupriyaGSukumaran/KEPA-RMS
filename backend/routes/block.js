@@ -38,4 +38,20 @@ router.get('/', async (req, res) => {
     res.status(500).json({ message: 'Server error. Could not retrieve blocks.' });
   }
 });
+
+// DELETE /api/block/:id - Delete a block by ID
+router.delete('/:id', async (req, res) => {
+  try {
+    const block = await Block.findByIdAndDelete(req.params.id);
+    if (!block) {
+      return res.status(404).json({ message: 'Block not found' });
+    }
+    res.json({ message: 'Block deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting block:', error);
+    res.status(500).json({ message: 'Failed to delete block' });
+  }
+});
+
+
 module.exports = router;
