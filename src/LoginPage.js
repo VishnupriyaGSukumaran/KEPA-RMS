@@ -32,7 +32,7 @@ const Login = () => {
   } else if (role === 'blockhead') {
     if (data.assignedBlock) {
       // redirect to block-specific dashboard
-      navigate(`/blockhead/dashboard/:blockName/${data.assignedBlock}`);
+      navigate(`/blochead/dashboard/:blockname${data.assignedBlock}`);
     } else {
       alert('No block assigned to this Block Head.');
     }
@@ -50,16 +50,20 @@ const Login = () => {
   };
 
   return (
-    <div className="login-page">
-      <header className="login-header">
-        <img src="/logo.png" alt="Kerala Police Logo" className="logo" />
-        <div className="title-group">
+   <div className="create-user-container">
+      <header className="top-header">
+        <div className="logo-title">
+          <img src="/logo.png" alt="Kerala Police" className="logo" />
           <div>
-            <div className="title-section">RMS</div>
-            <div className="subtitle-section">Kerala Police Academy</div>
+            <div className="rams">RAMS</div>
+            <div className="subheading">Kerala Police</div>
           </div>
         </div>
-        <button className="home-button" onClick={() => navigate(-1)}>Home</button>
+       
+        <div className="top-right">
+          <button onClick={() => navigate('/')}>Home</button>
+          
+        </div>
       </header>
 
       <h2 className="login-title">LOGIN</h2>
@@ -67,7 +71,7 @@ const Login = () => {
       <div className="login-form">
         <input
           type="text"
-          placeholder="pen"
+          placeholder="PEN"
           value={pen}
           onChange={(e) => setPen(e.target.value)}
           className="input-box"
@@ -81,7 +85,7 @@ const Login = () => {
         />
 
         <div className="button-group">
-          <button onClick={() => navigate(-1)} className="back-button">BACK</button>
+          <button onClick={() => navigate()} className="back-button">BACK</button>
           <button onClick={handleLogin} className="signin-button">SIGN IN</button>
         </div>
       </div>
