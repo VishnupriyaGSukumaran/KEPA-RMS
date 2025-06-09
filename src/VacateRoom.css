@@ -1,0 +1,137 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+.vacate-page {
+  background: #f7f7f7;
+  min-height: 100vh;
+}
+
+/* Navbar */
+.vacate-navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #00009a;
+  color: white;
+  padding: 10px 30px;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  width: 40px;
+  height: 40px;
+  margin-right: 10px;
+}
+
+.nav-left h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.nav-left p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.nav-right a {
+  color: white;
+  margin-left: 20px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Main Form Container - ENLARGED */
+.vacate-container {
+  background: white;
+  max-width: 90%;
+  margin: 40px auto;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.vacate-container h2 {
+  margin-bottom: 25px;
+  font-size: 24px;
+  color: #222;
+  text-align: center;
+}
+
+/* Form Grid */
+.vacate-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+input,
+select {
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+/* Buttons */
+.button-group {
+  grid-column: span 2;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 35px;
+}
+
+.blue-btn {
+  background-color: #007bff;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  border: 1px solid #ccc;
+  padding: 10px 20px;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+}
+
+.red-btn {
+  background-color: #cc0000;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+  .vacate-form {
+    grid-template-columns: 1fr;
+  }
+
+  .button-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+}

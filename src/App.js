@@ -8,6 +8,12 @@ import DesignBlock from './system_adm/DesignBlock';
 import CreateCourse from './system_adm/CreateCourse';
 import DisplayBlock from './system_adm/DisplayBlock';
 import GenerateReport from './system_adm/GenerateReport';
+import BlockHeadDashboard from './BlockHeadDashboard';
+import AllocateRoom from './AllocateRoom';
+import AllocationForm from './AllocationForm';
+import VacateRoom from './VacateRoom';
+import PaymentReceipt from './PaymentReceipt'; // You should create this page
+import FinalVacate from './FinalVacate';    
 
 const App = () => {
   return (
@@ -21,6 +27,15 @@ const App = () => {
         <Route path="/superadmin/create-course" element={<CreateCourse />} />
         <Route path="/superadmin/display-block" element={<DisplayBlock />} />
         <Route path="/superadmin/generate-report" element={<GenerateReport />} />
+        <Route path="/BlockHeadDashboard" element={<BlockHeadDashboard />} />
+        <Route path="/AllocateRoom" element={<AllocateRoom />} />
+        <Route path="/allocate-form" element={<AllocationForm />} />
+        <Route path="/VacateRoom" element={<VacateRoom />} />
+        <Route path="/payment-receipt" element={<PaymentReceipt />} />
+        <Route path="/final-vacate" element={<FinalVacate />} />
+      
+
+
       </Routes>
     </Router>
   );
