@@ -3,16 +3,19 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import WelcomePage from './WelcomePage';
 import Login from './LoginPage';
 import SuperAdminDashboard from './system_adm/SuperAdminDashboard';
-import CreateUser from './system_adm/CreateUser';
+import  CreateUser  from './system_adm/CreateUser';
 import DesignBlock from './system_adm/DesignBlock';
 import CreateCourse from './system_adm/CreateCourse';
 import DisplayBlock from './system_adm/DisplayBlock';
 import GenerateReport from './system_adm/GenerateReport';
+import BlockHeadDashboard from './BlockHeadDashboard';
+// or the correct relative path where your component is
 
 const App = () => {
   return (
     <Router>
       <Routes>
+        
         <Route path="/" element={<WelcomePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
@@ -21,6 +24,8 @@ const App = () => {
         <Route path="/superadmin/create-course" element={<CreateCourse />} />
         <Route path="/superadmin/display-block" element={<DisplayBlock />} />
         <Route path="/superadmin/generate-report" element={<GenerateReport />} />
+        <Route path="/blockhead/dashboard/:blockName" element={<BlockHeadDashboard />} />
+
       </Routes>
     </Router>
   );

@@ -1,31 +1,37 @@
 const express = require('express');
-const router = express.Router();
+const router = express.Router(); // <-- this line is missing
+const SystemAdmin = require('../models/SystemAdmin');
+const Account = require('../models/Account');
 const bcrypt = require('bcryptjs');
-const User = require('../models/User'); // Adjust path if needed
-
-// POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { pen, password } = req.body;
 
   try {
-    const user = await User.findOne({ pen });
+    // Try SystemAdmin collection first
+    let user = await SystemAdmin.findOne({ pen });
+    let role = 'superadmin';
+    let assignedBlock = null;
 
     if (!user) {
-      return res.status(401).json({ msg: 'Invalid pen' });
+      // Then try Account collection
+      user = await Account.findOne({ pen });
+      if (!user) {
+        return res.status(401).json({ msg: 'Invalid pen or user not found' });
+      }
+      role = user.userType;
+      assignedBlock = user.assignedBlock; // <-- get the block
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-
     if (!isMatch) {
       return res.status(401).json({ msg: 'Invalid password' });
     }
 
-    // Success: send back user info (you can also send a JWT token here)
     return res.json({
       msg: 'Login successful',
       pen: user.pen,
-      role: user.role,
-      // token: '...optional if using JWT'
+      role: role,
+      assignedBlock: assignedBlock || null,
     });
 
   } catch (err) {
@@ -33,5 +39,7 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ msg: 'Server error' });
   }
 });
+
+
 
 module.exports = router;

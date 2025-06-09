@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
   pen: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['admin', 'superadmin', 'blockhead'], required: true }
+  userType: { type: String, default:'superadmin', required: true }
 });
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model('superadmin', userSchema);

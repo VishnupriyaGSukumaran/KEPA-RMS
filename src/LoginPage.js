@@ -19,21 +19,27 @@ const Login = () => {
 
       const data = await response.json();
 
-      if (response.ok) {
-        // Optionally store user info/token
-        localStorage.setItem('pen', data.pen);
-        localStorage.setItem('role', data.role);
+     if (response.ok) {
+  localStorage.setItem('pen', data.pen);
+  localStorage.setItem('role', data.role);
 
-        // Redirect user based on role
-        if (data.role === 'admin') {
-          navigate('/admin/dashboard');
-        } else if (data.role === 'superadmin') {
-          navigate('/superadmin/dashboard');
-        } else if (data.role === 'blockhead') {
-          navigate('/blockhead/dashboard');
-        } else {
-          alert('Unknown user role');
-        }
+  const role = data.role?.toLowerCase();
+
+  if (role === 'admin') {
+    navigate('/admin/dashboard');
+  } else if (role === 'superadmin') {
+    navigate('/superadmin/dashboard');
+  } else if (role === 'blockhead') {
+    if (data.assignedBlock) {
+      // redirect to block-specific dashboard
+      navigate(`/blockhead/dashboard/:blockName/${data.assignedBlock}`);
+    } else {
+      alert('No block assigned to this Block Head.');
+    }
+  } else {
+    alert('Unknown user role: ' + role);
+  }
+
       } else {
         alert(data.msg || 'Invalid credentials');
       }
