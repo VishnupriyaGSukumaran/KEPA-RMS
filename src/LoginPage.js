@@ -85,7 +85,7 @@ const Login = () => {
         />
 
         <div className="button-group">
-          <button onClick={() => navigate()} className="back-button">BACK</button>
+          <button onClick={() => navigate('/')} className="back-button">BACK</button>
           <button onClick={handleLogin} className="signin-button">SIGN IN</button>
         </div>
       </div>
