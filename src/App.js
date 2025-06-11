@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import WelcomePage from './WelcomePage';
 import Login from './LoginPage';
 import SuperAdminDashboard from './system_adm/SuperAdminDashboard';
-import CreateUser from './system_adm/CreateUser';
+import  CreateUser  from './system_adm/CreateUser';
 import DesignBlock from './system_adm/DesignBlock';
 import CreateCourse from './system_adm/CreateCourse';
 import DisplayBlock from './system_adm/DisplayBlock';
@@ -12,13 +12,15 @@ import BlockHeadDashboard from './BlockHeadDashboard';
 import AllocateRoom from './AllocateRoom';
 import AllocationForm from './AllocationForm';
 import VacateRoom from './VacateRoom';
-import PaymentReceipt from './PaymentReceipt'; // You should create this page
-import FinalVacate from './FinalVacate';    
+// import PaymentReceipt from './PaymentReceipt'; // You should create this page
+import FinalVacate from './FinalVacate';  
+// or the correct relative path where your component is
 
 const App = () => {
   return (
     <Router>
       <Routes>
+        
         <Route path="/" element={<WelcomePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
@@ -31,9 +33,10 @@ const App = () => {
         <Route path="/AllocateRoom" element={<AllocateRoom />} />
         <Route path="/allocate-form" element={<AllocationForm />} />
         <Route path="/VacateRoom" element={<VacateRoom />} />
-        <Route path="/payment-receipt" element={<PaymentReceipt />} />
-        <Route path="/final-vacate" element={<FinalVacate />} />
+        {/* <Route path="/payment-receipt" element={<PaymentReceipt />} /> */}
+        <Route path="/FinalVacate" element={<FinalVacate />} />
       
+
 
 
       </Routes>
