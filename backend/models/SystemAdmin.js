@@ -1,9 +1,24 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
-const userSchema = new mongoose.Schema({
+const systemAdminSchema = new mongoose.Schema({
   pen: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  userType: { type: String, default:'superadmin', required: true }
+  role: { type: String, default: 'superadmin', required: true },
+ 
+}, {
+  collection: 'superadmin' // 
 });
 
-module.exports = mongoose.model('superadmin', userSchema);
+systemAdminSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) return next();
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+module.exports = mongoose.model('SystemAdmin', systemAdminSchema);
