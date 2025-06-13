@@ -31,6 +31,7 @@ function BlockHeads() {
   const fetchBlockHeads = async () => {
     try {
       const res = await axios.get('http://localhost:5000/api/blockheads');
+      console.log("Fetched block heads:", res.data); 
       setBlockHeads(res.data);
     } catch (error) {
       console.error('Error fetching block heads:', error);
@@ -145,7 +146,7 @@ function BlockHeads() {
           <Button
             variant="text"
             size="small"
-            onClick={() => handleDelete(params.row._id)}
+            onClick={() => handleDelete(params.row.id)}
             style={{ color: '#d32f2f' }}
           >
             Remove
@@ -156,9 +157,14 @@ function BlockHeads() {
   ];
 
   // Prepare rows (make sure each row has an `id` field)
-  const rows = blockHeads.map((head) => ({
+  const rows = blockHeads.map((head, index) => ({
     id: head._id,
-    ...head,
+    name: head.name,
+    penNumber: head.penNumber,
+    designation: head.designation,
+    contact: head.contact,
+    email: head.email || '-',
+    block: head.block,
   }));
 
   const handleDelete = async (id) => {
