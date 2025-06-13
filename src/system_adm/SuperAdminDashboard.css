@@ -97,13 +97,13 @@
   margin-bottom: 15px;
   transition: all 0.2s ease;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-  
 }
+
 .card-button:hover {
   background-color: #0000cc;
   box-shadow: 0 7px 20px rgba(0, 0, 0, 0.3);
 }
-/* Click animation (active state) */
+
 .card-button:active {
   transform: scale(0.95);
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
@@ -127,4 +127,16 @@
   }
 }
 
+/* ✅✅ NEW: Notification bar (safe addition, no layout break) */
+.notification-area {
+  background-color: #fff8e1;
+  padding: 10px 30px;
+  border-bottom: 1px solid #ffd54f;
+  color: #000;
+}
 
+.notification-text {
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 5px;
+}
