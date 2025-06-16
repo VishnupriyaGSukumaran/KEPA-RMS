@@ -22,5 +22,26 @@ router.put('/mark-all-read', async (req, res) => {
     res.status(500).json({ message: 'Error marking as read' });
   }
 });
+// DELETE: Clear all notifications
+router.delete('/clear-all', async (req, res) => {
+  try {
+    await Notification.deleteMany({});
+    res.json({ message: 'All notifications cleared' });
+  } catch (error) {
+    console.error('Failed to clear notifications:', error);
+    res.status(500).json({ message: 'Failed to clear notifications' });
+  }
+});
+// POST route to create a new notification
+router.post('/', async (req, res) => {
+  try {
+    const { message } = req.body;
+    const newNotification = new Notification({ message });
+    await newNotification.save();
+    res.status(201).json({ message: 'Notification sent to SuperAdmin' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to send notification' });
+  }
+});
 
 module.exports = router;

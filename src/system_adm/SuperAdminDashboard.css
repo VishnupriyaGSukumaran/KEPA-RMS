@@ -144,3 +144,55 @@
 }
 
 
+.custom-card {
+  position: relative;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: 90px; /* Adjust this if needed */
+  left: 0;
+  width: 280px;
+  background: white;
+  border: 1px solid #ddd;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  padding: 10px;
+  z-index: 1000;
+}
+
+.notification-dropdown ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.notification-dropdown li {
+  padding: 8px;
+  font-size: 14px;
+  border-bottom: 1px solid #eee;
+}
+
+.notification-dropdown li:last-child {
+  border-bottom: none;
+}
+
+.clear-btn {
+  margin-top: 10px;
+  width: 100%;
+  background-color: #cc0000;
+  color: white;
+  border: none;
+  padding: 6px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.empty-msg {
+  text-align: center;
+  font-style: italic;
+  color: #777;
+}

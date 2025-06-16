@@ -14,6 +14,7 @@
   flex-direction: column;
   padding: 20px;
   margin-top: 20px;
+  
 }
 
 .logo {
@@ -22,20 +23,21 @@
   margin-bottom: 20px;
 }
 .logo img {
-  width: 50px;
+  width: 65px;
   margin-right: 10px;
 }
 .rams-text {
   font-weight: bold;
 }
 .rams-text span {
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .user-info {
   display: flex;
   align-items: center;
   margin-bottom: 30px;
+  margin-top: 25px;
 }
 .avatar {
   width: 40px;
@@ -52,15 +54,16 @@
 
 .nav-heading {
   margin: 10px 0 5px;
-  font-size: 12px;
+  font-size: 15px;
   color: #ccc;
+  margin-left: 10px;
 }
 .nav-item {
   background: none;
   border: none;
   color: white;
   text-align: left;
-  padding: 10px 0;
+  padding: 20px 0;
   font-size: 15px;
   display: flex;
   align-items: center;
@@ -84,6 +87,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  font-size: 20px;
 }
 
 /* Main Content */

@@ -197,6 +197,7 @@ function BlockHeads() {
           pageSize={8}
           rowsPerPageOptions={[8, 16, 32]}
           disableRowSelectionOnClick
+          showToolbar
         />
       </div>
 

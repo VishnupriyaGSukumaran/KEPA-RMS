@@ -86,26 +86,33 @@ const SuperAdminDashboard = () => {
             </button>
             <p className="card-desc">Notification from Admin</p>
 
-            {showNotifications && (
-              <ul style={{
-                marginTop: '10px',
-                background: '#f8f8f8',
-                padding: '10px',
-                borderRadius: '8px',
-                maxHeight: '150px',
-                overflowY: 'auto'
-              }}>
-                {notifications.length === 0 ? (
-                  <li>No notifications</li>
-                ) : (
-                  notifications.map((note, index) => (
-                    <li key={index} style={{ fontSize: '14px', marginBottom: '6px' }}>
-                      🔔 {note.message}
-                    </li>
-                  ))
-                )}
-              </ul>
-            )}
+      {showNotifications && (
+  <div className="notification-dropdown">
+    <ul>
+      {notifications.length === 0 ? (
+        <li className="empty-msg">No notifications</li>
+      ) : (
+        notifications.map((note, index) => (
+          <li key={index}>🔔 {note.message}</li>
+        ))
+      )}
+    </ul>
+
+    {notifications.length > 0 && (
+      <button className="clear-btn" onClick={async () => {
+        try {
+          await axios.delete('http://localhost:5000/api/notifications/clear-all');
+          await fetchNotifications(); // refresh after delete
+        } catch (err) {
+          console.error('Failed to clear notifications:', err);
+        }
+      }}>
+        Clear All
+      </button>
+    )}
+  </div>
+)}
+
           </div>
         </div>
       </main>

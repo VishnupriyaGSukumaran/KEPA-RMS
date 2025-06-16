@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './AdminDashboard.css';
 import {
   FaHome,
@@ -8,20 +8,48 @@ import {
   FaBell,
   FaSignOutAlt,
   FaChartBar,
-  FaCubes
+  FaCubes,
+  FaBook
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 function AdminDashboard() {
-  const navigate = useNavigate(); // 👈 Step 1: useNavigate hook
+  const navigate = useNavigate();
+
+  // Modal state
+  const [showModal, setShowModal] = useState(false);
+  const [courseTitle, setCourseTitle] = useState('');
+  const [courseDesc, setCourseDesc] = useState('');
+
+  // Submit course suggestion to SuperAdmin
+  const handleCourseSubmit = async () => {
+    if (!courseTitle || !courseDesc) {
+      alert('Please enter course title and description.');
+      return;
+    }
+
+    const message = `New course suggestion: "${courseTitle}" - ${courseDesc}`;
+
+    try {
+  await axios.post('http://localhost:5000/api/notifications', { message });
+      alert('Course suggestion sent to SuperAdmin.');
+      setCourseTitle('');
+      setCourseDesc('');
+      setShowModal(false);
+    } catch (error) {
+      console.error('Failed to send course suggestion:', error);
+      alert('Failed to notify SuperAdmin.');
+    }
+  };
 
   return (
     <div className="admin-dashboard">
-      {/* Left Sidebar */}
+      {/* Sidebar */}
       <div className="sidebar">
         <div className="logo">
           <img src="/logo.png" alt="logo" />
-          <div className="rams-text">RAMS<br /><span>Kerala Police</span></div>
+          <div className="rams-text">RMS<br /><span>Kerala Police</span></div>
         </div>
         <div className="user-info">
           <img className="avatar" src="/avatar.png" alt="user" />
@@ -33,28 +61,36 @@ function AdminDashboard() {
         <div className="nav-section">
           <button className="nav-item active"><FaTh /> Dashboard</button>
           <div className="nav-heading">MANAGEMENT</div>
-          <button className="nav-item"><FaCubes /> Blocks & Rooms</button>
-
-          {/* ✅ Step 2: Add navigate to this button */}
           <button className="nav-item" onClick={() => navigate('/admin/blockheads')}>
             <FaUsers /> Block heads
           </button>
-
           <button className="nav-item"><FaClipboardList /> Allocations</button>
+          <button className="nav-item"><FaCubes /> Blocks & Rooms</button>
+           <button className="nav-item" onClick={() => setShowModal(true)}>
+            <FaBook /> Suggest Course
+          </button>
+          
           <button className="nav-item"><FaChartBar /> Reports</button>
           <button className="nav-item"><FaBell /> Notifications</button>
+
+         
         </div>
-        <button className="logout"><FaSignOutAlt /> Logout</button>
+
+        <button className="logout" onClick={() => navigate('/login')}>
+          <FaSignOutAlt /> Logout
+        </button>
       </div>
 
       {/* Main Content */}
       <div className="main-content">
         <div className="top-bar">
           <h2>ADMIN</h2>
-          <div className="home-btn"><FaHome /> Home</div>
+          <div className="home-btn" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+            <FaHome /> Home
+          </div>
         </div>
 
-        {/* Dashboard Stats */}
+        {/* Stats */}
         <div className="stats-grid">
           <div className="card"><div>Total Blocks</div><strong>12</strong></div>
           <div className="card"><div>Allocated Rooms</div><strong>84</strong></div>
@@ -97,8 +133,55 @@ function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Modal for Suggest Course */}
+      {showModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 999
+        }}>
+          <div style={{
+            background: '#fff',
+            padding: '20px',
+            borderRadius: '10px',
+            width: '90%',
+            maxWidth: '400px'
+            
+          }}>
+            <h3>Suggest New Course</h3>
+            <input
+              type="text"
+              placeholder="Course Title"
+              value={courseTitle}
+              onChange={e => setCourseTitle(e.target.value)}
+              style={{ width: '100%', marginBottom: '10px', padding: '8px', }}
+            />
+            <textarea
+              placeholder="Course Description"
+              value={courseDesc}
+              onChange={e => setCourseDesc(e.target.value)}
+              rows={4}
+              style={{ width: '100%', marginBottom: '10px', padding: '8px' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowModal(false)}
+                style={{ marginRight: '10px', padding: '6px 12px' }}
+              >Cancel</button>
+              <button
+                onClick={handleCourseSubmit}
+                style={{ backgroundColor: '#007bff', color: 'white', padding: '6px 12px' }}
+              >Send</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 
 export default AdminDashboard;
