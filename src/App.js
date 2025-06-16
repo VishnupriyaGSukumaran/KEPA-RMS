@@ -10,6 +10,8 @@ import DisplayBlock from './system_adm/DisplayBlock';
 import GenerateReport from './system_adm/GenerateReport';
 import BlockHeadDashboard from './BlockHeadDashboard';
 import RemoveBlock from './system_adm/RemoveBlock';
+import Modify from './system_adm/Modify';
+ import CreateRooms from './system_adm/CreateRooms';
 // or the correct relative path where your component is
 
 const App = () => {
@@ -27,6 +29,8 @@ const App = () => {
         <Route path="/superadmin/generate-report" element={<GenerateReport />} />
         <Route path="/blockhead/dashboard/:blockName" element={<BlockHeadDashboard />} />
         <Route path="/superadmin/remove-block" element={<RemoveBlock />} />
+        <Route path="/superadmin/modify-block" element={<Modify />} />
+        <Route path="/superadmin/create-rooms" element={<CreateRooms />} /> 
 
 
       </Routes>

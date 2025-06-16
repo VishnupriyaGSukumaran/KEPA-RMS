@@ -6,6 +6,9 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const createUserRoutes = require('./routes/createauth');
 const blockRoutes = require('./routes/block'); // ✅ this will now be correct
+const roomRoutes = require('./routes/room');
+
+
 
 
 const app = express();
@@ -19,6 +22,6 @@ mongoose.connect(process.env.MONGO_URI)
 app.use('/api/createauth', createUserRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/block', blockRoutes); // ✅ Use consistent route path
-
+app.use('/api/room', roomRoutes);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
