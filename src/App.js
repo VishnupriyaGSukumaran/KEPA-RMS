@@ -19,13 +19,6 @@ import BlockHeads from './Admin/BlockHeads';
 
 // or the correct relative path where your component is
 
-
-
-
-
-
-
-
 const App = () => {
   return (
     <Router>
@@ -43,7 +36,6 @@ const App = () => {
         <Route path="/superadmin/remove-block" element={<RemoveBlock />} />
         <Route path="/superadmin/modify-block" element={<Modify />} />
         <Route path="/superadmin/create-rooms" element={<CreateRooms />} /> 
-       
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/blockheads" element={<BlockHeads />} />
         

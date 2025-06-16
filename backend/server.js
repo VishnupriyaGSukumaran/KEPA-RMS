@@ -13,8 +13,6 @@ const courseRoutes = require('./routes/courseRoutes');
 const roomRoutes = require('./routes/room');
 
 
-
-
 const app = express();
 app.use(cors());
 app.use(express.json());
