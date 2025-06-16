@@ -6,19 +6,40 @@ import './SuperAdminDashboard.css';
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  // ✅ Fetch notifications from backend
+  const fetchNotifications = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/notifications');
+      setNotifications(res.data);
+    } catch (err) {
+      console.error('Failed to load notifications:', err);
+    }
+  };
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const res = await axios.get('/api/notifications');
-        setNotifications(res.data);
-      } catch (err) {
-        console.error('Error fetching notifications:', err);
-      }
-    };
-
-    fetchNotifications();
+    fetchNotifications(); // Load on mount
   }, []);
+
+  // ✅ Count only unread notifications
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  // ✅ Toggle and mark all as read
+  const handleToggleNotifications = async () => {
+    const isOpening = !showNotifications;
+    setShowNotifications(isOpening);
+
+    if (isOpening && unreadCount > 0) {
+      try {
+        // Mark all as read
+        await axios.put('http://localhost:5000/api/notifications/mark-all-read');
+        await fetchNotifications(); // Refresh the list to update count
+      } catch (error) {
+        console.error('Failed to mark notifications as read:', error);
+      }
+    }
+  };
 
   const cardData = [
     { title: "Create User", desc: "Create Admin and Block Heads", path: "/superadmin/create-user" },
@@ -30,7 +51,7 @@ const SuperAdminDashboard = () => {
 
   return (
     <div className="dashboard-container">
-      {/* Top blue bar */}
+      {/* Top bar */}
       <header className="dashboard-header">
         <div className="left-section">
           <img src="/logo.png" alt="Kerala Police Logo" className="logo" />
@@ -39,27 +60,14 @@ const SuperAdminDashboard = () => {
             <div className="subtitle">Kerala Police Academy</div>
           </div>
         </div>
-
         <h2 className="center-title">System Admin</h2>
-
         <div className="nav-buttons">
           <button onClick={() => navigate('/')} className="nav-button">Home</button>
           <button onClick={() => navigate('/login')} className="nav-button">Logout</button>
         </div>
       </header>
 
-      {/* Notifications bar below header */}
-      <div className="notification-area">
-        {notifications.length === 0 ? (
-          <div className="notification-text">No new notifications</div>
-        ) : (
-          notifications.map((note, index) => (
-            <div key={index} className="notification-text">📢 {note.message}</div>
-          ))
-        )}
-      </div>
-
-      {/* Main card area */}
+      {/* Main cards */}
       <main className="dashboard-main">
         <div className="card-grid">
           {cardData.map(({ title, desc, path }) => (
@@ -70,6 +78,35 @@ const SuperAdminDashboard = () => {
               <p className="card-desc">{desc}</p>
             </div>
           ))}
+
+          {/* 🔔 Notifications Card */}
+          <div className="custom-card">
+            <button className="card-button" onClick={handleToggleNotifications}>
+              Notifications {unreadCount > 0 && <span style={{ color: 'red' }}>({unreadCount})</span>}
+            </button>
+            <p className="card-desc">Notification from Admin</p>
+
+            {showNotifications && (
+              <ul style={{
+                marginTop: '10px',
+                background: '#f8f8f8',
+                padding: '10px',
+                borderRadius: '8px',
+                maxHeight: '150px',
+                overflowY: 'auto'
+              }}>
+                {notifications.length === 0 ? (
+                  <li>No notifications</li>
+                ) : (
+                  notifications.map((note, index) => (
+                    <li key={index} style={{ fontSize: '14px', marginBottom: '6px' }}>
+                      🔔 {note.message}
+                    </li>
+                  ))
+                )}
+              </ul>
+            )}
+          </div>
         </div>
       </main>
     </div>

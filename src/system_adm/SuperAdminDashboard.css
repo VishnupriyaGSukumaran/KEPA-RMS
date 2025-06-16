@@ -127,16 +127,20 @@
   }
 }
 
-/* ✅✅ NEW: Notification bar (safe addition, no layout break) */
-.notification-area {
-  background-color: #fff8e1;
-  padding: 10px 30px;
-  border-bottom: 1px solid #ffd54f;
-  color: #000;
+.dashboard-container {
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+.notification-box {
+  margin-top: 20px;
+  background-color: #f9f9f9;
+  padding: 15px 20px;
+  border-radius: 8px;
+  border-left: 5px solid #000080;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 15px;
 }
 
-.notification-text {
-  font-size: 14px;
-  color: #333;
-  margin-bottom: 5px;
-}
+
