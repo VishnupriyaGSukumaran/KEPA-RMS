@@ -157,7 +157,7 @@ function AdminDashboard() {
               placeholder="Course Title"
               value={courseTitle}
               onChange={e => setCourseTitle(e.target.value)}
-              style={{ width: '100%', marginBottom: '10px', padding: '8px', }}
+              style={{ width: '100%', marginBottom: '10px', padding: '8px' }}
             />
             <textarea
               placeholder="Course Description"
