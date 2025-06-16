@@ -1,96 +1,192 @@
+// ======== DesignBlock.js (Frontend) =========
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './DesignBlock.css';
+import './AddBlock.css';
 
 const DesignBlock = () => {
   const navigate = useNavigate();
   const [blockName, setBlockName] = useState('');
   const [blockTypes, setBlockTypes] = useState([]);
+  const [roomCounts, setRoomCounts] = useState({});
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [message, setMessage] = useState('');
-  const dropdownRef = useRef(null);
+  const [modalMessage, setModalMessage] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [errors, setErrors] = useState({ blockName: '', roomCounts: {} });
+  const [roomsCreated, setRoomsCreated] = useState(false);
 
-  const options = ['Suit Room', 'Room', 'Dormitory', 'Barrack', ];
+  const dropdownRef = useRef(null);
+  const options = ['Suite Room', 'Room', 'Dormitory', 'Barrack'];
+
+  useEffect(() => {
+    sessionStorage.removeItem('roomsCreated'); // clear on initial load
+  }, []);
+
+  useEffect(() => {
+    const created = sessionStorage.getItem('roomsCreated');
+    setRoomsCreated(created === 'true');
+  }, []);
 
   const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
 
   const handleCheckboxChange = (type) => {
     if (blockTypes.includes(type)) {
-      setBlockTypes(blockTypes.filter((t) => t !== type));
+      setBlockTypes(blockTypes.filter(t => t !== type));
+      const updatedCounts = { ...roomCounts };
+      delete updatedCounts[type];
+      setRoomCounts(updatedCounts);
     } else {
       setBlockTypes([...blockTypes, type]);
+      setRoomCounts({ ...roomCounts, [type]: '' });
     }
   };
 
-  // const clearForm = () => {
-  //   setBlockName('');
-  //   setBlockTypes([]);
-  //   setMessage('');
-  // };
-
-  // const saveBlock = async () => {
-  //   try {
-  //     const res = await fetch('http://localhost:5000/api/block', {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({ blockName, blockTypes }),
-  //     });
-
-  //     const data = await res.json();
-  //     if (res.ok) {
-  //       setMessage('Block saved successfully!');
-  //       clearForm();
-  //     } else {
-  //       alert(data.message || 'Failed to save block');
-  //     }
-  //   } catch (err) {
-  //     alert('Server error');
-  //   }
-  // };
+  const handleRoomCountChange = (type, value) => {
+    setRoomCounts(prev => ({ ...prev, [type]: parseInt(value) || '' }));
+  };
 
   const clearForm = () => {
-  setBlockName('');
-  setBlockTypes([]);
-  // Do NOT clear message here
-};
+    setBlockName('');
+    setBlockTypes([]);
+    setRoomCounts({});
+    setErrors({ blockName: '', roomCounts: {} });
+    sessionStorage.removeItem('roomsCreated');
+    sessionStorage.removeItem('createdRooms');
+    setRoomsCreated(false);
+  };
 
-const saveBlock = async () => {
-  try {
-    const res = await fetch('http://localhost:5000/api/block', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ blockName, blockTypes }),
-    });
+  const toTitleCase = (input) => {
+    return input
+      .toLowerCase()
+      .replace(/\b\w/g, char => char.toUpperCase())
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
 
-    const data = await res.json();
-    if (res.ok) {
-      setMessage('Block saved successfully!');
-      clearForm();
-
-      // Optional: hide message after 3 seconds
-      setTimeout(() => setMessage(''), 3000);
-    } else {
-      alert(data.message || 'Failed to save block');
+  const saveBlock = async () => {
+    if (!roomsCreated) {
+      setModalMessage('⚠️ Please complete room creation before saving the block.');
+      setShowModal(true);
+      return;
     }
-  } catch (err) {
-    alert('Server error');
-  }
-};
 
+    let hasError = false;
+    const newErrors = { blockName: '', roomCounts: {} };
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setDropdownOpen(false);
+    if (!blockName.trim()) {
+      newErrors.blockName = 'Block name is required.';
+      hasError = true;
+    } else if (!/^[a-zA-Z\s]+$/.test(blockName)) {
+      newErrors.blockName = 'Block name must contain only letters and spaces.';
+      hasError = true;
+    }
+
+    if (blockTypes.length === 0) {
+      setModalMessage('⚠️ Please select at least one block type.');
+      setShowModal(true);
+      return;
+    }
+
+    for (const type of blockTypes) {
+      const count = roomCounts[type];
+      if (count === '' || isNaN(count) || count < 0) {
+        newErrors.roomCounts[type] = 'Please enter a valid non-negative number.';
+        hasError = true;
       }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    }
+
+    if (hasError) {
+      setErrors(newErrors);
+      return;
+    }
+
+    let formattedBlockName = blockName.trim();
+    if (/^[A-Za-z]$/.test(formattedBlockName)) {
+      formattedBlockName = `${formattedBlockName} Block`;
+    }
+    formattedBlockName = toTitleCase(formattedBlockName);
+
+    // ✅ Get created room details from sessionStorage
+    const createdRooms = JSON.parse(sessionStorage.getItem('createdRooms')) || [];
+
+    if (!createdRooms || createdRooms.length === 0) {
+      setModalMessage('⚠️ No room details found. Please create rooms first.');
+      setShowModal(true);
+      return;
+    }
+
+    try {
+      const res = await fetch('http://localhost:5000/api/block', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          blockName: formattedBlockName,
+          blockTypes,
+          roomCounts,
+          createdRooms
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setModalMessage('✅ Block created successfully!');
+        setShowModal(true);
+        clearForm();
+      } else if (res.status === 409) {
+        setModalMessage(`⚠️ Block "${formattedBlockName}" already exists!`);
+        setShowModal(true);
+      } else {
+        setModalMessage(data.message || '❌ Failed to save block');
+        setShowModal(true);
+      }
+    } catch (err) {
+      setModalMessage('❌ Server error');
+      setShowModal(true);
+    }
+  };
+
+  const handleCreateRoom = async () => {
+    if (!blockName.trim()) {
+      setModalMessage("⚠️ Block name is required before proceeding.");
+      setShowModal(true);
+      return;
+    }
+
+    let formattedBlockName = blockName.trim();
+    if (/^[A-Za-z]$/.test(formattedBlockName)) {
+      formattedBlockName = `${formattedBlockName} Block`;
+    }
+    formattedBlockName = toTitleCase(formattedBlockName);
+
+    try {
+      const res = await fetch('http://localhost:5000/api/block');
+      const blocks = await res.json();
+
+      const exists = blocks.some(
+        b => toTitleCase(b.blockName) === formattedBlockName
+      );
+
+      if (exists) {
+        setModalMessage(`⚠️ Block "${formattedBlockName}" already exists!`);
+        setShowModal(true);
+        return;
+      }
+
+      // ✅ Store block details in sessionStorage
+      sessionStorage.setItem('blockData', JSON.stringify({
+        blockName: formattedBlockName,
+        blockTypes,
+        roomCounts
+      }));
+
+      navigate('/superadmin/create-rooms');
+    } catch (err) {
+      setModalMessage('❌ Failed to check for duplicate block');
+      setShowModal(true);
+    }
+  };
 
   return (
     <div className="block-container">
-      {/* Top Bar */}
       <div className="header">
         <div className="logo-area">
           <img src="/logo.png" alt="Logo" />
@@ -106,7 +202,6 @@ const saveBlock = async () => {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="tabs-container">
         <h2 className="tabs-title">Block Management</h2>
         <div className="tabs-row">
@@ -116,10 +211,9 @@ const saveBlock = async () => {
         </div>
       </div>
 
-      {/* Form */}
       <div className="form-area">
         <h3>➕ Add New Block</h3>
-        <p>Create a new block structure for the police academy</p>
+        <p>Create a new block and set room counts</p>
 
         <div className="form-grid">
           <input
@@ -128,13 +222,11 @@ const saveBlock = async () => {
             value={blockName}
             onChange={(e) => setBlockName(e.target.value)}
           />
+          {errors.blockName && <p className="error-text">{errors.blockName}</p>}
 
-          {/* Custom Dropdown with Checkboxes */}
           <div className="custom-dropdown" ref={dropdownRef}>
             <div className="dropdown-header" onClick={toggleDropdown}>
-              {blockTypes.length > 0
-                ? blockTypes.join(', ')
-                : 'Select Block Types'}
+              {blockTypes.length > 0 ? blockTypes.join(', ') : 'Select Block Types'}
               <span className="dropdown-arrow">{dropdownOpen ? '▲' : '▼'}</span>
             </div>
             {dropdownOpen && (
@@ -154,17 +246,47 @@ const saveBlock = async () => {
           </div>
         </div>
 
-        {/* Bottom Buttons */}
+        {blockTypes.length > 0 && (
+          <div className="form-grid room-count-grid">
+            {blockTypes.map((type) => (
+              <div key={type}>
+                <label>{type} Count</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={roomCounts[type] || ''}
+                  onChange={(e) => handleRoomCountChange(type, e.target.value)}
+                  placeholder={`Enter number of ${type}s`}
+                />
+                <span className="block-name-note">Block name is case-insensitive and must be unique.</span>
+                {errors.roomCounts[type] && <p className="error-text">{errors.roomCounts[type]}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {showModal && (
+          <div className="success-modal-overlay">
+            <div className="success-modal-box">
+              <p>{modalMessage}</p>
+              <button onClick={() => setShowModal(false)} className="success-button">OK</button>
+            </div>
+          </div>
+        )}
+
+        {blockTypes.length > 0 && Object.values(roomCounts).every(c => c !== '' && !isNaN(c)) && (
+          <div className="create-room-wrapper">
+            <button onClick={handleCreateRoom} className="create-room-btn">Create Room</button>
+          </div>
+        )}
+
         <div className="bottom-buttons">
           <button className="back-btn" onClick={() => navigate('/superadmin/dashboard')}>Back</button>
           <div className="right-buttons">
             <button onClick={clearForm} className="cancel-btn">Cancel</button>
-            <button onClick={saveBlock} className="save-btn">Save Block</button>
+           
           </div>
         </div>
-
-        {message && <p className="success">{message}</p>}
-        
       </div>
     </div>
   );

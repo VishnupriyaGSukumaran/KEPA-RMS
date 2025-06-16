@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './DesignBlock.css';
+import './RemoveBlock.css';
 
 const RemoveBlock = () => {
   const navigate = useNavigate();
