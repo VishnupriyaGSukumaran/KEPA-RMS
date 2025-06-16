@@ -12,8 +12,8 @@ const SuperAdminDashboard = () => {
     { title: "Course", desc: "Add & Modify Police Training Courses", path: "/superadmin/create-course" },
     { title: "Display Block", desc: "Showcase all details of Admins and Block Info Modules", path: "/superadmin/display-block" },
     { title: "Generate Report", desc: "View, Download, and Print usage and allocation", path: "/superadmin/generate-report" },
-  ];
-
+    { title: "Notifications", desc: "View system messages and alerts", path: "/superadmin/notifications" } // ✅ New card added
+];
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">

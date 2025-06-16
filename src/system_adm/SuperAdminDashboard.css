@@ -126,5 +126,10 @@
     grid-template-columns: repeat(1, 1fr);
   }
 }
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+}
 
 
