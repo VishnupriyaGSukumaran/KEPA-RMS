@@ -1,0 +1,164 @@
+.admin-dashboard {
+  display: flex;
+  font-family: 'Segoe UI', sans-serif;
+  height: 100vh;
+  background-color: #f7f7f7;
+}
+
+/* Sidebar */
+.sidebar {
+  background-color: #14008a;
+  width: 250px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  margin-top: 20px;
+  
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.logo img {
+  width: 65px;
+  margin-right: 10px;
+}
+.rams-text {
+  font-weight: bold;
+}
+.rams-text span {
+  font-size: 14px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 30px;
+  margin-top: 25px;
+}
+.avatar {
+  width: 40px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+.username {
+  font-weight: bold;
+}
+.email {
+  font-size: 12px;
+  color: #ccc;
+}
+
+.nav-heading {
+  margin: 10px 0 5px;
+  font-size: 15px;
+  color: #ccc;
+  margin-left: 10px;
+}
+.nav-item {
+  background: none;
+  border: none;
+  color: white;
+  text-align: left;
+  padding: 20px 0;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  cursor: pointer;
+}
+.nav-item:hover, .nav-item.active {
+  background-color: #2a1edb;
+  border-radius: 5px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.logout {
+  margin-top: auto;
+  background: none;
+  border: none;
+  color: #ffcccc;
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  padding: 0;
+  overflow-y: auto;
+}
+
+/* Top horizontal bar */
+.top-bar {
+  background-color: #14008a;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  margin-left: 5px;
+}
+
+.top-bar-title {
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Stats Cards */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  padding: 20px;
+}
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Notifications */
+.notifications-section {
+  background: white;
+  margin: 20px;
+  border-radius: 10px;
+  padding: 20px;
+  border: 1px solid #ccc;
+}
+.notif-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.view-all {
+  color: #14008a;
+  cursor: pointer;
+}
+.notif-item {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+.notif-item svg {
+  color: #14008a;
+  font-size: 20px;
+}
+.notif-item small {
+  color: gray;
+}
