@@ -25,6 +25,9 @@ app.use('/api/createauth', createUserRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/blockheads', blockHeadRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/courses',courseRoutes);
+app.use('/api/block',blockRoutes);
+
 
 
 app.use('/api/block', blockRoutes); // ✅ Use consistent route path
