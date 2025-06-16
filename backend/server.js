@@ -10,6 +10,9 @@ const blockHeadRoutes = require('./routes/blockHeadRoutes');
 const blockRoutes = require('./routes/block'); // ✅ this will now be correct
 const courseRoutes = require('./routes/courseRoutes');
 
+const roomRoutes = require('./routes/room');
+
+
 
 
 const app = express();
@@ -29,5 +32,7 @@ app.use('/api/block',blockRoutes);
 
 
 
+app.use('/api/block', blockRoutes); // ✅ Use consistent route path
+app.use('/api/room', roomRoutes);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
