@@ -91,62 +91,44 @@ const handleSubmit = async (e) => {
 
   return (
     <div className="admin-dashboard">
-      {/* Sidebar */}
-      <div className="sidebar">
-        <div className="logo">
-          <img src="/logo.png" alt="logo" />
-          <div className="rams-text">
-            RMS
-            <br />
-            <span>Kerala Police</span>
-          </div>
-        </div>
-        <div className="user-info">
-          <img className="avatar" src="/avatar.png" alt="user" />
-          <div>
-            <div className="username">Admin User</div>
-            <div className="email">admin@policeacademy.edu</div>
-          </div>
-        </div>
-        <div className="nav-section">
-          <button className="nav-item active">
-            <FaTh /> Dashboard
-          </button>
-          <div className="nav-heading">MANAGEMENT</div>
-
-          <button
-            className="nav-item"
-            onClick={() => navigate('/admin/blockheads')}
-          >
-            <FaUsers /> Block heads
-          </button>
-
-          <button
-            onClick={() => setShowAllocForm(true)}
-            className="nav-item"
-          >
-            <FaPlus /> Create Allocation Order
-          </button>
-
-          <button className="nav-item">
-            <FaCubes /> Blocks & Rooms
-          </button>
-          <button className="nav-item" onClick={() => setShowModal(true)}>
-            <FaBook /> Suggest Course
-          </button>
-
-          <button className="nav-item">
-            <FaChartBar /> Reports
-          </button>
-          <button className="nav-item">
-            <FaBell /> Notifications
-          </button>
-        </div>
-
-        <button className="logout" onClick={() => navigate('/login')}>
-          <FaSignOutAlt /> Logout
-        </button>
+     <div className="sidebar">
+  <div className="sidebar-content">
+    <div className="logo">
+      <img src="/logo.png" alt="logo" />
+      <div className="rams-text">
+        RMS
+        <br />
+        <span>Kerala Police</span>
       </div>
+    </div>
+
+    <div className="user-info">
+      <img className="avatar" src="/avatar.png" alt="user" />
+      <div>
+        <div className="username">Admin User</div>
+        <div className="email">admin@policeacademy.edu</div>
+      </div>
+    </div>
+
+    <div className="nav-section">
+      <button className="nav-item active"><FaTh /> Dashboard</button>
+      <div className="nav-heading">MANAGEMENT</div>
+      <button className="nav-item" onClick={() => navigate('/admin/blockheads')}><FaUsers /> Block heads</button>
+      <button className="nav-item" onClick={() => setShowAllocForm(true)}><FaPlus /> Create Allocation Order</button>
+      <button className="nav-item"><FaCubes /> Blocks & Rooms</button>
+      <button className="nav-item" onClick={() => setShowModal(true)}><FaBook /> Suggest Course</button>
+      <button className="nav-item"><FaChartBar /> Reports</button>
+      <button className="nav-item"><FaBell /> Notifications</button>
+    </div>
+  </div>
+
+  <div className="logout-container">
+    <button className="logout" onClick={() => navigate('/login')}>
+      <FaSignOutAlt /> Logout
+    </button>
+  </div>
+</div>
+
 
       {/* Main Content */}
       <div className="main-content">
