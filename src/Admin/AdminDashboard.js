@@ -113,11 +113,11 @@ const handleSubmit = async (e) => {
     <div className="nav-section">
       <button className="nav-item active"><FaTh /> Dashboard</button>
       <div className="nav-heading">MANAGEMENT</div>
-      <button className="nav-item" onClick={() => navigate('/admin/blockheads')}><FaUsers /> Block heads</button>
+      <button className="nav-item" onClick={() => navigate('/admin/blockheads')}><FaUsers /> Assign Block Heads</button>
       <button className="nav-item" onClick={() => setShowAllocForm(true)}><FaPlus /> Create Allocation Order</button>
-      <button className="nav-item"><FaCubes /> Blocks & Rooms</button>
-      <button className="nav-item" onClick={() => setShowModal(true)}><FaBook /> Suggest Course</button>
-      <button className="nav-item"><FaChartBar /> Reports</button>
+      <button className="nav-item"><FaCubes /> Display Block Structure</button>
+      <button className="nav-item" onClick={() => setShowModal(true)}><FaBook /> Suggest New Course</button>
+      <button className="nav-item"><FaChartBar />Generate Reports</button>
       <button className="nav-item"><FaBell /> Notifications</button>
     </div>
   </div>
@@ -206,29 +206,52 @@ const handleSubmit = async (e) => {
       </div>
 
       {/* Suggest Course Modal */}
-      {showModal && (
-        <div className="modal-backdrop">
-          <div className="modal">
-            <h3>Suggest New Course</h3>
+{showModal && (
+  <div className="modal-backdrop">
+    <div className="modal">
+      <div className="allocation-form">
+        <h2>Suggest New Course</h2>
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          handleCourseSubmit();
+        }}>
+          <div className="form-group">
+            <label>Course Title</label>
             <input
               type="text"
-              placeholder="Course Title"
               value={courseTitle}
               onChange={(e) => setCourseTitle(e.target.value)}
+              placeholder="Enter course title"
+              required
             />
+          </div>
+
+          <div className="form-group">
+            <label>Course Description</label>
             <textarea
-              placeholder="Course Description"
               value={courseDesc}
               onChange={(e) => setCourseDesc(e.target.value)}
+              placeholder="Enter course description"
               rows={4}
+              required
             />
-            <div className="form-buttons">
-              <button onClick={() => setShowModal(false)}>Cancel</button>
-              <button onClick={handleCourseSubmit}>Send</button>
-            </div>
           </div>
-        </div>
-      )}
+
+          <div className="form-buttons">
+            <button type="button" onClick={() => setShowModal(false)} className="cancel-btn">
+              Cancel
+            </button>
+            <button type="submit" className="save-btn">
+              Send
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+)}
+
+      
 
       {/* Group Allocation Form Modal */}
       {showAllocForm && (

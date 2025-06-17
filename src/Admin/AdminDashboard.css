@@ -10,35 +10,37 @@
   background-color: #14008a;
   width: 250px;
   color: white;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;  /* Push content and logout apart */
-  height: 100vh;                   /* Full screen height */
   padding: 20px;
-  box-sizing: border-box;          /* Ensures padding doesn’t break height */
-}
-.sidebar-content {
+  margin-top: 20px;
+  height: 100vh;                /* Sidebar always takes full screen height */
+  overflow: hidden;             /* Add vertical scroll if needed */
   display: flex;
   flex-direction: column;
-  gap: 20px; /* optional spacing */
+  box-sizing: border-box;
 }
 
-.logout-container {
+.sidebar-top {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+.logout-section {
   padding-top: 20px;
 }
 
 .logout {
-  width: 100%;
-  background-color: transparent;
+  background: transparent;
   border: none;
-  color: white;
+  color: #f28b82;
   font-size: 16px;
-  text-align: left;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
 }
+
 
 .logo {
   display: flex;
@@ -117,7 +119,7 @@
 .main-content {
   flex: 1;
   padding: 0;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 /* Top horizontal bar */
@@ -247,3 +249,99 @@
   border-radius: 6px;
   cursor: pointer;
 }
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.allocation-form h2 {
+  margin-bottom: 20px;
+  font-size: 20px;
+  text-align: center;
+  color: #333;
+}
+
+.form-group {
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* Align label to left */
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #222;
+  font-size: 15px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Consistent font */
+  color: #333;
+  box-sizing: border-box;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+
+.form-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.save-btn {
+  background-color: #0066cc;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  background-color: #aaa;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.save-btn:hover {
+  background-color: #005bb5;
+}
+
+.cancel-btn:hover {
+  background-color: #888;
+}
+
