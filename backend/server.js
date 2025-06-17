@@ -1,7 +1,9 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+
 const notificationRoutes = require('./routes/notificationRoutes');
+const allocationRoutes = require('./routes/allocationRoutes');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
@@ -24,11 +26,14 @@ mongoose.connect(process.env.MONGO_URI)
 app.use('/api/createauth', createUserRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/blockheads', blockHeadRoutes);
+
+
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/courses',courseRoutes);
 app.use('/api/block',blockRoutes);
 
 
+app.use('/api/allocations', allocationRoutes);
 
 app.use('/api/block', blockRoutes); // ✅ Use consistent route path
 app.use('/api/room', roomRoutes);
