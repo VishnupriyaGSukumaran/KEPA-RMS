@@ -37,12 +37,13 @@ const Modify = () => {
       setSelectedBlock(data);
 
       const counts = {};
-      data.blockTypes.forEach(type => {
-        counts[type] = data.roomCounts?.[type] || '';
+      (data.blockTypeDetails || []).forEach(detail => {
+        counts[detail.type] = detail.count || 0;
       });
       setRoomCounts(counts);
     } catch (error) {
       console.error('Failed to load block details:', error);
+      setError('Failed to load block details');
     }
   };
 
@@ -106,27 +107,66 @@ const Modify = () => {
           <option value="">Select Block to Modify</option>
           {blocks.map(block => (
             <option key={block._id} value={block._id}>
-              {block.blockName} - [{block.blockTypes.join(', ')}]
+              {block.blockName}
             </option>
           ))}
         </select>
 
         {selectedBlock && (
-          <div className="grid-form">
-            {selectedBlock.blockTypes.map(type => (
-              <div key={type} className="form-group">
-                <label className="form-label">{type} Count</label>
-                <input
-                  type="number"
-                  min="0"
-                  className="form-input"
-                  value={roomCounts[type] || ''}
-                  onChange={(e) => handleRoomCountChange(type, e.target.value)}
-                  placeholder={`Enter number of ${type}s`}
-                />
+          <>
+            <div className="grid-form">
+              {selectedBlock.blockTypeDetails?.map(detail => (
+                <div key={detail.type} className="form-group">
+                  <label className="form-label">{detail.type} Count</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="form-input"
+                    value={roomCounts[detail.type] || ''}
+                    onChange={(e) => handleRoomCountChange(detail.type, e.target.value)}
+                    placeholder={`Enter number of ${detail.type}s`}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Optional: Room Details Table (for future enhancements) */}
+            {selectedBlock.blockTypeDetails?.map(detail => (
+              <div key={detail.type} className="room-details-section">
+                <h4>{detail.type} Rooms</h4>
+                <table className="room-table">
+                  <thead>
+                    <tr>
+                      <th>Room No</th>
+                      <th>AC</th>
+                      <th>Bathroom</th>
+                      <th>Facilities</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detail.rooms?.map(room => (
+                      <tr key={room._id}>
+                        <td>{room.roomNumber}</td>
+                        <td>{room.isAC ? 'Yes' : 'No'}</td>
+                        <td>{room.attachedBathroom ? 'Yes' : 'No'}</td>
+                        <td>
+                          {room.additionalFacilities &&
+                            Object.entries(room.additionalFacilities).map(([key, val]) => (
+                              <div key={key}>{key}: {val.toString()}</div>
+                            ))}
+                        </td>
+                        <td>
+                          <button className="edit-btn">Edit</button>
+                          <button className="delete-btn">Delete</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             ))}
-          </div>
+          </>
         )}
 
         <div className="button-group">
