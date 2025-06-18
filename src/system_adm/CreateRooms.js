@@ -49,7 +49,7 @@ const CreateRoomDashboard = () => {
     }
   };
 
-  const handleSave = async () => {
+ const handleSave = async () => {
   // Validation
   for (const type of blockData.blockTypes) {
     const rooms = roomDetails[type];
@@ -74,26 +74,40 @@ const CreateRoomDashboard = () => {
       });
     }
 
-    const res = await fetch('http://localhost:5000/api/room/superadmin/create-rooms', {
+    // ✅ First Save to Block DB
+    const blockRes = await fetch('http://localhost:5000/api/block', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        blockName: blockData.blockName,
+        blockTypes: blockData.blockTypes,
+        roomCounts: blockData.roomCounts,
+        createdRooms: allRooms
+      })
+    });
+
+    // ✅ Then Save to Room DB
+    const roomRes = await fetch('http://localhost:5000/api/room/superadmin/create-rooms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ blockName: blockData.blockName, rooms: allRooms })
     });
 
-    const result = await res.json();
-    if (res.ok) {
-      sessionStorage.setItem('createdRooms', JSON.stringify(allRooms)); // <== Store room data
-      sessionStorage.removeItem('blockData'); 
-      setModalMessage('✅ Room details saved successfully! Redirecting...');
-      setShowModal(true);
+    const blockResult = await blockRes.json();
+    const roomResult = await roomRes.json();
 
-      // Navigate after 2 seconds delay
+    if (blockRes.ok && roomRes.ok) {
+      sessionStorage.setItem('createdRooms', JSON.stringify(allRooms));
+      sessionStorage.removeItem('blockData');
+      setModalMessage('✅ Block and Room details saved successfully! Redirecting...');
+      setShowModal(true);
       setTimeout(() => {
         setShowModal(false);
         navigate('/superadmin/Add-block');
       }, 2000);
     } else {
-      setModalMessage(result.message || '❌ Failed to save room details');
+      const errorMsg = blockResult.message || roomResult.message || '❌ Failed to save data';
+      setModalMessage(errorMsg);
       setShowModal(true);
     }
   } catch (err) {
@@ -102,6 +116,7 @@ const CreateRoomDashboard = () => {
     setShowModal(true);
   }
 };
+
 
   if (!blockData) return null;
 

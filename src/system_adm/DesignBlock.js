@@ -62,128 +62,73 @@ const DesignBlock = () => {
       .trim();
   };
 
-  const saveBlock = async () => {
-    if (!roomsCreated) {
-      setModalMessage('⚠️ Please complete room creation before saving the block.');
-      setShowModal(true);
-      return;
-    }
+  
 
-    let hasError = false;
-    const newErrors = { blockName: '', roomCounts: {} };
-
-    if (!blockName.trim()) {
-      newErrors.blockName = 'Block name is required.';
-      hasError = true;
-    } else if (!/^[a-zA-Z\s]+$/.test(blockName)) {
-      newErrors.blockName = 'Block name must contain only letters and spaces.';
-      hasError = true;
-    }
-
-    if (blockTypes.length === 0) {
-      setModalMessage('⚠️ Please select at least one block type.');
-      setShowModal(true);
-      return;
-    }
-
-    for (const type of blockTypes) {
-      const count = roomCounts[type];
-      if (count === '' || isNaN(count) || count < 0) {
-        newErrors.roomCounts[type] = 'Please enter a valid non-negative number.';
-        hasError = true;
-      }
-    }
-
-    if (hasError) {
-      setErrors(newErrors);
-      return;
-    }
-
-    let formattedBlockName = blockName.trim();
-    if (/^[A-Za-z]$/.test(formattedBlockName)) {
-      formattedBlockName = `${formattedBlockName} Block`;
-    }
-    formattedBlockName = toTitleCase(formattedBlockName);
-
-    // ✅ Get created room details from sessionStorage
-    const createdRooms = JSON.parse(sessionStorage.getItem('createdRooms')) || [];
-
-    if (!createdRooms || createdRooms.length === 0) {
-      setModalMessage('⚠️ No room details found. Please create rooms first.');
-      setShowModal(true);
-      return;
-    }
-
-    try {
-      const res = await fetch('http://localhost:5000/api/block', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          blockName: formattedBlockName,
-          blockTypes,
-          roomCounts,
-          createdRooms
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        setModalMessage('✅ Block created successfully!');
-        setShowModal(true);
-        clearForm();
-      } else if (res.status === 409) {
-        setModalMessage(`⚠️ Block "${formattedBlockName}" already exists!`);
-        setShowModal(true);
-      } else {
-        setModalMessage(data.message || '❌ Failed to save block');
-        setShowModal(true);
-      }
-    } catch (err) {
-      setModalMessage('❌ Server error');
-      setShowModal(true);
-    }
-  };
 
   const handleCreateRoom = async () => {
-    if (!blockName.trim()) {
-      setModalMessage("⚠️ Block name is required before proceeding.");
+  let hasError = false;
+  const newErrors = { blockName: '', roomCounts: {} };
+
+  if (!blockName.trim()) {
+    newErrors.blockName = 'Block name is required.';
+    hasError = true;
+  } else if (!/^[a-zA-Z\s]+$/.test(blockName)) {
+    newErrors.blockName = 'Block name must contain only letters and spaces.';
+    hasError = true;
+  }
+
+  if (blockTypes.length === 0) {
+    setModalMessage('⚠️ Please select at least one block type.');
+    setShowModal(true);
+    return;
+  }
+
+  for (const type of blockTypes) {
+    const count = roomCounts[type];
+    if (count === '' || isNaN(count) || count < 0) {
+      newErrors.roomCounts[type] = 'Please enter a valid non-negative number.';
+      hasError = true;
+    }
+  }
+
+  if (hasError) {
+    setErrors(newErrors);
+    return;
+  }
+
+  let formattedBlockName = blockName.trim();
+  if (/^[A-Za-z]$/.test(formattedBlockName)) {
+    formattedBlockName = `${formattedBlockName} Block`;
+  }
+  formattedBlockName = toTitleCase(formattedBlockName);
+
+  try {
+    const res = await fetch('http://localhost:5000/api/block');
+    const blocks = await res.json();
+
+    const exists = blocks.some(
+      b => toTitleCase(b.blockName) === formattedBlockName
+    );
+
+    if (exists) {
+      setModalMessage(`⚠️ Block "${formattedBlockName}" already exists!`);
       setShowModal(true);
       return;
     }
 
-    let formattedBlockName = blockName.trim();
-    if (/^[A-Za-z]$/.test(formattedBlockName)) {
-      formattedBlockName = `${formattedBlockName} Block`;
-    }
-    formattedBlockName = toTitleCase(formattedBlockName);
+    // ✅ Store validated block info in sessionStorage
+    sessionStorage.setItem('blockData', JSON.stringify({
+      blockName: formattedBlockName,
+      blockTypes,
+      roomCounts
+    }));
 
-    try {
-      const res = await fetch('http://localhost:5000/api/block');
-      const blocks = await res.json();
-
-      const exists = blocks.some(
-        b => toTitleCase(b.blockName) === formattedBlockName
-      );
-
-      if (exists) {
-        setModalMessage(`⚠️ Block "${formattedBlockName}" already exists!`);
-        setShowModal(true);
-        return;
-      }
-
-      // ✅ Store block details in sessionStorage
-      sessionStorage.setItem('blockData', JSON.stringify({
-        blockName: formattedBlockName,
-        blockTypes,
-        roomCounts
-      }));
-
-      navigate('/superadmin/create-rooms');
-    } catch (err) {
-      setModalMessage('❌ Failed to check for duplicate block');
-      setShowModal(true);
-    }
-  };
+    navigate('/superadmin/create-rooms');
+  } catch (err) {
+    setModalMessage('❌ Failed to check for duplicate block');
+    setShowModal(true);
+  }
+};
 
   return (
     <div className="block-container">

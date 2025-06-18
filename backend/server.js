@@ -27,10 +27,6 @@ app.use('/api/blockheads', blockHeadRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/courses',courseRoutes);
 app.use('/api/block',blockRoutes);
-
-
-
-app.use('/api/block', blockRoutes); // ✅ Use consistent route path
 app.use('/api/room', roomRoutes);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

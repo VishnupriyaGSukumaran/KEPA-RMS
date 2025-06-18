@@ -7,6 +7,7 @@ const Room = require('../models/Room'); // ✅ Add this line
 router.post('/superadmin/create-rooms', async (req, res) => {
   const { blockName, rooms } = req.body;
 
+    // If using Block model only (nested rooms), insert into that model instead
   if (!blockName || !rooms || !Array.isArray(rooms)) {
     return res.status(400).json({ message: 'Incomplete room data received' });
   }
