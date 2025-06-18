@@ -9,81 +9,58 @@ const RemoveBlock = () => {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchBlocks = async () => {
-      try {
-        const res = await fetch('http://localhost:5000/api/block');
-        const data = await res.json();
-        if (res.ok) {
-          setBlocks(data);
-        } else {
-          setError('Failed to load blocks');
-        }
-      } catch (err) {
-        setError('Server error while fetching blocks');
-      }
-    };
     fetchBlocks();
   }, []);
 
-//   const handleRemoveBlock = async () => {
-//   if (!selectedBlock) return;
-
-//   try {
-//     const response = await fetch(`http://localhost:5000/api/blocks/${selectedBlock}`, {
-//       method: 'DELETE'
-//     });
-
-//     const result = await response.json();
-
-//     if (response.ok) {
-//       alert(result.message);  // Success message
-//       setError('');
-//     } else {
-//       setError(result.message);  // Show error on UI
-//     }
-//   } catch (error) {
-//     console.error("Error:", error);
-//     setError('Failed to remove block.');
-//   }
-// };
-
-const handleRemoveBlock = async () => {
-  if (!selectedBlock) return;
-
-  console.log("Attempting to delete block:", selectedBlock);
-
-  try {
-    const response = await fetch(`http://localhost:5000/api/block/${selectedBlock}`, {
-      method: 'DELETE',
-    });
-
-    const result = await response.json();
-    console.log("Delete response:", result);
-
-    if (response.ok) {
-      alert(result.message);
-      setBlocks(blocks.filter(b => b._id !== selectedBlock));
-      setSelectedBlock('');
-      setConfirmDelete(false);
-      setError('');
-      setMessage(result.message);
-    } else {
-      setError(result.message || 'Failed to delete block');
+  const fetchBlocks = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/block');
+      const data = await res.json();
+      if (res.ok) {
+        setBlocks(data);
+        setError('');
+      } else {
+        setError('Failed to load blocks.');
+      }
+    } catch (err) {
+      setError('Server error while fetching blocks.');
     }
-  } catch (error) {
-    console.error("Error deleting block:", error);
-    setError('Failed to remove block.');
-  }
-};
+  };
 
+  const handleRemoveBlock = async () => {
+    if (!selectedBlock) return;
 
+    setLoading(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/block/${selectedBlock}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setMessage(result.message || 'Block deleted successfully.');
+        setBlocks(prev => prev.filter(b => b._id !== selectedBlock));
+        setSelectedBlock('');
+        setConfirmDelete(false);
+        setError('');
+      } else {
+        setError(result.message || 'Failed to delete block.');
+      }
+    } catch (err) {
+      console.error("Error deleting block:", err);
+      setError('Failed to remove block due to server error.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getBlockNameById = (id) => {
     const found = blocks.find(b => b._id === id);
-    if (!found) return '';
-    return found.blockName;
+    return found ? found.blockName : '';
   };
 
   return (
@@ -117,8 +94,9 @@ const handleRemoveBlock = async () => {
       {/* Form */}
       <div className="form-area">
         <h3>🗑️ Remove Block</h3>
-        <p>Permanently remove a block from the system</p>
+        <p>Permanently remove a block from the system.</p>
 
+        {/* Block Dropdown */}
         <div className="form-grid">
           <select
             value={selectedBlock}
@@ -142,31 +120,61 @@ const handleRemoveBlock = async () => {
           </select>
         </div>
 
-        {/* Confirmation Step */}
+        {/* Step 1: Proceed button */}
         {selectedBlock && !confirmDelete && (
           <div className="bottom-buttons">
-            <button className="cancel-btn" onClick={() => setSelectedBlock('')} style={{ backgroundColor: 'white', color: 'black', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer' }}>Cancel</button>
-            <button className="delete-btn" onClick={() => setConfirmDelete(true)} style={{ backgroundColor: '#cc0000', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer' }}>Proceed</button>
+            <button
+              className="cancel-btn"
+              onClick={() => setSelectedBlock('')}
+              disabled={loading}
+              style={{ backgroundColor: 'white', color: 'black', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+            <button
+              className="delete-btn"
+              onClick={() => setConfirmDelete(true)}
+              disabled={loading}
+              style={{ backgroundColor: '#cc0000', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer' }}
+            >
+              Proceed
+            </button>
           </div>
         )}
 
-        {/* Final Confirmation Box (Styled) */}
+        {/* Step 2: Final Confirmation Box */}
         {confirmDelete && (
           <div className="confirm-box" style={{ border: '2px solid red', background: '#ffecec', padding: '20px', marginTop: '20px', borderRadius: '8px' }}>
             <p style={{ color: '#cc0000', fontWeight: 'bold', fontSize: '16px' }}>
-              ⚠️ Are you sure you want to remove the block?
+              ⚠️ Are you sure you want to remove this block?
             </p>
-            <p>This will permanently delete <strong>"{getBlockNameById(selectedBlock)}"</strong> block and all associated room and data. This action cannot be undone.</p>
+            <p>
+              This will permanently delete <strong>"{getBlockNameById(selectedBlock)}"</strong> block and all associated rooms and data. This action cannot be undone.
+            </p>
             <div className="bottom-buttons">
-              <button className="delete-btn"  onClick={handleRemoveBlock} style={{ backgroundColor: '#cc0000', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer' }}>Yes, Remove Block</button>
-              <button className="cancel-btn" onClick={() => setConfirmDelete(false)} style={{ backgroundColor: 'white', color: 'black', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer' }}>Cancel</button>
+              <button
+                className="delete-btn"
+                onClick={handleRemoveBlock}
+                disabled={loading}
+                style={{ backgroundColor: '#cc0000', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer' }}
+              >
+                {loading ? 'Removing...' : 'Yes, Remove Block'}
+              </button>
+              <button
+                className="cancel-btn"
+                onClick={() => setConfirmDelete(false)}
+                disabled={loading}
+                style={{ backgroundColor: 'white', color: 'black', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         )}
 
         {/* Feedback */}
-        {message && <p className="success">{message}</p>}
-        {error && <p className="error">{error}</p>}
+        {message && <p className="success" style={{ color: 'green', fontWeight: 'bold', marginTop: '10px' }}>{message}</p>}
+        {error && <p className="error" style={{ color: 'red', fontWeight: 'bold', marginTop: '10px' }}>{error}</p>}
       </div>
     </div>
   );

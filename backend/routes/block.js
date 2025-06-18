@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Block = require('../models/Block');
-const Room = require('../models/Room'); // Add the Room model to track summaries
+const Room = require('../models/Room'); // Room model for deletion
 
 // Convert to "Title Case"
 function toTitleCase(input) {
@@ -12,6 +12,7 @@ function toTitleCase(input) {
     .trim();
 }
 
+// Create Block
 router.post('/', async (req, res) => {
   let { blockName, blockTypes, roomCounts } = req.body;
 
@@ -44,24 +45,24 @@ router.post('/', async (req, res) => {
       return res.status(409).json({ message: `Block "${normalizedBlockName}" already exists.` });
     }
 
-    // --- Fetch matching rooms from Room collection ---
+    // --- Fetch matching rooms from request body ---
     const createdRooms = req.body.createdRooms || [];
 
-// Group createdRooms by roomType
-const groupedRooms = {};
-createdRooms.forEach(room => {
-  if (!groupedRooms[room.roomType]) groupedRooms[room.roomType] = [];
-  groupedRooms[room.roomType].push(room);
-});
+    // Group rooms by roomType
+    const groupedRooms = {};
+    createdRooms.forEach(room => {
+      if (!groupedRooms[room.roomType]) groupedRooms[room.roomType] = [];
+      groupedRooms[room.roomType].push(room);
+    });
 
-const blockTypeDetails = blockTypes.map(type => ({
-  type,
-  count: roomCounts[type],
-  rooms: groupedRooms[type] || [] // Attach saved room data here
-}));
+    // Build blockTypeDetails with rooms
+    const blockTypeDetails = blockTypes.map(type => ({
+      type,
+      count: roomCounts[type],
+      rooms: groupedRooms[type] || []
+    }));
 
-
-    // Save new block with full room info
+    // Save new block with embedded room data
     const newBlock = new Block({
       blockName: normalizedBlockName,
       blockTypes,
@@ -78,7 +79,7 @@ const blockTypeDetails = blockTypes.map(type => ({
   }
 });
 
-
+// Get all blocks
 router.get('/', async (req, res) => {
   try {
     const blocks = await Block.find();
@@ -89,6 +90,7 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get a specific block by ID
 router.get('/:id', async (req, res) => {
   try {
     const block = await Block.findById(req.params.id);
@@ -99,20 +101,29 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Delete a block and associated rooms
 router.delete('/:id', async (req, res) => {
   try {
-    const block = await Block.findByIdAndDelete(req.params.id);
+    // Step 1: Find the block
+    const block = await Block.findById(req.params.id);
     if (!block) {
       return res.status(404).json({ message: 'Block not found' });
     }
-    res.json({ message: 'Block deleted successfully' });
+
+    // Step 2: Delete all associated rooms from the Room collection
+    await Room.deleteMany({ blockName: block.blockName });
+
+    // Step 3: Delete the block
+    await Block.findByIdAndDelete(req.params.id);
+
+    res.json({ message: 'Block and associated rooms deleted successfully' });
   } catch (error) {
-    console.error('Error deleting block:', error);
-    res.status(500).json({ message: 'Failed to delete block' });
+    console.error('Error deleting block and rooms:', error);
+    res.status(500).json({ message: 'Failed to delete block and associated rooms' });
   }
 });
 
-// This route now prevents room count changes after creation
+// Prevent room count modifications
 router.put('/:id/counts', async (req, res) => {
   res.status(403).json({ message: 'Room count modification is not allowed after creation.' });
 });
