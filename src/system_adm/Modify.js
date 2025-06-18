@@ -4,18 +4,18 @@ import { useNavigate } from 'react-router-dom';
 import './Modify.css';
 
 const Modify = () => {
-  const navigate = useNavigate();
+ const navigate = useNavigate();
   const [blocks, setBlocks] = useState([]);
   const [selectedBlock, setSelectedBlock] = useState(null);
   const [selectedBlockType, setSelectedBlockType] = useState('');
   const [roomTypeDetails, setRoomTypeDetails] = useState([]);
   const [error, setError] = useState('');
 
-  useEffect(() => {
+   useEffect(() => {
     fetchBlocks();
   }, []);
 
-  const fetchBlocks = async () => {
+ const fetchBlocks = async () => {
     try {
       const res = await fetch('http://localhost:5000/api/block');
       const data = await res.json();
@@ -30,8 +30,10 @@ const Modify = () => {
     const blockId = e.target.value;
     if (!blockId) {
       setSelectedBlock(null);
+      
       setSelectedBlockType('');
       setRoomTypeDetails([]);
+
       return;
     }
 
@@ -39,6 +41,7 @@ const Modify = () => {
       const res = await fetch(`http://localhost:5000/api/block/${blockId}`);
       const data = await res.json();
       setSelectedBlock(data);
+
       setSelectedBlockType('');
       setRoomTypeDetails([]);
     } catch (error) {
@@ -46,8 +49,7 @@ const Modify = () => {
       setError('Failed to load block details');
     }
   };
-
-  const handleBlockTypeSelect = (e) => {
+ const handleBlockTypeSelect = (e) => {
     const type = e.target.value;
     setSelectedBlockType(type);
     const selectedTypeDetails = selectedBlock.blockTypeDetails.find(
@@ -56,7 +58,7 @@ const Modify = () => {
     setRoomTypeDetails(selectedTypeDetails?.rooms || []);
   };
 
-  const removeBlockType = async (type) => {
+    const removeBlockType = async (type) => {
     try {
       const res = await fetch(`http://localhost:5000/api/block/${selectedBlock._id}/type/${type}`, {
         method: 'DELETE'
@@ -70,7 +72,7 @@ const Modify = () => {
     }
   };
 
-  const addBlockType = async () => {
+    const addBlockType = async () => {
     const newType = prompt('Enter new block type name:');
     if (!newType) return;
     try {
@@ -87,7 +89,7 @@ const Modify = () => {
       alert('Error adding block type.');
     }
   };
-
+   
   const handleEditRoom = (roomId) => {
     // Navigate to a separate edit page or toggle inline editing state
     alert(`Edit functionality for Room ID: ${roomId}`);
@@ -125,31 +127,37 @@ const Modify = () => {
       </div>
 
       <div className="form-container">
-        <h3>Modify Block</h3>
+        <h3 className="form-title">📝 Modify Block</h3>
+        {error && <p className="error-text">{error}</p>}
+<label className="dropdown-label">Select Block</label>
+<select onChange={handleBlockSelect} defaultValue="" className="dropdown-select">
+  <option value="">-- Choose Block --</option>
+  {blocks.map(block => (
+    <option key={block._id} value={block._id}>{block.blockName}</option>
+  ))}
+</select>
 
-        <label>Select Block</label>
-        <select onChange={handleBlockSelect} defaultValue="">
-          <option value="">-- Choose Block --</option>
-          {blocks.map(block => (
-            <option key={block._id} value={block._id}>{block.blockName}</option>
-          ))}
-        </select>
 
-        {selectedBlock && (
+        
+
+
+ {selectedBlock && (
           <>
-            <h4>Room Types in {selectedBlock.blockName}</h4>
+            <h4 className="room-heading">Room Types in {selectedBlock.blockName}</h4>
             <ul>
               {selectedBlock.blockTypeDetails.map(detail => (
                 <li key={detail.type}>
-                  {detail.type}: {detail.count} rooms
+                  {detail.type}: {detail.count} 
                   <button onClick={() => removeBlockType(detail.type)}>❌ Remove</button>
                 </li>
               ))}
             </ul>
-            <button onClick={addBlockType}>➕ Add Block Type</button>
-
-            <label>Select Block Type to Modify</label>
-            <select onChange={handleBlockTypeSelect} defaultValue="">
+                  <div className="button-container">
+                  <button className="add-block-btn" onClick={addBlockType}>➕ Add Block Type</button>
+                  </div>
+             <br />
+            <label className="center-label">Select Block Type to Modify</label>
+            <select onChange={handleBlockTypeSelect} defaultValue="" className="dropdown-select">
               <option value="">-- Choose Type --</option>
               {selectedBlock.blockTypeDetails.map(detail => (
                 <option key={detail.type} value={detail.type}>{detail.type}</option>
@@ -188,8 +196,8 @@ const Modify = () => {
                       ))
                     }</td>
                     <td>
-                      <button onClick={() => handleEditRoom(room._id)}>Edit</button>
-                      <button onClick={() => handleDeleteRoom(room._id)}>Delete</button>
+                      <button  className="edit-btn" onClick={() => handleEditRoom(room._id) }>Edit</button>
+                      <button className="delete-btn" onClick={() => handleDeleteRoom(room._id)}>Delete</button>
                     </td>
                   </tr>
                 ))}
@@ -203,3 +211,4 @@ const Modify = () => {
 };
 
 export default Modify;
+

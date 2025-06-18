@@ -1,8 +1,7 @@
 /* Page layout */
 .block-page {
   font-family: Arial, sans-serif;
-  background-color: #f4f6f9;
-  min-height: 100vh;
+  background-color: #ffffff;
 }
 
 /* Header Section */
@@ -34,46 +33,157 @@
   font-size: 14px;
 }
 
-.page-title {
-  font-size: 22px;
+.tabs-container {
+  background-color: #333;
+  color: white;
+  padding: 10px 0;
+  text-align: center;
+  height: 80px;
+}
+.tabs-title {
+  margin: 5px 0;
+  font-size: 20px;
   font-weight: bold;
+    box-shadow: none;
 }
 
-.nav .nav-btn {
-  background-color: white;
-  color: #000080;
+.tabs-row {
+  display: flex;
+  justify-content: center;
+  max-width: 900px;
+  margin: 35px auto 0;
+  border-radius: 10px;
+  overflow: hidden;
+
+  /* ✅ Remove black border and reflection */
   border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  margin-left: 10px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background 0.3s ease;
+  background-color: transparent;
+  box-shadow: none;
 }
 
-.nav .nav-btn:hover {
-  background-color: #e0e0e0;
+.tab-button {
+  flex: 1;
+  padding: 16px 0;
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  background-color: #ffffff;  /* flat white */
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: 0.3s;
+
+  /* ✅ Remove any shadow or inherited styles */
+  box-shadow: none;
+}
+
+
+.tab-button:not(:last-child) {
+  border-right: 1px solid black;
+}
+
+.tab-button.active {
+  background-color: white;
+  color: #007bff;
+  border-bottom: 4px solid #007bff;
 }
 
 /* Main Form Container */
 .form-container {
-  background-color: #ffffff;
+   background-color: #fff;
   padding: 30px 40px;
-  max-width: 1000px;
-  margin: 40px auto;
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  border: 1px solid #ddd;
+  border-radius: 10px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+    width: 90%;
+  max-width: 1100px;
+  margin: 5px auto; 
+  
 }
 
-.form-container h3,
-.form-container h4 {
+
+.form-title {
   font-size: 20px;
-  margin: 20px 0;
-  color: #000080;
+  color: #000000;
+  margin: 10px auto 20px auto; /* ⬅️ Reduced vertical spacing */
+  font-weight: 600;
+  border-radius: 10px;
+
 }
+
+
+
+
+
+
+
 
 /* Dropdown and List Styling */
+.dropdown-select {
+  max-width: 600px;         /* Match width of room type boxes */
+  width: 100%;              /* Responsive */
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background-color: #ffffff;
+  font-size: 15px;
+  margin: 0 auto 20px auto; /* Center and add bottom margin */
+  display: block;
+
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='gray' class='bi bi-caret-down-fill' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658c-.566-.632-.106-1.658.753-1.658h9.592c.86 0 1.32 1.026.754 1.658L8.753 11.14a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px 16px;
+
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.3s ease-in-out;
+}
+
+.dropdown-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 6px rgba(0, 123, 255, 0.25);
+}
+
+
+.dropdown-label {
+  text-align: center;
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 20px auto;
+  color: #000080;
+
+}
+
+
+.dropdown-select {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background-color: #ffffff;
+  font-size: 15px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.3s ease-in-out;
+}
+
+.room-heading {
+   text-align: center;
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 20px auto;
+  color: #000080;/* Center horizontally + space below */
+
+}
+
+
 select {
   width: 100%;
   padding: 10px 12px;
@@ -90,16 +200,33 @@ ul {
   margin-bottom: 20px;
 }
 
+/* Style each box */
 ul li {
-  background-color: #eef2ff;
-  border-left: 4px solid #000080;
+  background-color: #003d80; /* Dark blue */
+  color: white;              /* White text */
+  
   padding: 10px 15px;
   margin-bottom: 10px;
   border-radius: 6px;
+  
   display: flex;
   justify-content: space-between;
   align-items: center;
+
   font-weight: 500;
+  max-width: 600px;        /* ⬅️ Limit width */
+  margin-left: auto;       /* ⬅️ Center align */
+  margin-right: auto;      /* ⬅️ Center align */
+}
+
+
+.center-label {
+  text-align: center;
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 20px auto;
+  color: #000080; /* Optional: Navy color */
 }
 
 /* Add / Remove Buttons */
@@ -124,29 +251,45 @@ button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
+.button-container {
+  text-align: center;
+  margin-top: 20px;
+}
 
-button[onClick*="addBlockType"] {
+.add-block-btn {
   background-color: #28a745;
   color: white;
   margin-bottom: 20px;
+  font-weight: bold;
+  border-radius: 6px;
+  padding: 6px 10px;
+  border: none;
+  cursor: pointer;
+ 
 }
 
+.add-block-btn:hover {
+  background-color: #218838;
+}
+
+
 button[onClick*="removeBlockType"] {
-  background-color: #dc3545;
+  background-color: #8e0513;
   color: white;
   margin-left: 10px;
 }
 
-button[onClick*="Edit"] {
+.edit-btn {
   background-color: #007bff;
   color: white;
   margin-right: 8px;
 }
 
-button[onClick*="Delete"] {
+.delete-btn {
   background-color: #dc3545;
   color: white;
 }
+
 
 /* Room Table Styling */
 .room-table {
@@ -163,7 +306,7 @@ button[onClick*="Delete"] {
 }
 
 .room-table th {
-  background-color: #000080;
+  background-color: #070256;
   color: white;
 }
 
