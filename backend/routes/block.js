@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Block = require('../models/Block');
-const Room = require('../models/Room'); // Room model for deletion
+const Room = require('../models/Room');
 
 // Convert to "Title Case"
 function toTitleCase(input) {
@@ -12,7 +12,7 @@ function toTitleCase(input) {
     .trim();
 }
 
-// Create Block
+// ===== Create Block =====
 router.post('/', async (req, res) => {
   let { blockName, blockTypes, roomCounts } = req.body;
 
@@ -25,7 +25,7 @@ router.post('/', async (req, res) => {
     blockName = `${blockName} Block`;
   }
 
-  const normalizedBlockName = toTitleCase(blockName); // e.g. "A Block"
+  const normalizedBlockName = toTitleCase(blockName);
 
   // Validate room counts
   for (const type of blockTypes) {
@@ -36,7 +36,6 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    // Check for existing block (case-insensitive)
     const existingBlock = await Block.findOne({
       blockName: { $regex: `^${normalizedBlockName}$`, $options: 'i' }
     });
@@ -45,29 +44,26 @@ router.post('/', async (req, res) => {
       return res.status(409).json({ message: `Block "${normalizedBlockName}" already exists.` });
     }
 
-    // --- Fetch matching rooms from request body ---
     const createdRooms = req.body.createdRooms || [];
 
-    // Group rooms by roomType
     const groupedRooms = {};
     createdRooms.forEach(room => {
       if (!groupedRooms[room.roomType]) groupedRooms[room.roomType] = [];
       groupedRooms[room.roomType].push(room);
     });
 
-    // Build blockTypeDetails with rooms
     const blockTypeDetails = blockTypes.map(type => ({
       type,
       count: roomCounts[type],
       rooms: groupedRooms[type] || []
     }));
 
-    // Save new block with embedded room data
     const newBlock = new Block({
       blockName: normalizedBlockName,
       blockTypes,
       roomCounts,
-      blockTypeDetails
+      blockTypeDetails,
+      createdRooms
     });
 
     await newBlock.save();
@@ -79,7 +75,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get all blocks
+// ===== Get all Blocks =====
 router.get('/', async (req, res) => {
   try {
     const blocks = await Block.find();
@@ -90,7 +86,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get a specific block by ID
+// ===== Get Block by ID =====
 router.get('/:id', async (req, res) => {
   try {
     const block = await Block.findById(req.params.id);
@@ -101,19 +97,15 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Delete a block and associated rooms
+// ===== Delete a block and its rooms =====
 router.delete('/:id', async (req, res) => {
   try {
-    // Step 1: Find the block
     const block = await Block.findById(req.params.id);
     if (!block) {
       return res.status(404).json({ message: 'Block not found' });
     }
 
-    // Step 2: Delete all associated rooms from the Room collection
     await Room.deleteMany({ blockName: block.blockName });
-
-    // Step 3: Delete the block
     await Block.findByIdAndDelete(req.params.id);
 
     res.json({ message: 'Block and associated rooms deleted successfully' });
@@ -123,9 +115,60 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// Prevent room count modifications
+// ===== Prevent Room Count Modification =====
 router.put('/:id/counts', async (req, res) => {
   res.status(403).json({ message: 'Room count modification is not allowed after creation.' });
+});
+
+// ===== Add Block Type to Existing Block =====
+router.post('/:id/type', async (req, res) => {
+  const { type } = req.body;
+
+  if (!type) return res.status(400).json({ message: 'Block type is required' });
+
+  try {
+    const block = await Block.findById(req.params.id);
+    if (!block) return res.status(404).json({ message: 'Block not found' });
+
+    const exists = block.blockTypeDetails.some(bt => bt.type === type);
+    if (exists) return res.status(409).json({ message: 'Block type already exists' });
+
+    block.blockTypes.push(type);
+    block.roomCounts[type] = 0;
+    block.blockTypeDetails.push({ type, count: 0, rooms: [] });
+
+    await block.save();
+    res.status(200).json({ message: 'Block type added successfully' });
+  } catch (err) {
+    console.error('Error adding block type:', err);
+    res.status(500).json({ message: 'Server error while adding block type' });
+  }
+});
+
+// ===== Delete Block Type from Block =====
+router.delete('/:id/type/:type', async (req, res) => {
+  const { id, type } = req.params;
+
+  try {
+    const block = await Block.findById(id);
+    if (!block) return res.status(404).json({ message: 'Block not found' });
+
+    const beforeLength = block.blockTypeDetails.length;
+
+    block.blockTypeDetails = block.blockTypeDetails.filter(bt => bt.type !== type);
+    block.blockTypes = block.blockTypes.filter(t => t !== type);
+    delete block.roomCounts[type];
+
+    if (block.blockTypeDetails.length === beforeLength) {
+      return res.status(404).json({ message: 'Block type not found' });
+    }
+
+    await block.save();
+    res.status(200).json({ message: 'Block type removed successfully' });
+  } catch (err) {
+    console.error('Error removing block type:', err);
+    res.status(500).json({ message: 'Server error while removing block type' });
+  }
 });
 
 module.exports = router;
