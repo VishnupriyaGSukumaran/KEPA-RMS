@@ -199,10 +199,11 @@ function BlockHeads() {
         </div>
       </div>
 
-      <div className="blockheads-header">
-        <h2>Block Heads Management</h2>
-        <button className="add-btn" onClick={handleAddClick}>+ Add Block Head</button>
-      </div>
+      <div className="blockheads-page">
+  <div className="blockheads-header">
+    <h2>Block Heads Management</h2>
+    <button className="add-btn" onClick={handleAddClick}>+ Add Block Head</button>
+  </div>
 
       <div style={{ height: 500, width: '100%' }}>
         <DataGrid
@@ -214,7 +215,7 @@ function BlockHeads() {
           showToolbar
         />
       </div>
-
+</div>
       {showForm && (
         <div className="modal">
           <form className="blockhead-form" onSubmit={handleFormSubmit}>

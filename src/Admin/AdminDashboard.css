@@ -11,7 +11,7 @@
   width: 250px;
   color: white;
   padding: 20px;
-  margin-top: 20px;
+  margin-top: 65px;
   height: 100vh;                /* Sidebar always takes full screen height */
   overflow: hidden;             /* Add vertical scroll if needed */
   display: flex;
@@ -101,40 +101,73 @@
   padding: 0;
   overflow: hidden;
 }
-
-/* Top horizontal bar */
-.top-bar {
-  background-color: #14008a;
+.admin-topbar {
+  position: fixed;           /* Fixed to top-left corner */
+  top: 0;
+  left: 0;
+  width: 100vw;              /* 100% of the viewport width */
   height: 60px;
+  z-index: 1000;
+
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-top: 20px;
-  margin-left: 5px;
-}
-
-.top-bar-title {
+  justify-content: space-between;
+  background-color: #14008a;
   color: white;
-  font-size: 24px;
-  font-weight: bold;
-  text-align: center;
-}
-.topbar-buttons {
-  display: flex;
-  gap: 10px; /* Space between Home and Logout */
+  padding: 0 20px;
+  box-sizing: border-box;    /* Include padding in width */
 }
 
-.home-btn,
-.logout-btn {
+.topbar-left {
   display: flex;
   align-items: center;
-  gap: 5px;
-  background-color:  white;
-  color:#0055aa;
+  gap: 12px;
+}
+
+.topbar-logo {
+  height: 45px;
+}
+
+.topbar-title {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.rms-title {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.rms-subtitle {
+  font-size: 12px;
+}
+
+.topbar-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.topbar-center h2 {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 0;
+}
+
+.topbar-right {
+  display: flex;
+  gap: 10px;
+}
+
+.topbar-btn {
+  background-color: white;
+  color: #2c3e50;
   border: none;
   padding: 6px 12px;
-  border-radius: 4px;
+  border-radius: 5px;
   cursor: pointer;
+  font-weight: bold;
 }
 
 /* Stats Cards */
@@ -200,6 +233,7 @@
 }
 
 .form-grid {
+   margin-top: 20px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
@@ -267,6 +301,7 @@
   max-width: 90%;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
+
 
 .allocation-form h2 {
   margin-bottom: 20px;
@@ -346,6 +381,25 @@
   justify-content: start;
   gap: 10px;
   padding: 10px;
+}
+/* Make both columns same width */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Make all inputs/selects same width */
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Make Remarks/Notes span full row */
+.form-group.remarks {
+  grid-column: span 2;
 }
 
 
