@@ -1,3 +1,4 @@
+// Modify.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Modify.css';
@@ -6,28 +7,31 @@ const Modify = () => {
   const navigate = useNavigate();
   const [blocks, setBlocks] = useState([]);
   const [selectedBlock, setSelectedBlock] = useState(null);
-  const [roomCounts, setRoomCounts] = useState({});
+  const [selectedBlockType, setSelectedBlockType] = useState('');
+  const [roomTypeDetails, setRoomTypeDetails] = useState([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchBlocks = async () => {
-      try {
-        const res = await fetch('http://localhost:5000/api/block');
-        const data = await res.json();
-        if (res.ok) setBlocks(data);
-        else setError('Failed to load blocks');
-      } catch (err) {
-        setError('Server error while fetching blocks');
-      }
-    };
     fetchBlocks();
   }, []);
+
+  const fetchBlocks = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/block');
+      const data = await res.json();
+      if (res.ok) setBlocks(data);
+      else setError('Failed to load blocks');
+    } catch (err) {
+      setError('Server error while fetching blocks');
+    }
+  };
 
   const handleBlockSelect = async (e) => {
     const blockId = e.target.value;
     if (!blockId) {
       setSelectedBlock(null);
-      setRoomCounts({});
+      setSelectedBlockType('');
+      setRoomTypeDetails([]);
       return;
     }
 
@@ -35,40 +39,71 @@ const Modify = () => {
       const res = await fetch(`http://localhost:5000/api/block/${blockId}`);
       const data = await res.json();
       setSelectedBlock(data);
-
-      const counts = {};
-      (data.blockTypeDetails || []).forEach(detail => {
-        counts[detail.type] = detail.count || 0;
-      });
-      setRoomCounts(counts);
+      setSelectedBlockType('');
+      setRoomTypeDetails([]);
     } catch (error) {
       console.error('Failed to load block details:', error);
       setError('Failed to load block details');
     }
   };
 
-  const handleRoomCountChange = (type, value) => {
-    setRoomCounts(prev => ({ ...prev, [type]: parseInt(value) || '' }));
+  const handleBlockTypeSelect = (e) => {
+    const type = e.target.value;
+    setSelectedBlockType(type);
+    const selectedTypeDetails = selectedBlock.blockTypeDetails.find(
+      (bt) => bt.type === type
+    );
+    setRoomTypeDetails(selectedTypeDetails?.rooms || []);
   };
 
-  const handleSave = async () => {
-    if (!selectedBlock || !selectedBlock._id) {
-      alert('No block selected');
-      return;
-    }
-
+  const removeBlockType = async (type) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/block/${selectedBlock._id}/counts`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomCounts }),
+      const res = await fetch(`http://localhost:5000/api/block/${selectedBlock._id}/type/${type}`, {
+        method: 'DELETE'
       });
+      if (!res.ok) throw new Error('Failed to delete block type');
+      alert(`Block type ${type} removed.`);
+      fetchBlocks();
+    } catch (err) {
+      console.error(err);
+      alert('Error removing block type.');
+    }
+  };
 
-      if (!res.ok) throw new Error('Failed to update room counts');
-      alert('Room counts updated successfully!');
-    } catch (error) {
-      alert('Error saving room counts.');
-      console.error(error);
+  const addBlockType = async () => {
+    const newType = prompt('Enter new block type name:');
+    if (!newType) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/block/${selectedBlock._id}/type`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: newType, count: 0, rooms: [] })
+      });
+      if (!res.ok) throw new Error('Failed to add block type');
+      alert(`Block type ${newType} added.`);
+      fetchBlocks();
+    } catch (err) {
+      console.error(err);
+      alert('Error adding block type.');
+    }
+  };
+
+  const handleEditRoom = (roomId) => {
+    // Navigate to a separate edit page or toggle inline editing state
+    alert(`Edit functionality for Room ID: ${roomId}`);
+  };
+
+  const handleDeleteRoom = async (roomId) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/room/${roomId}`, {
+        method: 'DELETE'
+      });
+      if (!res.ok) throw new Error('Failed to delete room');
+      alert('Room deleted successfully.');
+      handleBlockTypeSelect({ target: { value: selectedBlockType } });
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting room.');
     }
   };
 
@@ -89,103 +124,79 @@ const Modify = () => {
         </div>
       </div>
 
-      <div className="tabs-container">
-        <h2 className="tabs-title">Block Management</h2>
-        <div className="tabs-row">
-          <button className="tab-button" onClick={() => navigate('/superadmin/Add-block')}>➕ Add New Block</button>
-          <button className="tab-button active">✏️ Modify Block</button>
-          <button className="tab-button" onClick={() => navigate('/superadmin/remove-block')}>🗑️ Remove Block</button>
-        </div>
-      </div>
-
       <div className="form-container">
-        <h3 className="form-title">📝 Modify Block</h3>
-        {error && <p className="error-text">{error}</p>}
+        <h3>Modify Block</h3>
 
-        <label className="form-label">Current Block</label>
-        <select onChange={handleBlockSelect} defaultValue="" className="form-select">
-          <option value="">Select Block to Modify</option>
+        <label>Select Block</label>
+        <select onChange={handleBlockSelect} defaultValue="">
+          <option value="">-- Choose Block --</option>
           {blocks.map(block => (
-            <option key={block._id} value={block._id}>
-              {block.blockName}
-            </option>
+            <option key={block._id} value={block._id}>{block.blockName}</option>
           ))}
         </select>
 
         {selectedBlock && (
           <>
-            <div className="grid-form">
-              {selectedBlock.blockTypeDetails?.map(detail => (
-                <div key={detail.type} className="form-group">
-                  <label className="form-label">{detail.type} Count</label>
-                  <input
-                    type="number"
-                    min="0"
-                    className="form-input"
-                    value={roomCounts[detail.type] || ''}
-                    onChange={(e) => handleRoomCountChange(detail.type, e.target.value)}
-                    placeholder={`Enter number of ${detail.type}s`}
-                  />
-                </div>
+            <h4>Room Types in {selectedBlock.blockName}</h4>
+            <ul>
+              {selectedBlock.blockTypeDetails.map(detail => (
+                <li key={detail.type}>
+                  {detail.type}: {detail.count} rooms
+                  <button onClick={() => removeBlockType(detail.type)}>❌ Remove</button>
+                </li>
               ))}
-            </div>
+            </ul>
+            <button onClick={addBlockType}>➕ Add Block Type</button>
 
-            {/* Optional: Room Details Table (for future enhancements) */}
-            {selectedBlock.blockTypeDetails?.map(detail => (
-              <div key={detail.type} className="room-details-section">
-                <h4>{detail.type} Rooms</h4>
-                <table className="room-table">
-                  <thead>
-                    <tr>
-                      <th>Room No</th>
-                      <th>AC</th>
-                      <th>Bathroom</th>
-                      <th>Facilities</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detail.rooms?.map(room => (
-                      <tr key={room._id}>
-                        <td>{room.roomNumber}</td>
-                        <td>{room.isAC ? 'Yes' : 'No'}</td>
-                        <td>{room.attachedBathroom ? 'Yes' : 'No'}</td>
-                        <td>
-                          {room.additionalFacilities &&
-                            Object.entries(room.additionalFacilities).map(([key, val]) => (
-                              <div key={key}>{key}: {val.toString()}</div>
-                            ))}
-                        </td>
-                        <td>
-                          <button className="edit-btn">Edit</button>
-                          <button className="delete-btn">Delete</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ))}
+            <label>Select Block Type to Modify</label>
+            <select onChange={handleBlockTypeSelect} defaultValue="">
+              <option value="">-- Choose Type --</option>
+              {selectedBlock.blockTypeDetails.map(detail => (
+                <option key={detail.type} value={detail.type}>{detail.type}</option>
+              ))}
+            </select>
           </>
         )}
 
-        <div className="button-group">
-          <div className="btn-left">
-            <button onClick={() => navigate('/superadmin')} className="btn-back">← Back</button>
+        {selectedBlockType && roomTypeDetails.length > 0 && (
+          <div>
+            <h4>Rooms under {selectedBlockType}</h4>
+            <table className="room-table">
+              <thead>
+                <tr>
+                  <th>Room Name</th>
+                  <th>Floor</th>
+                  <th>Beds</th>
+                  <th>AC</th>
+                  <th>Bathroom</th>
+                  <th>Facilities</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {roomTypeDetails.map(room => (
+                  <tr key={room._id}>
+                    <td>{room.roomName}</td>
+                    <td>{room.floorNumber}</td>
+                    <td>{room.bedCount}</td>
+                    <td>{room.isAC ? 'Yes' : 'No'}</td>
+                    <td>{room.attachedBathroom ? 'Yes' : 'No'}</td>
+                    <td>{
+                      room.additionalFacilities &&
+                      Object.entries(room.additionalFacilities).map(([key, value]) => (
+                        <div key={key}>{key}: {value}</div>
+                      ))
+                    }</td>
+                    <td>
+                      <button onClick={() => handleEditRoom(room._id)}>Edit</button>
+                      <button onClick={() => handleDeleteRoom(room._id)}>Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div className="btn-right">
-            <button
-              onClick={() => {
-                setSelectedBlock(null);
-                setRoomCounts({});
-              }}
-              className="btn-clear"
-            >
-              Clear
-            </button>
-            <button onClick={handleSave} className="btn-save">Save</button>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
