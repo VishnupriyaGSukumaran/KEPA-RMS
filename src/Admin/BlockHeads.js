@@ -149,12 +149,26 @@ function BlockHeads() {
       flex: 1,
       sortable: false,
       renderCell: (params) => (
-        <>
-          <Button onClick={() => handleEdit(params.row)} size="small" style={{ color: '#1976d2' }}>Edit</Button>
-          |
-          <Button onClick={() => handleDelete(params.row.id)} size="small" style={{ color: '#d32f2f' }}>Remove</Button>
-        </>
-      )
+  <div style={{ display: 'flex', gap: '8px' }}>
+    <Button
+      onClick={() => handleEdit(params.row)}
+      size="small"
+      variant="contained"
+      color="primary"
+    >
+      Edit
+    </Button>
+    <Button
+      onClick={() => handleDelete(params.row.id)}
+      size="small"
+      variant="contained"
+      color="error"
+    >
+      Remove
+    </Button>
+  </div>
+)
+
     }
   ];
 
