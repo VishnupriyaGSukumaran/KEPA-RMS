@@ -1,6 +1,6 @@
 .block-page {
   font-family: Arial, sans-serif;
-  background-color: #f9f9f9;
+  background-color: #ffffff;
 }
 
 .header {
@@ -41,11 +41,11 @@
   text-align: center;
   height: 80px;
 }
-
 .tabs-title {
   margin: 5px 0;
   font-size: 20px;
   font-weight: bold;
+    box-shadow: none;
 }
 
 .tabs-row {
@@ -55,7 +55,11 @@
   margin: 35px auto 0;
   border-radius: 10px;
   overflow: hidden;
-  border: 1px solid black;
+
+  /* ✅ Remove black border and reflection */
+  border: none;
+  background-color: transparent;
+  box-shadow: none;
 }
 
 .tab-button {
@@ -64,13 +68,17 @@
   font-size: 16px;
   font-weight: bold;
   border: none;
-  background-color: #e0e0e0;
+  background-color: #ffffff;  /* flat white */
   cursor: pointer;
   display: flex;
   justify-content: center;
   align-items: center;
   transition: 0.3s;
+
+  /* ✅ Remove any shadow or inherited styles */
+  box-shadow: none;
 }
+
 
 .tab-button:not(:last-child) {
   border-right: 1px solid black;
@@ -83,105 +91,237 @@
 }
 
 .form-container {
-  background-color: #f0f8ff;
-  padding: 40px 60px;
+   background-color: #fff;
+  padding: 30px 40px;
+  border-radius: 10px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+    width: 90%;
   max-width: 1100px;
-  margin: 60px auto 0;
-  border-radius: 15px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  border: 1px solid #ddd;
+  margin: 5px auto; 
+  
 }
+
 
 .form-title {
   font-size: 20px;
   color: #000000;
-  margin: 40px auto;
+  margin: 10px auto 20px auto; /* ⬅️ Reduced vertical spacing */
   font-weight: 600;
   border-radius: 10px;
+
 }
 
-.form-label {
-  display: block;
-  margin: 20px 0 10px;
-  font-weight: 600;
-  color: #333;
-  font-size: 15px;
-}
 
-.form-select {
-  width: 100%;
-  padding: 12px 40px 12px 14px;
-  font-size: 15px;
+
+
+
+
+
+
+/* Dropdown and List Styling */
+.dropdown-select {
+  max-width: 600px;         /* Match width of room type boxes */
+  width: 100%;              /* Responsive */
+  padding: 10px 14px;
   border-radius: 8px;
   border: 1px solid #ccc;
-  background-color: #fff;
-  background-image: url("data:image/svg+xml,%3Csvg fill='gray' height='16' viewBox='0 0 24 24' width='16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-color: #ffffff;
+  font-size: 15px;
+  margin: 0 auto 20px auto; /* Center and add bottom margin */
+  display: block;
+
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='gray' class='bi bi-caret-down-fill' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658c-.566-.632-.106-1.658.753-1.658h9.592c.86 0 1.32 1.026.754 1.658L8.753 11.14a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
-  background-size: 16px;
+  background-size: 16px 16px;
+
   appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.3s ease-in-out;
 }
 
-.grid-form {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  margin-top: 15px;
+.dropdown-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 6px rgba(0, 123, 255, 0.25);
 }
 
-.form-input {
-  padding: 10px;
-  font-size: 14px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+
+.dropdown-label {
+  text-align: center;
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 20px auto;
+  color: #000080;
+
+}
+
+
+.dropdown-select {
   width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background-color: #ffffff;
+  font-size: 15px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.3s ease-in-out;
 }
 
-.button-group {
+.room-heading {
+   text-align: center;
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 20px auto;
+  color: #000080;/* Center horizontally + space below */
+
+}
+
+
+select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 15px;
+  margin-bottom: 20px;
+  background-color: #fff;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+  margin-bottom: 20px;
+}
+
+/* Style each box */
+ul li {
+  background-color: #003d80; /* Dark blue */
+  color: white;              /* White text */
+  
+  padding: 10px 15px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 30px;
+
+  font-weight: 500;
+  max-width: 600px;        /* ⬅️ Limit width */
+  margin-left: auto;       /* ⬅️ Center align */
+  margin-right: auto;      /* ⬅️ Center align */
 }
 
-.btn-left .btn-back,
-.btn-right .btn-clear,
-.btn-right .btn-save {
-  padding: 10px 22px;
-  font-weight: bold;
-  border: none;
-  color: white;
-  border-radius: 8px;
-  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.3);
-  transition: background 0.3s ease, transform 0.2s ease;
+
+.center-label {
+  text-align: center;
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 20px auto;
+  color: #000080; /* Optional: Navy color */
+}
+
+/* Add / Remove Buttons */
+button {
   cursor: pointer;
+  font-weight: bold;
+  border-radius: 6px;
+  padding: 6px 10px;
+  border: none;
 }
 
-.btn-back {
-  background: linear-gradient(to right, #007bff, #0056b3);
-}
-.btn-back:hover {
-  background: linear-gradient(to right, #0056b3, #004494);
-  transform: scale(1.03);
+button:hover {
+  opacity: 0.9;
 }
 
-.btn-clear {
-  background: linear-gradient(to right, #dc3545, #b52a37);
-}
-.btn-clear:hover {
-  background: linear-gradient(to right, #b52a37, #991f2d);
-  transform: scale(1.03);
+button.nav-btn,
+button[type="button"] {
+  font-size: 14px;
 }
 
-.btn-save {
-  background: linear-gradient(to right, #000080, #000060);
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
-.btn-save:hover {
-  background: linear-gradient(to right, #000060, #000040);
-  transform: scale(1.03);
+.button-container {
+  text-align: center;
+  margin-top: 20px;
 }
 
+.add-block-btn {
+  background-color: #28a745;
+  color: white;
+  margin-bottom: 20px;
+  font-weight: bold;
+  border-radius: 6px;
+  padding: 6px 10px;
+  border: none;
+  cursor: pointer;
+ 
+}
+
+.add-block-btn:hover {
+  background-color: #218838;
+}
+
+
+button[onClick*="removeBlockType"] {
+  background-color: #8e0513;
+  color: white;
+  margin-left: 10px;
+}
+
+.edit-btn {
+  background-color: #007bff;
+  color: white;
+  margin-right: 8px;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+}
+
+
+/* Room Table Styling */
+.room-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.room-table th,
+.room-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ccc;
+}
+
+.room-table th {
+  background-color: #070256;
+  color: white;
+}
+
+.room-table td {
+  background-color: #f9f9f9;
+}
+
+.room-table td div {
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+/* Error Message */
 .error-text {
   color: red;
   font-weight: bold;
+  margin-top: 10px;
 }
