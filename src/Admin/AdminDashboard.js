@@ -122,26 +122,25 @@ const handleSubmit = async (e) => {
     </div>
   </div>
 
-  <div className="logout-container">
-    <button className="logout" onClick={() => navigate('/login')}>
-      <FaSignOutAlt /> Logout
-    </button>
-  </div>
+  
 </div>
 
 
       {/* Main Content */}
       <div className="main-content">
-        <div className="top-bar">
-          <h2>ADMIN</h2>
-          <div
-            className="home-btn"
-            onClick={() => navigate('/')}
-            style={{ cursor: 'pointer' }}
-          >
-            <FaHome /> Home
-          </div>
-        </div>
+  <div className="top-bar">
+    <h2>ADMIN</h2>
+
+    <div className="topbar-buttons">
+      <button className="home-btn" onClick={() => navigate('/')}>
+        <FaHome /> Home
+      </button>
+      <button className="logout-btn" onClick={() => navigate('/login')}>
+        <FaSignOutAlt /> Logout
+      </button>
+    </div>
+  </div>
+
 
         {/* Stats */}
         <div className="stats-grid">
