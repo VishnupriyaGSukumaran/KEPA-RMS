@@ -17,7 +17,7 @@ function WelcomePage() {
     <img src="/logo.png" alt="logo" className="logo" />
     <div className="title-block">
       <div className="title-section">RMS</div>
-      <div className="subtitle-section">Kerala Police</div>
+      <div className="subtitle-section">Kerala Police Academy </div>
     </div>
   </div>
 </div>

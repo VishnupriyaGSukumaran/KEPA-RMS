@@ -56,7 +56,7 @@ const Login = () => {
           <img src="/logo.png" alt="Kerala Police" className="logo" />
           <div>
             <div className="rams">RMS</div>
-            <div className="subheading">Kerala Police</div>
+            <div className="subheading">Kerala Police Academy</div>
           </div>
         </div>
        
