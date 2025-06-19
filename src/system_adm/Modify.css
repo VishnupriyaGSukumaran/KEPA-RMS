@@ -1,16 +1,14 @@
-/* Page layout */
 .block-page {
   font-family: Arial, sans-serif;
   background-color: #ffffff;
 }
 
-/* Header Section */
 .header {
   background-color: #000080;
-  color: white;
-  padding: 15px 20px;
   display: flex;
   justify-content: space-between;
+  color: white;
+  padding: 10px 20px;
   align-items: center;
 }
 
@@ -24,13 +22,16 @@
   margin-right: 10px;
 }
 
-.title {
+.page-title {
   font-size: 20px;
   font-weight: bold;
 }
 
-.subtitle {
+.nav-btn {
+  margin-left: 10px;
+  padding: 6px 12px;
   font-size: 14px;
+  cursor: pointer;
 }
 
 .tabs-container {
@@ -89,7 +90,6 @@
   border-bottom: 4px solid #007bff;
 }
 
-/* Main Form Container */
 .form-container {
    background-color: #fff;
   padding: 30px 40px;
@@ -110,12 +110,6 @@
   border-radius: 10px;
 
 }
-
-
-
-
-
-
 
 
 /* Dropdown and List Styling */
