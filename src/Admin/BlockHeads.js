@@ -149,12 +149,26 @@ function BlockHeads() {
       flex: 1,
       sortable: false,
       renderCell: (params) => (
-        <>
-          <Button onClick={() => handleEdit(params.row)} size="small" style={{ color: '#1976d2' }}>Edit</Button>
-          |
-          <Button onClick={() => handleDelete(params.row.id)} size="small" style={{ color: '#d32f2f' }}>Remove</Button>
-        </>
-      )
+  <div style={{ display: 'flex', gap: '8px' }}>
+    <Button
+      onClick={() => handleEdit(params.row)}
+      size="small"
+      variant="contained"
+      color="primary"
+    >
+      Edit
+    </Button>
+    <Button
+      onClick={() => handleDelete(params.row.id)}
+      size="small"
+      variant="contained"
+      color="error"
+    >
+      Remove
+    </Button>
+  </div>
+)
+
     }
   ];
 
@@ -185,10 +199,11 @@ function BlockHeads() {
         </div>
       </div>
 
-      <div className="blockheads-header">
-        <h2>Block Heads Management</h2>
-        <button className="add-btn" onClick={handleAddClick}>+ Add Block Head</button>
-      </div>
+      <div className="blockheads-page">
+  <div className="blockheads-header">
+    <h2>Block Heads Management</h2>
+    <button className="add-btn" onClick={handleAddClick}>+ Add Block Head</button>
+  </div>
 
       <div style={{ height: 500, width: '100%' }}>
         <DataGrid
@@ -200,7 +215,7 @@ function BlockHeads() {
           showToolbar
         />
       </div>
-
+</div>
       {showForm && (
         <div className="modal">
           <form className="blockhead-form" onSubmit={handleFormSubmit}>

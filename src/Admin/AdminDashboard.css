@@ -10,12 +10,28 @@
   background-color: #14008a;
   width: 250px;
   color: white;
+  padding: 20px;
+  margin-top: 65px;
+  height: 100vh;                /* Sidebar always takes full screen height */
+  overflow: hidden;             /* Add vertical scroll if needed */
   display: flex;
   flex-direction: column;
-  padding: 20px;
-  margin-top: 20px;
-  
+  box-sizing: border-box;
 }
+
+.sidebar-top {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+.logout-section {
+  padding-top: 20px;
+}
+
+
+
 
 .logo {
   display: flex;
@@ -77,42 +93,81 @@
   padding-right: 10px;
 }
 
-.logout {
-  margin-top: auto;
-  background: none;
-  border: none;
-  color: #ffcccc;
-  padding: 10px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 20px;
-}
+
 
 /* Main Content */
 .main-content {
   flex: 1;
   padding: 0;
-  overflow-y: auto;
+  overflow: hidden;
 }
-
-/* Top horizontal bar */
-.top-bar {
-  background-color: #14008a;
+.admin-topbar {
+  position: fixed;           /* Fixed to top-left corner */
+  top: 0;
+  left: 0;
+  width: 100vw;              /* 100% of the viewport width */
   height: 60px;
+  z-index: 1000;
+
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-top: 20px;
-  margin-left: 5px;
+  justify-content: space-between;
+  background-color: #14008a;
+  color: white;
+  padding: 0 20px;
+  box-sizing: border-box;    /* Include padding in width */
 }
 
-.top-bar-title {
-  color: white;
-  font-size: 24px;
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar-logo {
+  height: 45px;
+}
+
+.topbar-title {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.rms-title {
   font-weight: bold;
-  text-align: center;
+  font-size: 16px;
+}
+
+.rms-subtitle {
+  font-size: 12px;
+}
+
+.topbar-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.topbar-center h2 {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 0;
+}
+
+.topbar-right {
+  display: flex;
+  gap: 10px;
+}
+
+.topbar-btn {
+  background-color: white;
+  color: #2c3e50;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
 }
 
 /* Stats Cards */
@@ -162,3 +217,189 @@
 .notif-item small {
   color: gray;
 }
+.allocation-form {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 650px;
+  margin: 0 auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.allocation-form h2 {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.form-grid {
+   margin-top: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group select {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.form-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  gap: 10px;
+}
+
+.save-btn {
+  background-color: #1976d2;
+  color: white;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  background-color: #f44336;
+  color: white;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+
+.allocation-form h2 {
+  margin-bottom: 20px;
+  font-size: 20px;
+  text-align: center;
+  color: #333;
+}
+
+.form-group {
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* Align label to left */
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #222;
+  font-size: 15px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Consistent font */
+  color: #333;
+  box-sizing: border-box;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+
+.form-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.save-btn {
+  background-color: #0066cc;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  background-color: #aaa;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.save-btn:hover {
+  background-color: #005bb5;
+}
+
+.cancel-btn:hover {
+  background-color: #888;
+}
+.nav-links-row {
+  display: flex;
+  justify-content: start;
+  gap: 10px;
+  padding: 10px;
+}
+/* Make both columns same width */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Make all inputs/selects same width */
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Make Remarks/Notes span full row */
+.form-group.remarks {
+  grid-column: span 2;
+}
+
+
