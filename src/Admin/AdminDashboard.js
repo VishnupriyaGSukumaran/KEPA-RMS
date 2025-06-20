@@ -31,6 +31,7 @@ function AdminDashboard() {
   const [toDate, setToDate] = useState('');
   const [notes, setNotes] = useState('');
   const [officerFile, setOfficerFile] = useState(null);
+  const [courseFile, setCourseFile] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,25 +62,40 @@ function AdminDashboard() {
       alert('Failed to send allocation.');
     }
   };
+const handleCourseSubmit = async (e) => {
+  e.preventDefault();
 
-  const handleCourseSubmit = async () => {
-    if (!courseTitle || !courseDesc) {
-      alert('Please enter course title and description.');
-      return;
-    }
-    const message = `New course suggestion: "${courseTitle}" - ${courseDesc}`;
-    try {
-      await axios.post('http://localhost:5000/api/notifications', { message });
-      alert('Course suggestion sent to SuperAdmin.');
-      setCourseTitle('');
-      setCourseDesc('');
-      setShowModal(false);
-    } catch (error) {
-      console.error('Failed to send course suggestion:', error);
-      alert('Failed to notify SuperAdmin.');
-    }
-  };
+  if (!courseTitle || !courseDesc) {
+    alert('Please enter both title and description.');
+    return;
+  }
 
+  const formData = new FormData();
+  formData.append('courseTitle', courseTitle);
+  formData.append('courseDesc', courseDesc);
+  if (courseFile) {
+    formData.append('courseFile', courseFile);
+  }
+
+  try {
+    await axios.post('http://localhost:5000/api/course-orders', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+
+    alert('✅ Course order sent to SuperAdmin.');
+    // Clear form
+    setCourseTitle('');
+    setCourseDesc('');
+    setCourseFile(null);
+    setShowModal(false);
+  } catch (error) {
+    console.error('Error submitting course order:', error);
+    alert('❌ Failed to send course order.');
+  }
+};
+
+
+  
   return (
     <div className="admin-dashboard">
       {/* Sidebar */}
@@ -98,7 +114,7 @@ function AdminDashboard() {
             <button className="nav-item" onClick={() => navigate('/admin/blockheads')}><FaUsers /> Assign Block Heads</button>
             <button className="nav-item" onClick={() => setShowAllocForm(true)}><FaPlus /> Create Allocation Order</button>
             <button className="nav-item"><FaCubes /> Display Block Structure</button>
-            <button className="nav-item" onClick={() => setShowModal(true)}><FaBook /> Suggest New Course</button>
+           <button className="nav-item" onClick={() => setShowModal(true)}><FaBook /> Forward Course Order</button>
             <button className="nav-item"><FaChartBar />Generate Reports</button>
             <button className="nav-item"><FaBell /> Notifications</button>
           </div>
@@ -147,51 +163,55 @@ function AdminDashboard() {
 
       {/* Suggest Course Modal */}
       {showModal && (
-        <div className="modal-backdrop">
-          <div className="modal">
-            <div className="allocation-form">
-              <h2>Suggest New Course</h2>
-              <form onSubmit={(e) => { e.preventDefault(); handleCourseSubmit(); }}>
-                <div className="form-group" style={{ textAlign: 'left' }}>
-                  <label style={{ fontWeight: 'bold' }}>Course Title</label>
-                  <input
-                    type="text"
-                    value={courseTitle}
-                    onChange={(e) => setCourseTitle(e.target.value)}
-                    placeholder="Enter course title"
-                    style={{ width: '100%', marginTop: '5px' }}
-                    required
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginTop: '20px', textAlign: 'left' }}>
-                  <label style={{ fontWeight: 'bold' }}>Course Description</label>
-                  <textarea
-                    value={courseDesc}
-                    onChange={(e) => setCourseDesc(e.target.value)}
-                    placeholder="Enter course description"
-                    rows={4}
-                    style={{ width: '100%', marginTop: '5px' }}
-                    required
-                  />
-                </div>
-
-                <div className="form-buttons">
-                  <button type="button" onClick={() => setShowModal(false)} className="cancel-btn">Cancel</button>
-                  <button type="submit" className="save-btn">Send</button>
-                </div>
-              </form>
-            </div>
-          </div>
+  <div className="modal-backdrop">
+    <div className="modal">
+      <h3>Forward Course Order</h3>
+      <form onSubmit={handleCourseSubmit}>
+        <div className="form-group">
+          <label>Course Title</label>
+          <input
+            type="text"
+            value={courseTitle}
+            onChange={(e) => setCourseTitle(e.target.value)}
+            required
+          />
         </div>
-      )}
+
+        <div className="form-group">
+          <label>Course Description</label>
+          <textarea
+            value={courseDesc}
+            onChange={(e) => setCourseDesc(e.target.value)}
+            rows={4}
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Upload Course Order (PDF)</label>
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={(e) => setCourseFile(e.target.files[0])}
+          />
+        </div>
+
+        <div className="form-buttons">
+          <button type="button" onClick={() => setShowModal(false)}>Cancel</button>
+          <button type="submit">Send</button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
+
 
       {/* Allocation Modal */}
       {showAllocForm && (
         <div className="modal-backdrop">
           <div className="modal">
             <div className="allocation-form">
-              <h2>Allocation Request</h2>
+              <h2>Allocation Order</h2>
               <form onSubmit={handleSubmit}>
                 <div className="form-grid">
                   <div className="form-group">
