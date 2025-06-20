@@ -1,4 +1,6 @@
 import React from 'react';
+
+import TopBar from './components/TopBar';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import WelcomePage from './WelcomePage';
 import Login from './LoginPage';
@@ -22,6 +24,7 @@ import BlockHeads from './Admin/BlockHeads';
 const App = () => {
   return (
     <Router>
+       <TopBar />
       <Routes>
         
         <Route path="/" element={<WelcomePage />} />

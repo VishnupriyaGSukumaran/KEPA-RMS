@@ -1,240 +1,167 @@
-// ======== DesignBlock.js (Frontend) =========
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './AddBlock.css';
+import './CreateUser.css';
 
-const DesignBlock = () => {
+const CreateUser = () => {
+  const [formData, setFormData] = useState({
+    userType: '',
+    firstName: '',
+    lastName: '',
+    pen: '',
+    phoneNumber: '',
+    email: '',
+    username: '',
+    password: '',
+    confirmPassword: '',
+    assignedBlock: '',
+  });
+
+  const [availableBlocks, setAvailableBlocks] = useState([]);
+  const [accountCreated, setAccountCreated] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const navigate = useNavigate();
-  const [blockName, setBlockName] = useState('');
-  const [blockTypes, setBlockTypes] = useState([]);
-  const [roomCounts, setRoomCounts] = useState({});
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [modalMessage, setModalMessage] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [errors, setErrors] = useState({ blockName: '', roomCounts: {} });
-  const [roomsCreated, setRoomsCreated] = useState(false);
-
-  const dropdownRef = useRef(null);
-  const options = ['Suite Room', 'Room', 'Dormitory', 'Barrack'];
 
   useEffect(() => {
-    sessionStorage.removeItem('roomsCreated'); // clear on initial load
-  }, []);
-
-  useEffect(() => {
-    const created = sessionStorage.getItem('roomsCreated');
-    setRoomsCreated(created === 'true');
-  }, []);
-
-  const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
-
-  const handleCheckboxChange = (type) => {
-    if (blockTypes.includes(type)) {
-      setBlockTypes(blockTypes.filter(t => t !== type));
-      const updatedCounts = { ...roomCounts };
-      delete updatedCounts[type];
-      setRoomCounts(updatedCounts);
+    if (formData.userType === 'blockhead') {
+      fetch('http://localhost:5000/api/block')
+        .then((res) => res.json())
+        .then((data) => setAvailableBlocks(data))
+        .catch((err) => console.error('Error fetching blocks:', err));
     } else {
-      setBlockTypes([...blockTypes, type]);
-      setRoomCounts({ ...roomCounts, [type]: '' });
+      setAvailableBlocks([]);
     }
+  }, [formData.userType]);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleRoomCountChange = (type, value) => {
-    setRoomCounts(prev => ({ ...prev, [type]: parseInt(value) || '' }));
+  const handleCancel = () => {
+    setFormData({
+      userType: '',
+      firstName: '',
+      lastName: '',
+      pen: '',
+      phoneNumber: '',
+      email: '',
+      username: '',
+      password: '',
+      confirmPassword: '',
+      assignedBlock: '',
+    });
   };
 
-  const clearForm = () => {
-    setBlockName('');
-    setBlockTypes([]);
-    setRoomCounts({});
-    setErrors({ blockName: '', roomCounts: {} });
-    sessionStorage.removeItem('roomsCreated');
-    sessionStorage.removeItem('createdRooms');
-    setRoomsCreated(false);
-  };
-
-  const toTitleCase = (input) => {
-    return input
-      .toLowerCase()
-      .replace(/\b\w/g, char => char.toUpperCase())
-      .replace(/\s+/g, ' ')
-      .trim();
-  };
-
-  
-
-
-  const handleCreateRoom = async () => {
-  let hasError = false;
-  const newErrors = { blockName: '', roomCounts: {} };
-
-  if (!blockName.trim()) {
-    newErrors.blockName = 'Block name is required.';
-    hasError = true;
-  } else if (!/^[a-zA-Z\s]+$/.test(blockName)) {
-    newErrors.blockName = 'Block name must contain only letters and spaces.';
-    hasError = true;
-  }
-
-  if (blockTypes.length === 0) {
-    setModalMessage('⚠️ Please select at least one block type.');
-    setShowModal(true);
-    return;
-  }
-
-  for (const type of blockTypes) {
-    const count = roomCounts[type];
-    if (count === '' || isNaN(count) || count < 0) {
-      newErrors.roomCounts[type] = 'Please enter a valid non-negative number.';
-      hasError = true;
-    }
-  }
-
-  if (hasError) {
-    setErrors(newErrors);
-    return;
-  }
-
-  let formattedBlockName = blockName.trim();
-  if (/^[A-Za-z]$/.test(formattedBlockName)) {
-    formattedBlockName = `${formattedBlockName} Block`;
-  }
-  formattedBlockName = toTitleCase(formattedBlockName);
-
-  try {
-    const res = await fetch('http://localhost:5000/api/block');
-    const blocks = await res.json();
-
-    const exists = blocks.some(
-      b => toTitleCase(b.blockName) === formattedBlockName
-    );
-
-    if (exists) {
-      setModalMessage(`⚠️ Block "${formattedBlockName}" already exists!`);
-      setShowModal(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (formData.password !== formData.confirmPassword) {
+      alert('Passwords do not match!');
       return;
     }
 
-    // ✅ Store validated block info in sessionStorage
-    sessionStorage.setItem('blockData', JSON.stringify({
-      blockName: formattedBlockName,
-      blockTypes,
-      roomCounts
-    }));
+    const res = await fetch('http://localhost:5000/api/createauth/superadmin/create-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    });
 
-    navigate('/superadmin/create-rooms');
-  } catch (err) {
-    setModalMessage('❌ Failed to check for duplicate block');
-    setShowModal(true);
-  }
-};
+    const data = await res.json();
+    if (res.ok) {
+      setAccountCreated(true);
+      setTimeout(() => {
+        setAccountCreated(false);
+        handleCancel();
+      }, 2000);
+    } else {
+      setErrorMsg(data.message || 'Failed to create user');
+    }
+  };
 
   return (
-    <div className="block-container">
-      <div className="header">
-        <div className="logo-area">
-          <img src="/logo.png" alt="Logo" />
+    <>
+      <div className="top-header">
+        <div className="logo-title">
+          <img src="/logo.png" alt="Kerala Police" className="logo" />
           <div>
-            <div className="title">RAMS</div>
-            <div className="subtitle">Kerala Police</div>
+            <div className="rams">RAMS</div>
+            <div className="subheading">Kerala Police</div>
           </div>
         </div>
-        <div className="page-title">System Admin</div>
-        <div className="nav">
-          <button onClick={() => navigate('/')} className="nav-btn">Home</button>
-          <button onClick={() => navigate('/login')} className="nav-btn">Logout</button>
+        <div className="top-center">System Admin</div>
+        <div className="top-right">
+          <button onClick={() => navigate('/')}>Home</button>
+          <button onClick={() => navigate('/login')}>Logout</button>
         </div>
       </div>
 
-      <div className="tabs-container">
-        <h2 className="tabs-title">Block Management</h2>
-        <div className="tabs-row">
-          <button className="tab-button active">➕ Add New Block</button>
-          <button className="tab-button" onClick={() => navigate('/superadmin/modify-block')}>✏️ Modify Block</button>
-          <button className="tab-button" onClick={() => navigate('/superadmin/remove-block')}>🗑️ Remove Block</button>
-        </div>
-      </div>
+      <div className="create-user-container">
+        <h2 className="form-heading">USER INFORMATION</h2>
 
-      <div className="form-area">
-        <h3>➕ Add New Block</h3>
-        <p>Create a new block and set room counts</p>
+        <form className="form-grid" onSubmit={handleSubmit}>
+          {errorMsg && <div className="error-message">{errorMsg}</div>}
 
-        <div className="form-grid">
-          <input
-            type="text"
-            placeholder="Block Name"
-            value={blockName}
-            onChange={(e) => setBlockName(e.target.value)}
-          />
-          {errors.blockName && <p className="error-text">{errors.blockName}</p>}
+          <div className="form-group full-width">
+            <select
+              name="userType"
+              className="full-width-select"
+              value={formData.userType}
+              onChange={handleChange}
+              required
+            >
+              <option value="">-----Select User Type-----</option>
+              <option value="admin">Admin</option>
+              <option value="blockhead">Block Head</option>
+            </select>
+          </div>
 
-          <div className="custom-dropdown" ref={dropdownRef}>
-            <div className="dropdown-header" onClick={toggleDropdown}>
-              {blockTypes.length > 0 ? blockTypes.join(', ') : 'Select Block Types'}
-              <span className="dropdown-arrow">{dropdownOpen ? '▲' : '▼'}</span>
-            </div>
-            {dropdownOpen && (
-              <div className="dropdown-list">
-                {options.map((type) => (
-                  <label key={type} className="dropdown-item">
-                    <input
-                      type="checkbox"
-                      checked={blockTypes.includes(type)}
-                      onChange={() => handleCheckboxChange(type)}
-                    />
-                    {type}
-                  </label>
+          {formData.userType === 'blockhead' && (
+            <div className="form-group full-width">
+              <select
+                name="assignedBlock"
+                className="full-width-select"
+                value={formData.assignedBlock}
+                onChange={handleChange}
+                required
+              >
+                <option value="">-- Select Block --</option>
+                {availableBlocks.map((block) => (
+                  <option key={block._id} value={block.blockName}>
+                    {block.blockName}
+                  </option>
                 ))}
-              </div>
-            )}
-          </div>
-        </div>
+              </select>
+            </div>
+          )}
 
-        {blockTypes.length > 0 && (
-          <div className="form-grid room-count-grid">
-            {blockTypes.map((type) => (
-              <div key={type}>
-                <label>{type} Count</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={roomCounts[type] || ''}
-                  onChange={(e) => handleRoomCountChange(type, e.target.value)}
-                  placeholder={`Enter number of ${type}s`}
-                />
-                <span className="block-name-note">Block name is case-insensitive and must be unique.</span>
-                {errors.roomCounts[type] && <p className="error-text">{errors.roomCounts[type]}</p>}
-              </div>
-            ))}
-          </div>
-        )}
+          <input name="firstName" placeholder="First Name" value={formData.firstName} onChange={handleChange} />
+          <input name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleChange} />
+          <input name="pen" placeholder="PEN" value={formData.pen} onChange={handleChange} />
+          <input name="phoneNumber" placeholder="Phone Number" value={formData.phoneNumber} onChange={handleChange} />
+          <input name="email" placeholder="Email" value={formData.email} onChange={handleChange} />
+          <input name="username" placeholder="Username" value={formData.username} onChange={handleChange} />
+          <input name="password" type="password" placeholder="Password" value={formData.password} onChange={handleChange} />
+          <input name="confirmPassword" type="password" placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} />
 
-        {showModal && (
-          <div className="success-modal-overlay">
-            <div className="success-modal-box">
-              <p>{modalMessage}</p>
-              <button onClick={() => setShowModal(false)} className="success-button">OK</button>
+          <div className="button-row">
+            <button type="button" className="form-button" onClick={() => navigate('/superadmin/dashboard')}>← Back</button>
+            <div className="button-right">
+              <button type="button" className="form-button" onClick={handleCancel}>Cancel</button>
+              <button
+                type="submit"
+                className="form-button"
+                disabled={
+                  !formData.userType ||
+                  (formData.userType === 'blockhead' && !formData.assignedBlock) ||
+                  formData.password !== formData.confirmPassword
+                }
+              >
+                Create Account
+              </button>
             </div>
           </div>
-        )}
-
-        {blockTypes.length > 0 && Object.values(roomCounts).every(c => c !== '' && !isNaN(c)) && (
-          <div className="create-room-wrapper">
-            <button onClick={handleCreateRoom} className="create-room-btn">Create Room</button>
-          </div>
-        )}
-
-        <div className="bottom-buttons">
-          <button className="back-btn" onClick={() => navigate('/superadmin/dashboard')}>Back</button>
-          <div className="right-buttons">
-            <button onClick={clearForm} className="cancel-btn">Cancel</button>
-           
-          </div>
-        </div>
+        </form>
       </div>
-    </div>
+    </>
   );
 };
 
-export default DesignBlock;
+export default CreateUser;

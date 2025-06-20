@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import './CreateUser.css';
 import { useNavigate } from 'react-router-dom';
 
-
 const CreateUser = () => {
   const [formData, setFormData] = useState({
     userType: '',
@@ -14,15 +13,14 @@ const CreateUser = () => {
     username: '',
     password: '',
     confirmPassword: '',
-    assignedBlock: '', // ✅ added for blockhead
+    assignedBlock: '',
   });
 
-  const [availableBlocks, setAvailableBlocks] = useState([]); // ✅ list of blocks
+  const [availableBlocks, setAvailableBlocks] = useState([]);
   const [accountCreated, setAccountCreated] = useState(false);
-  const navigate = useNavigate();
   const [errorMsg, setErrorMsg] = useState('');
+  const navigate = useNavigate();
 
-  // ✅ Fetch blocks when 'blockhead' is selected
   useEffect(() => {
     if (formData.userType === 'blockhead') {
       fetch('http://localhost:5000/api/block')
@@ -30,7 +28,7 @@ const CreateUser = () => {
         .then((data) => setAvailableBlocks(data))
         .catch((err) => console.error('Error fetching blocks:', err));
     } else {
-      setAvailableBlocks([]); // clear if not blockhead
+      setAvailableBlocks([]);
     }
   }, [formData.userType]);
 
@@ -49,7 +47,7 @@ const CreateUser = () => {
       username: '',
       password: '',
       confirmPassword: '',
-      assignedBlock: '', // reset this too
+      assignedBlock: '',
     });
   };
 
@@ -70,21 +68,20 @@ const CreateUser = () => {
       });
 
       try {
-  const data = await res.json();
-  if (res.ok) {
-    setAccountCreated(true);
-    setTimeout(() => {
-      setAccountCreated(false);
-      handleCancel();
-    }, 2000);
-  } else {
-   setErrorMsg(data.message || 'Failed to create account.');
-
-  }
-} catch (jsonError) {
-  console.error('JSON parse error:', jsonError);
-  alert('Unexpected server response. Please try again later.');
-}
+        const data = await res.json();
+        if (res.ok) {
+          setAccountCreated(true);
+          setTimeout(() => {
+            setAccountCreated(false);
+            handleCancel();
+          }, 2000);
+        } else {
+          setErrorMsg(data.message || 'Failed to create account.');
+        }
+      } catch (jsonError) {
+        console.error('JSON parse error:', jsonError);
+        alert('Unexpected server response. Please try again later.');
+      }
 
     } catch (fetchError) {
       console.error('Network error:', fetchError);
@@ -101,21 +98,6 @@ const CreateUser = () => {
     </div>
   ) : (
     <div className="create-user-container">
-      <header className="top-header">
-        <div className="logo-title">
-          <img src="/logo.png" alt="Kerala Police" className="logo" />
-          <div>
-            <div className="rams">RAMS</div>
-            <div className="subheading">Kerala Police</div>
-          </div>
-        </div>
-        <div className="top-center">System Admin</div>
-        <div className="top-right">
-          <button onClick={() => navigate('/')}>Home</button>
-          <button onClick={() => navigate('/login')}>Logout</button>
-        </div>
-      </header>
-
       <h2 className="form-heading">USER INFORMATION</h2>
       <form className="form-grid" onSubmit={handleSubmit}>
         {errorMsg && <div className="error-message">{errorMsg}</div>}
@@ -128,7 +110,6 @@ const CreateUser = () => {
           </select>
         </div>
 
-        {/* ✅ Show block selector only when blockhead is selected */}
         {formData.userType === 'blockhead' && (
           <div className="form-group full-width">
             <select

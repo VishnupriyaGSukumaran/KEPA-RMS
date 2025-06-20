@@ -8,7 +8,6 @@ const SuperAdminDashboard = () => {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // ✅ Fetch notifications from backend
   const fetchNotifications = async () => {
     try {
       const res = await axios.get('http://localhost:5000/api/notifications');
@@ -19,22 +18,19 @@ const SuperAdminDashboard = () => {
   };
 
   useEffect(() => {
-    fetchNotifications(); // Load on mount
+    fetchNotifications();
   }, []);
 
-  // ✅ Count only unread notifications
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  // ✅ Toggle and mark all as read
   const handleToggleNotifications = async () => {
     const isOpening = !showNotifications;
     setShowNotifications(isOpening);
 
     if (isOpening && unreadCount > 0) {
       try {
-        // Mark all as read
         await axios.put('http://localhost:5000/api/notifications/mark-all-read');
-        await fetchNotifications(); // Refresh the list to update count
+        await fetchNotifications();
       } catch (error) {
         console.error('Failed to mark notifications as read:', error);
       }
@@ -47,26 +43,10 @@ const SuperAdminDashboard = () => {
     { title: "Course", desc: "Add & Modify Police Training Courses", path: "/superadmin/create-course" },
     { title: "Display Block", desc: "Showcase all details of Admins and Block Info Modules", path: "/superadmin/display-block" },
     { title: "Generate Report", desc: "View, Download, and Print usage and allocation", path: "/superadmin/generate-report" },
-    // { title: "Notifications", desc: "View system messages and alerts", path: "/superadmin/notifications" } // ✅ New card added
-];
+  ];
+
   return (
     <div className="dashboard-container">
-      {/* Top bar */}
-      <header className="dashboard-header">
-        <div className="left-section">
-          <img src="/logo.png" alt="Kerala Police Logo" className="logo" />
-          <div className="title-group">
-            <div className="title">RAMS</div>
-            <div className="subtitle">Kerala Police Academy</div>
-          </div>
-        </div>
-        <h2 className="center-title">System Admin</h2>
-        <div className="nav-buttons">
-          <button onClick={() => navigate('/')} className="nav-button">Home</button>
-          <button onClick={() => navigate('/login')} className="nav-button">Logout</button>
-        </div>
-      </header>
-
       {/* Main cards */}
       <main className="dashboard-main">
         <div className="card-grid">
@@ -86,6 +66,17 @@ const SuperAdminDashboard = () => {
             </button>
             <p className="card-desc">Notification from Admin</p>
 
+            {showNotifications && (
+              <div className="notification-dropdown">
+                <ul>
+                  {notifications.length === 0 ? (
+                    <li className="empty-msg">No notifications</li>
+                  ) : (
+                    notifications.map((note, index) => (
+                      <li key={index}>🔔 {note.message}</li>
+                    ))
+                  )}
+                </ul>
 {showNotifications && (
   <div className="notification-dropdown">
     <ul>
@@ -111,6 +102,20 @@ const SuperAdminDashboard = () => {
       )}
     </ul>
 
+                {notifications.length > 0 && (
+                  <button className="clear-btn" onClick={async () => {
+                    try {
+                      await axios.delete('http://localhost:5000/api/notifications/clear-all');
+                      await fetchNotifications();
+                    } catch (err) {
+                      console.error('Failed to clear notifications:', err);
+                    }
+                  }}>
+                    Clear All
+                  </button>
+                )}
+              </div>
+            )}
     {notifications.length > 0 && (
       <button
         className="clear-btn"
