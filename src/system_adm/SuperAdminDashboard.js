@@ -77,30 +77,6 @@ const SuperAdminDashboard = () => {
                     ))
                   )}
                 </ul>
-{showNotifications && (
-  <div className="notification-dropdown">
-    <ul>
-      {notifications.length === 0 ? (
-        <li className="empty-msg">No notifications</li>
-      ) : (
-        notifications.map((note, index) => (
-          <li key={index}>
-            🔔 {note.message}
-            
-            {note.type === 'courseOrder' && note.data?.filePath && (
-              <a
-                href={`http://localhost:5000/${note.data.filePath.replace(/\\/g, '/')}`}
-                target="_blank"
-                rel="noreferrer"
-                style={{ display: 'block', marginTop: '5px', color: 'white' }}
-              >
-                📄 View Attached PDF
-              </a>
-            )}
-          </li>
-        ))
-      )}
-    </ul>
 
                 {notifications.length > 0 && (
                   <button className="clear-btn" onClick={async () => {
@@ -116,24 +92,6 @@ const SuperAdminDashboard = () => {
                 )}
               </div>
             )}
-    {notifications.length > 0 && (
-      <button
-        className="clear-btn"
-        onClick={async () => {
-          try {
-            await axios.delete('http://localhost:5000/api/notifications/clear-all');
-            await fetchNotifications(); // refresh
-          } catch (err) {
-            console.error('Failed to clear notifications:', err);
-          }
-        }}
-      >
-        Clear All
-      </button>
-    )}
-  </div>
-)}
-
           </div>
         </div>
       </main>
