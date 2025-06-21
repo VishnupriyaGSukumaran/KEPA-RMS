@@ -3,7 +3,7 @@ const router = express.Router();
 const Block = require('../models/Block');
 const Room = require('../models/Room');
 
-// ===== POST: Create Rooms and Update Block =====
+// ===== ✅ POST: Create Rooms and Update Block =====
 router.post('/superadmin/create-rooms', async (req, res) => {
   const { blockName, rooms } = req.body;
 
@@ -12,26 +12,42 @@ router.post('/superadmin/create-rooms', async (req, res) => {
   }
 
   try {
-    await Room.insertMany(rooms);
+    // ✅ Ensure all rooms include allocatedBeds = 0
+    const roomsWithAllocation = rooms.map(room => ({
+      ...room,
+      allocatedBeds: room.allocatedBeds ?? 0  // default to 0 if not present
+    }));
 
+    // ✅ Save to Room collection
+    await Room.insertMany(roomsWithAllocation);
+
+    // ✅ Group rooms by type
     const grouped = {};
-    rooms.forEach(room => {
+    roomsWithAllocation.forEach(room => {
       if (!grouped[room.roomType]) grouped[room.roomType] = [];
       grouped[room.roomType].push(room);
     });
 
+    // ✅ Format blockTypeDetails for Block model
     const blockTypeDetails = Object.keys(grouped).map(type => ({
       type,
       count: grouped[type].length,
       rooms: grouped[type]
     }));
 
+    // ✅ Save rooms to the Block document as well
     await Block.findOneAndUpdate(
       { blockName },
-      { $set: { blockTypeDetails } },
+      {
+        $set: {
+          blockTypeDetails,
+          createdRooms: roomsWithAllocation
+        }
+      },
       { new: true, upsert: true }
     );
 
+    // ✅ Build summary for response
     const summary = blockTypeDetails.map(typeGroup => {
       const facilitySet = new Set();
       typeGroup.rooms.forEach(room => {

@@ -11,6 +11,7 @@ const blockRoutes = require('./routes/block'); // ✅ this will now be correct
 const courseRoutes = require('./routes/courseRoutes');
 
 const roomRoutes = require('./routes/room');
+const BlockHeadNewRoutes = require('./routes/BlockHeadNew');
 
 
 const app = express();
@@ -28,5 +29,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/courses',courseRoutes);
 app.use('/api/block',blockRoutes);
 app.use('/api/room', roomRoutes);
+app.use('/api/blockheadnew', BlockHeadNewRoutes);
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

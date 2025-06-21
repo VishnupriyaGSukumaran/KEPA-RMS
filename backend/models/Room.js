@@ -8,6 +8,7 @@ const roomSchema = new mongoose.Schema({
   attachedBathroom: { type: Boolean, default: false },
   floorNumber: { type: Number },
   bedCount: { type: Number },
+  allocatedBeds: { type: Number, default: 0 }, // ✅ New field added here
   additionalFacilities: { type: Map, of: String }
 }, { timestamps: true });
 

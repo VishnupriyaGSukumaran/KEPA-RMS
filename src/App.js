@@ -11,7 +11,7 @@ import GenerateReport from './system_adm/GenerateReport';
 import BlockHeadDashboard from './BlockHeadDashboard';
 import RemoveBlock from './system_adm/RemoveBlock';
 import Modify from './system_adm/Modify';
- import CreateRooms from './system_adm/CreateRooms';
+import CreateRooms from './system_adm/CreateRooms';
 import AdminDashboard from './Admin/AdminDashboard';
 import BlockHeads from './Admin/BlockHeads';
 
@@ -39,8 +39,6 @@ const App = () => {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/blockheads" element={<BlockHeads />} />
         
-        
-
 
       </Routes>
     </Router>

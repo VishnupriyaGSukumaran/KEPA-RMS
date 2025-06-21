@@ -31,8 +31,10 @@ const Login = () => {
     navigate('/superadmin/dashboard');
   } else if (role === 'blockhead') {
     if (data.assignedBlock) {
+      localStorage.setItem('assignedBlock', data.assignedBlock);
+      const encodedBlock = encodeURIComponent(data.assignedBlock);
       // redirect to block-specific dashboard
-      navigate(`/blochead/dashboard/:blockname${data.assignedBlock}`);
+      navigate(`/blockhead/dashboard/${data.assignedBlock}`);
     } else {
       alert('No block assigned to this Block Head.');
     }
