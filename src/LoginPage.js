@@ -32,7 +32,7 @@ const Login = () => {
   } else if (role === 'blockhead') {
     if (data.assignedBlock) {
       // redirect to block-specific dashboard
-      navigate(`/blochead/dashboard/:blockname${data.assignedBlock}`);
+      navigate(`/blocKhead/dashboard/${data.assignedBlock}`);
     } else {
       alert('No block assigned to this Block Head.');
     }
