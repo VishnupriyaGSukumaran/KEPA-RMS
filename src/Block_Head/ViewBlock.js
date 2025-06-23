@@ -44,7 +44,7 @@ const ViewBlock = () => {
   return (
     <>
       {/* ✅ Topbar same as BlockHeadDashboard */}
-      <header className="topbar">
+      {/* <header className="topbar">
         <div className="topbar-left">
           <img src="/logo.png" alt="Logo" />
           <div className="text-group">
@@ -56,7 +56,7 @@ const ViewBlock = () => {
           <a href="#"><FaHome /> Home</a>
           <a onClick={logout} style={{ cursor: 'pointer' }}><FaSignOutAlt /> Logout</a>
         </div>
-      </header>
+      </header> */}
 
       <div className="view-block-container">
         <h2>Block Overview - {blockData?.blockName || 'Loading...'}</h2>

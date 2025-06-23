@@ -123,6 +123,64 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+
+
+
+
+
+
+router.delete('/:blockId/type/:type', async (req, res) => {
+  const { blockId, type } = req.params;
+
+  try {
+    const block = await Block.findById(blockId);
+    if (!block) return res.status(404).json({ message: 'Block not found' });
+
+    const blockName = block.blockName;
+
+    // Delete all rooms with matching roomType for this block
+    await Room.deleteMany({
+      blockName: new RegExp(`^${blockName}$`, 'i'),
+      roomType: new RegExp(`^${type}$`, 'i')
+    });
+
+    // Remove from blockTypeDetails
+    block.blockTypeDetails = block.blockTypeDetails.filter(
+      (bt) => bt.type.trim().toLowerCase() !== type.trim().toLowerCase()
+    );
+
+    // Remove from blockTypes
+    block.blockTypes = block.blockTypes.filter(
+      (bt) => bt.trim().toLowerCase() !== type.trim().toLowerCase()
+    );
+ 
+   block.roomCounts = {}; // ← Plain JS object
+
+block.blockTypeDetails.forEach(detail => {
+  if (detail.type && typeof detail.count === 'number') {
+    block.roomCounts[detail.type.trim()] = detail.count;
+  }
+});
+
+
+// ✅ With the fixed version above
+
+
+    await block.save();
+
+    res.status(200).json({
+      message: `Room type "${type}" and associated rooms removed successfully.`,
+      updatedRoomCounts: block.roomCounts
+    });
+  } catch (err) {
+    console.error('Error removing room type:', err);
+    res.status(500).json({ message: 'Failed to remove room type and associated rooms' });
+  }
+});
+
+
+
+
 // Prevent room count modifications
 router.put('/:id/counts', async (req, res) => {
   res.status(403).json({ message: 'Room count modification is not allowed after creation.' });

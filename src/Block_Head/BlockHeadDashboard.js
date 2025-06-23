@@ -58,7 +58,7 @@ const BlockHeadDashboard = () => {
 
   return (
     <>
-      <header className="topbar">
+      {/* <header className="topbar">
         <div className="topbar-left">
           <img src="/logo.png" alt="Logo" />
           <div className="text-group">
@@ -70,7 +70,7 @@ const BlockHeadDashboard = () => {
           <a href="#"><FaHome /> Home</a>
           <a onClick={logout} style={{ cursor: 'pointer' }}><FaSignOutAlt /> Logout</a>
         </div>
-      </header>
+      </header> */}
 
       <div className="dashboard-container">
         <aside className="sidebar">

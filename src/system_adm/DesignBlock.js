@@ -1,4 +1,3 @@
-// ======== DesignBlock.js (Frontend) =========
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './AddBlock.css';
@@ -15,7 +14,8 @@ const DesignBlock = () => {
   const [roomsCreated, setRoomsCreated] = useState(false);
 
   const dropdownRef = useRef(null);
-  const options = ['Suite Room', 'Room', 'Dormitory', 'Barrack'];
+  const baseOptions = ['Suite Room', 'Room', 'Dormitory', 'Barrack'];
+  const fullOptions = ['Select All', ...baseOptions];
 
   useEffect(() => {
     sessionStorage.removeItem('roomsCreated'); // clear on initial load
@@ -26,13 +26,43 @@ const DesignBlock = () => {
     setRoomsCreated(created === 'true');
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
 
   const handleCheckboxChange = (type) => {
+    if (type === 'Select All') {
+      if (blockTypes.length === baseOptions.length) {
+        setBlockTypes([]);
+        setRoomCounts({});
+      } else {
+        const newTypes = [...baseOptions];
+        const newCounts = {};
+        newTypes.forEach((t) => {
+          newCounts[t] = roomCounts[t] || '';
+        });
+        setBlockTypes(newTypes);
+        setRoomCounts(newCounts);
+      }
+      return;
+    }
+
     if (blockTypes.includes(type)) {
-      setBlockTypes(blockTypes.filter(t => t !== type));
+      const updatedTypes = blockTypes.filter(t => t !== type);
       const updatedCounts = { ...roomCounts };
       delete updatedCounts[type];
+      setBlockTypes(updatedTypes);
       setRoomCounts(updatedCounts);
     } else {
       setBlockTypes([...blockTypes, type]);
@@ -62,91 +92,72 @@ const DesignBlock = () => {
       .trim();
   };
 
-  
-
-
   const handleCreateRoom = async () => {
-  let hasError = false;
-  const newErrors = { blockName: '', roomCounts: {} };
+    let hasError = false;
+    const newErrors = { blockName: '', roomCounts: {} };
 
-  if (!blockName.trim()) {
-    newErrors.blockName = 'Block name is required.';
-    hasError = true;
-  } else if (!/^[a-zA-Z\s]+$/.test(blockName)) {
-    newErrors.blockName = 'Block name must contain only letters and spaces.';
-    hasError = true;
-  }
-
-  if (blockTypes.length === 0) {
-    setModalMessage('⚠️ Please select at least one block type.');
-    setShowModal(true);
-    return;
-  }
-
-  for (const type of blockTypes) {
-    const count = roomCounts[type];
-    if (count === '' || isNaN(count) || count < 0) {
-      newErrors.roomCounts[type] = 'Please enter a valid non-negative number.';
+    if (!blockName.trim()) {
+      newErrors.blockName = 'Block name is required.';
+      hasError = true;
+    } else if (!/^[a-zA-Z\s]+$/.test(blockName)) {
+      newErrors.blockName = 'Block name must contain only letters and spaces.';
       hasError = true;
     }
-  }
 
-  if (hasError) {
-    setErrors(newErrors);
-    return;
-  }
-
-  let formattedBlockName = blockName.trim();
-  if (/^[A-Za-z]$/.test(formattedBlockName)) {
-    formattedBlockName = `${formattedBlockName} Block`;
-  }
-  formattedBlockName = toTitleCase(formattedBlockName);
-
-  try {
-    const res = await fetch('http://localhost:5000/api/block');
-    const blocks = await res.json();
-
-    const exists = blocks.some(
-      b => toTitleCase(b.blockName) === formattedBlockName
-    );
-
-    if (exists) {
-      setModalMessage(`⚠️ Block "${formattedBlockName}" already exists!`);
+    if (blockTypes.length === 0) {
+      setModalMessage('⚠️ Please select at least one block type.');
       setShowModal(true);
       return;
     }
 
-    // ✅ Store validated block info in sessionStorage
-    sessionStorage.setItem('blockData', JSON.stringify({
-      blockName: formattedBlockName,
-      blockTypes,
-      roomCounts
-    }));
+    for (const type of blockTypes) {
+      const count = roomCounts[type];
+      if (count === '' || isNaN(count) || count < 0) {
+        newErrors.roomCounts[type] = 'Please enter a valid non-negative number.';
+        hasError = true;
+      }
+    }
 
-    navigate('/superadmin/create-rooms');
-  } catch (err) {
-    setModalMessage('❌ Failed to check for duplicate block');
-    setShowModal(true);
-  }
-};
+    if (hasError) {
+      setErrors(newErrors);
+      return;
+    }
+
+    let formattedBlockName = blockName.trim();
+    if (/^[A-Za-z]$/.test(formattedBlockName)) {
+      formattedBlockName = `${formattedBlockName} Block`;
+    }
+    formattedBlockName = toTitleCase(formattedBlockName);
+
+    try {
+      const res = await fetch('http://localhost:5000/api/block');
+      const blocks = await res.json();
+
+      const exists = blocks.some(
+        b => toTitleCase(b.blockName) === formattedBlockName
+      );
+
+      if (exists) {
+        setModalMessage(`⚠️ Block "${formattedBlockName}" already exists!`);
+        setShowModal(true);
+        return;
+      }
+
+      sessionStorage.setItem('blockData', JSON.stringify({
+        blockName: formattedBlockName,
+        blockTypes,
+        roomCounts
+      }));
+
+      navigate('/superadmin/create-rooms');
+    } catch (err) {
+      setModalMessage('❌ Failed to check for duplicate block');
+      setShowModal(true);
+    }
+  };
 
   return (
     <div className="block-container">
-      <div className="header">
-        <div className="logo-area">
-          <img src="/logo.png" alt="Logo" />
-          <div>
-            <div className="title">RAMS</div>
-            <div className="subtitle">Kerala Police</div>
-          </div>
-        </div>
-        <div className="page-title">System Admin</div>
-        <div className="nav">
-          <button onClick={() => navigate('/')} className="nav-btn">Home</button>
-          <button onClick={() => navigate('/login')} className="nav-btn">Logout</button>
-        </div>
-      </div>
-
       <div className="tabs-container">
         <h2 className="tabs-title">Block Management</h2>
         <div className="tabs-row">
@@ -176,14 +187,18 @@ const DesignBlock = () => {
             </div>
             {dropdownOpen && (
               <div className="dropdown-list">
-                {options.map((type) => (
+                {fullOptions.map((type) => (
                   <label key={type} className="dropdown-item">
                     <input
                       type="checkbox"
-                      checked={blockTypes.includes(type)}
+                      checked={
+                        type === 'Select All'
+                          ? blockTypes.length === baseOptions.length
+                          : blockTypes.includes(type)
+                      }
                       onChange={() => handleCheckboxChange(type)}
                     />
-                    {type}
+                    <span className="label-text">{type}</span>
                   </label>
                 ))}
               </div>
@@ -229,7 +244,6 @@ const DesignBlock = () => {
           <button className="back-btn" onClick={() => navigate('/superadmin/dashboard')}>Back</button>
           <div className="right-buttons">
             <button onClick={clearForm} className="cancel-btn">Cancel</button>
-           
           </div>
         </div>
       </div>
