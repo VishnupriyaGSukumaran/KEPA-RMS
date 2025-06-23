@@ -1,5 +1,9 @@
 /* WelcomePage.css */
-
+body, html, #root {
+  margin: 0;
+  padding: 0;
+}
+ 
 .welcome-container {
   background-color: white;
   height: 100vh;
@@ -9,25 +13,37 @@
 }
 
 .top-bar {
-  background-color: #00008B;
+  background-color: #003366; /* Dark blue */
   color: white;
-  padding: 10px 20px;
   display: flex;
   align-items: center;
+  justify-content: flex-start; /* Force left alignment */
+  padding: 10px 20px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .logo {
   height: 60px;
+   width: auto;
   margin-right: 20px;
 }
 
 .title-section {
   font-size: 20px;
   font-weight: bold;
+   line-height: 1.2;
 }
 
 .subtitle-section {
   font-size: 12px;
+    line-height: 1.2;
+  margin-top: 2px;
 }
 
 .main-section {
