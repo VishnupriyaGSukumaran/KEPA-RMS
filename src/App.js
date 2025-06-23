@@ -16,9 +16,9 @@ import BlockHeadDashboard from './Block_Head/BlockHeadDashboard';
 import RemoveBlock from './system_adm/RemoveBlock';
 import Modify from './system_adm/Modify';
 import CreateRooms from './system_adm/CreateRooms';
-
 import AdminDashboard from './Admin/AdminDashboard';
 import BlockHeads from './Admin/BlockHeads';
+import AllocateRoom from './Block_Head/AllocateRoom';
 
 const App = () => {
   return (
@@ -126,6 +126,14 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/blockhead/AllocateRoom"
+          element={
+            <ProtectedRoute>
+              <AllocateRoom />
+            </ProtectedRoute>
+          }
+          />
       </Routes>
     </Router>
   );
