@@ -66,7 +66,7 @@ const RemoveBlock = () => {
   return (
     <div className="block-container">
       {/* Header */}
-      <div className="header">
+      {/* <div className="header">
         <div className="logo-area">
           <img src="/logo.png" alt="Logo" />
           <div>
@@ -79,7 +79,7 @@ const RemoveBlock = () => {
           <button onClick={() => navigate('/')} className="nav-btn">Home</button>
           <button onClick={() => navigate('/login')} className="nav-btn">Logout</button>
         </div>
-      </div>
+      </div> */}
 
       {/* Tabs */}
       <div className="tabs-container">

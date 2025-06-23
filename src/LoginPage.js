@@ -19,27 +19,25 @@ const Login = () => {
 
       const data = await response.json();
 
-     if (response.ok) {
-  localStorage.setItem('pen', data.pen);
-  localStorage.setItem('role', data.role);
+      if (response.ok) {
+        localStorage.setItem('pen', data.pen);
+        localStorage.setItem('role', data.role);
 
-  const role = data.role?.toLowerCase();
+        const role = data.role?.toLowerCase();
 
-  if (role === 'admin') {
-    navigate('/admin/dashboard');
-  } else if (role === 'superadmin') {
-    navigate('/superadmin/dashboard');
-  } else if (role === 'blockhead') {
-    if (data.assignedBlock) {
-      // redirect to block-specific dashboard
-      navigate(`/blochead/dashboard/:blockname${data.assignedBlock}`);
-    } else {
-      alert('No block assigned to this Block Head.');
-    }
-  } else {
-    alert('Unknown user role: ' + role);
-  }
-
+        if (role === 'admin') {
+          navigate('/admin/dashboard');
+        } else if (role === 'superadmin') {
+          navigate('/superadmin/dashboard');
+        } else if (role === 'blockhead') {
+          if (data.assignedBlock) {
+            navigate(`/blochead/dashboard/:blockname${data.assignedBlock}`);
+          } else {
+            alert('No block assigned to this Block Head.');
+          }
+        } else {
+          alert('Unknown user role: ' + role);
+        }
       } else {
         alert(data.msg || 'Invalid credentials');
       }
@@ -50,22 +48,7 @@ const Login = () => {
   };
 
   return (
-   <div className="create-user-container">
-      <header className="top-header">
-        <div className="logo-title">
-          <img src="/logo.png" alt="Kerala Police" className="logo" />
-          <div>
-            <div className="rams">RAMS</div>
-            <div className="subheading">Kerala Police</div>
-          </div>
-        </div>
-       
-        <div className="top-right">
-          <button onClick={() => navigate('/')}>Home</button>
-          
-        </div>
-      </header>
-
+    <div className="create-user-container">
       <h2 className="login-title">LOGIN</h2>
 
       <div className="login-form">

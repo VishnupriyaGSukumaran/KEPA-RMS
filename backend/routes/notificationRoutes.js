@@ -2,7 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const Notification = require('../models/notificationModel');
-
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
 // GET all notifications
 router.get('/', async (req, res) => {
   try {
@@ -33,15 +34,17 @@ router.delete('/clear-all', async (req, res) => {
   }
 });
 // POST route to create a new notification
-router.post('/', async (req, res) => {
+router.post('/', upload.single('file'), async (req, res) => {
   try {
     const { message } = req.body;
-    const newNotification = new Notification({ message });
-    await newNotification.save();
-    res.status(201).json({ message: 'Notification sent to SuperAdmin' });
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to send notification' });
+    const notification = new Notification({ message });
+
+    await notification.save();
+    res.status(201).json({ message: 'Notification saved successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
+
 
 module.exports = router;

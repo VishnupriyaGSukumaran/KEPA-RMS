@@ -3,14 +3,15 @@
   padding: 0;
 }
 
-.top-header {
+/* .top-header {
   background-color: #000080;
   color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 10px 20px;
-}
+  height: 60px;
+} */
 
 .logo-title {
   display: flex;
@@ -38,7 +39,11 @@
   margin: 60px 0;
   color: #000080;
   text-align: center;
+   margin-top: 150px;
+
 }
+ 
+
 
 .login-form {
   display: flex;
