@@ -8,7 +8,7 @@ import DesignBlock from './system_adm/DesignBlock';
 import CreateCourse from './system_adm/CreateCourse';
 import DisplayBlock from './system_adm/DisplayBlock';
 import GenerateReport from './system_adm/GenerateReport';
-import BlockHeadDashboard from './BlockHeadDashboard';
+import BlockHeadDashboard from './Block_Head/BlockHeadDashboard';
 import RemoveBlock from './system_adm/RemoveBlock';
 import Modify from './system_adm/Modify';
 import CreateRooms from './system_adm/CreateRooms';

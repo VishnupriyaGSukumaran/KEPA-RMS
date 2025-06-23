@@ -17,11 +17,9 @@ const BlockHeadDashboard = () => {
       return;
     }
 
-    // ✅ UPDATED FETCH URL to /api/blockheadnew
     fetch(`http://localhost:5000/api/blockheadnew/${pen}`)
       .then(res => res.json())
       .then(user => {
-        console.log('Fetched user:', user);
         setUserData(user);
 
         if (user.userType === 'blockhead' && user.assignedBlock) {
@@ -29,10 +27,7 @@ const BlockHeadDashboard = () => {
 
           fetch(`http://localhost:5000/api/block/name/${encodeURIComponent(user.assignedBlock)}`)
             .then(res => res.json())
-            .then(data => {
-              console.log('Fetched block:', data);
-              setBlockData(data);
-            })
+            .then(data => setBlockData(data))
             .catch(err => console.error('Error fetching block data:', err));
         } else {
           console.warn('User is not a blockhead or has no assigned block');
@@ -46,15 +41,9 @@ const BlockHeadDashboard = () => {
     window.location.href = '/login';
   };
 
-  const totalRooms = blockData?.createdRooms?.length || 0;
-  const totalBeds = blockData?.createdRooms?.reduce(
-    (sum, room) => sum + (room.bedCount || 0), 0
-  );
+  const totalBeds = blockData?.totalBeds || 0;
   const vacantBeds = blockData?.vacantBeds || 0;
-
-  const dormitoryCount = blockData?.createdRooms?.filter(
-    room => room.roomType === 'Dormitory'
-  ).length || 0;
+  const roomTypeCounts = blockData?.roomTypeCounts || {};
 
   return (
     <>
@@ -97,18 +86,23 @@ const BlockHeadDashboard = () => {
 
           <h4>Block Statistics</h4>
           <div className="stats">
-            <div className="stat-card blue">
-              <h5>Total Rooms</h5>
-              <p>{totalRooms}</p>
-              <h5>Dormitories</h5>
-              <p>{dormitoryCount}</p>
-              <FaDoorOpen className="icon" />
-            </div>
+            {/* 🔁 Dynamic Room Type Cards */}
+            {Object.entries(roomTypeCounts).map(([type, count]) => (
+              <div key={type} className="stat-card blue">
+                <h5>{type}</h5>
+                <p>{count}</p>
+                <FaDoorOpen className="icon" />
+              </div>
+            ))}
+
+            {/* Total Beds Card */}
             <div className="stat-card green">
               <h5>Total Beds</h5>
               <p>{totalBeds}</p>
               <FaBed className="icon" />
             </div>
+
+            {/* Vacant Beds Card */}
             <div className="stat-card red">
               <h5>Vacant Beds</h5>
               <p>{vacantBeds}</p>
