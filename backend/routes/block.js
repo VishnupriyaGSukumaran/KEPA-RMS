@@ -86,16 +86,46 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ===== Get Block by ID =====
-router.get('/:id', async (req, res) => {
+// ✅ Updated: Get block statistics from Room collection
+router.get('/name/:blockName', async (req, res) => {
+  const rawName = req.params.blockName.replace(/%20/g, ' ');
+  const formattedBlockName = toTitleCase(rawName);
+
   try {
-    const block = await Block.findById(req.params.id);
+    const block = await Block.findOne({
+      blockName: { $regex: `^${formattedBlockName}$`, $options: 'i' }
+    });
+
     if (!block) return res.status(404).json({ message: 'Block not found' });
-    res.json(block);
-  } catch (error) {
+
+    // 🟢 Get rooms from Room collection
+    const rooms = await Room.find({ blockName: formattedBlockName });
+
+    const totalRooms = rooms.length;
+    const totalBeds = rooms.reduce((sum, room) => sum + (room.bedCount || 0), 0);
+    const vacantBeds = rooms.reduce((sum, room) => {
+      const total = room.bedCount || 0;
+      const allocated = room.allocatedBeds || 0;
+      return sum + (total - allocated);
+    }, 0);
+    const dormitories = rooms.filter(r => r.roomType === 'Dormitory').length;
+
+    res.status(200).json({
+      blockName: block.blockName,
+      totalRooms,
+      totalBeds,
+      vacantBeds,
+      dormitories,
+      blockTypes: block.blockTypes,
+      blockTypeDetails: block.blockTypeDetails,
+      createdRooms: rooms // ✅ Send rooms directly from DB
+    });
+  } catch (err) {
+    console.error('Error fetching block by name:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 // ===== Delete a block and its rooms =====
 router.delete('/:id', async (req, res) => {
