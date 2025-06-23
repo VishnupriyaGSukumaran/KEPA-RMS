@@ -73,6 +73,7 @@
   max-width: 1000px;
   width: 100%;
   justify-items: center;
+  margin-top: 50px;
 }
 
 .custom-card {
@@ -200,4 +201,65 @@
   text-align: center;
   font-style: italic;
   color: #777;
+}
+
+/* Media Queries for Responsiveness */
+@media screen and (max-width: 1024px) {
+  .card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .custom-card {
+    padding: 20px 15px;
+  }
+
+  .card-button {
+    font-size: 14px;
+    padding: 10px 20px;
+  }
+
+  .card-desc {
+    font-size: 13px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .dashboard-main {
+    padding: 20px 10px;
+  }
+
+  .card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+  }
+
+  .notification-dropdown {
+    max-width: 90vw;
+    left: auto;
+    right: 0;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .custom-card {
+    padding: 15px 10px;
+  }
+
+  .card-button {
+    font-size: 13px;
+    padding: 8px 18px;
+  }
+
+  .card-desc {
+    font-size: 12px;
+  }
+
+  .notification-dropdown li {
+    font-size: 13px;
+  }
+
+  .clear-btn {
+    font-size: 12px;
+    padding: 5px;
+  }
 }

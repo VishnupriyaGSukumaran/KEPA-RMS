@@ -132,7 +132,7 @@ const DesignBlock = () => {
 
   return (
     <div className="block-container">
-      <div className="header">
+      {/* <div className="header">
         <div className="logo-area">
           <img src="/logo.png" alt="Logo" />
           <div>
@@ -145,7 +145,7 @@ const DesignBlock = () => {
           <button onClick={() => navigate('/')} className="nav-btn">Home</button>
           <button onClick={() => navigate('/login')} className="nav-btn">Logout</button>
         </div>
-      </div>
+      </div> */}
 
       <div className="tabs-container">
         <h2 className="tabs-title">Block Management</h2>

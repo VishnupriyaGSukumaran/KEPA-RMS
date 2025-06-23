@@ -28,6 +28,7 @@
 /* TABS CONTAINER FIX (just in case) */
 .tabs-container {
   margin-bottom: 50px;
+  margin-top: 50px;
 }
 
 .remove-header {
@@ -190,4 +191,8 @@
 
 .confirm-delete-btn:hover {
   background-color: #c82333;
+}
+
+.tabs-title{
+  margin-top: 2px;
 }

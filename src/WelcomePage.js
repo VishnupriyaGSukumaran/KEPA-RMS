@@ -11,19 +11,6 @@ function WelcomePage() {
 
   return (
     <div className="welcome-container">
-      {/* Top Blue Bar */}
-      <div className="top-bar">
-        <img
-          src="/logo.png"
-          alt="Kerala Police Logo"
-          className="logo"
-        />
-        <div>
-          <div className="title-section">RMS</div>
-          <div className="subtitle-section">Kerala Police Academy</div>
-        </div>
-      </div>
-
       {/* Main Section */}
       <div className="main-section">
         <h1 className="main-heading">
