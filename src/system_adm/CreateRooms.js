@@ -78,7 +78,7 @@ const CreateRoomDashboard = () => {
     // ✅ First Save to Block DB
     const blockRes = await fetch('http://localhost:5000/api/block', {
       method: 'POST',
-      headers: { 'Content-Type': '' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         blockName: blockData.blockName,
         blockTypes: blockData.blockTypes,
