@@ -31,7 +31,7 @@ router.post('/', async (req, res) => {
   for (const type of blockTypes) {
     const count = roomCounts[type];
     if (typeof count !== 'number' || isNaN(count) || count < 0) {
-      return res.status(400).json({ message: `Invalid or missing room count for "${type}".` });
+      return res.status(400).json({ message: `Invalid or missing room count for "${type}". `});
     }
   }
 
@@ -86,7 +86,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ✅ Updated: Get block statistics from Room collection
+// ✅ Updated: Get block statistics from Room collection with dynamic roomType counts
 router.get('/name/:blockName', async (req, res) => {
   const rawName = req.params.blockName.replace(/%20/g, ' ');
   const formattedBlockName = toTitleCase(rawName);
@@ -98,17 +98,24 @@ router.get('/name/:blockName', async (req, res) => {
 
     if (!block) return res.status(404).json({ message: 'Block not found' });
 
-    // 🟢 Get rooms from Room collection
     const rooms = await Room.find({ blockName: formattedBlockName });
 
-    const totalRooms = rooms.length;
     const totalBeds = rooms.reduce((sum, room) => sum + (room.bedCount || 0), 0);
     const vacantBeds = rooms.reduce((sum, room) => {
       const total = room.bedCount || 0;
       const allocated = room.allocatedBeds || 0;
       return sum + (total - allocated);
     }, 0);
-    const dormitories = rooms.filter(r => r.roomType === 'Dormitory').length;
+
+    // 🔁 Dynamic count of each room type
+    const roomTypeCounts = rooms.reduce((acc, room) => {
+      const type = room.roomType || 'Unknown';
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {});
+
+    const totalRooms = roomTypeCounts['Room'] || 0;
+    const dormitories = roomTypeCounts['Dormitory'] || 0;
 
     res.status(200).json({
       blockName: block.blockName,
@@ -116,16 +123,16 @@ router.get('/name/:blockName', async (req, res) => {
       totalBeds,
       vacantBeds,
       dormitories,
+      roomTypeCounts, // 👉 Send for dynamic frontend
       blockTypes: block.blockTypes,
       blockTypeDetails: block.blockTypeDetails,
-      createdRooms: rooms // ✅ Send rooms directly from DB
+      createdRooms: rooms
     });
   } catch (err) {
     console.error('Error fetching block by name:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
-
 
 // ===== Delete a block and its rooms =====
 router.delete('/:id', async (req, res) => {
@@ -145,65 +152,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-
-
-
-
-
-
-router.delete('/:blockId/type/:type', async (req, res) => {
-  const { blockId, type } = req.params;
-
-  try {
-    const block = await Block.findById(blockId);
-    if (!block) return res.status(404).json({ message: 'Block not found' });
-
-    const blockName = block.blockName;
-
-    // Delete all rooms with matching roomType for this block
-    await Room.deleteMany({
-      blockName: new RegExp(`^${blockName}$`, 'i'),
-      roomType: new RegExp(`^${type}$`, 'i')
-    });
-
-    // Remove from blockTypeDetails
-    block.blockTypeDetails = block.blockTypeDetails.filter(
-      (bt) => bt.type.trim().toLowerCase() !== type.trim().toLowerCase()
-    );
-
-    // Remove from blockTypes
-    block.blockTypes = block.blockTypes.filter(
-      (bt) => bt.trim().toLowerCase() !== type.trim().toLowerCase()
-    );
- 
-   block.roomCounts = {}; // ← Plain JS object
-
-block.blockTypeDetails.forEach(detail => {
-  if (detail.type && typeof detail.count === 'number') {
-    block.roomCounts[detail.type.trim()] = detail.count;
-  }
-});
-
-
-// ✅ With the fixed version above
-
-
-    await block.save();
-
-    res.status(200).json({
-      message: `Room type "${type}" and associated rooms removed successfully.`,
-      updatedRoomCounts: block.roomCounts
-    });
-  } catch (err) {
-    console.error('Error removing room type:', err);
-    res.status(500).json({ message: 'Failed to remove room type and associated rooms' });
-  }
-});
-
-
-
-
-// Prevent room count modifications
+// ===== Prevent Room Count Modification =====
 router.put('/:id/counts', async (req, res) => {
   res.status(403).json({ message: 'Room count modification is not allowed after creation.' });
 });
