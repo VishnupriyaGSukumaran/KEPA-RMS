@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import './BlockHeadDashboard.css';
 import {
-  FaBed, FaUsers, FaDoorOpen, FaHome,
+  FaBed, FaUsers, FaDoorOpen,
   FaSignOutAlt, FaTachometerAlt, FaDoorClosed, FaList
 } from 'react-icons/fa';
 
 const BlockHeadDashboard = () => {
+  const { blockName } = useParams();
   const pen = localStorage.getItem('pen');
   const [blockData, setBlockData] = useState(null);
   const [userData, setUserData] = useState(null);
-  const [blockName, setBlockName] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!pen) {
@@ -17,17 +19,14 @@ const BlockHeadDashboard = () => {
       return;
     }
 
-    // ✅ UPDATED FETCH URL to /api/blockheadnew
     fetch(`http://localhost:5000/api/blockheadnew/${pen}`)
       .then(res => res.json())
       .then(user => {
         console.log('Fetched user:', user);
         setUserData(user);
 
-        if (user.userType === 'blockhead' && user.assignedBlock) {
-          setBlockName(user.assignedBlock);
-
-          fetch(`http://localhost:5000/api/block/name/${encodeURIComponent(user.assignedBlock)}`)
+        if (user.userType === 'blockhead' && blockName) {
+          fetch(`http://localhost:5000/api/block/name/${encodeURIComponent(blockName)}`)
             .then(res => res.json())
             .then(data => {
               console.log('Fetched block:', data);
@@ -39,7 +38,7 @@ const BlockHeadDashboard = () => {
         }
       })
       .catch(err => console.error('Error fetching user data:', err));
-  }, [pen]);
+  }, [pen, blockName]);
 
   const logout = () => {
     localStorage.clear();
@@ -50,7 +49,7 @@ const BlockHeadDashboard = () => {
   const totalBeds = blockData?.createdRooms?.reduce(
     (sum, room) => sum + (room.bedCount || 0), 0
   );
-  const vacantBeds = blockData?.vacantBeds || 0;
+  const vacantBeds = totalBeds;
 
   const dormitoryCount = blockData?.createdRooms?.filter(
     room => room.roomType === 'Dormitory'
@@ -58,20 +57,6 @@ const BlockHeadDashboard = () => {
 
   return (
     <>
-      {/* <header className="topbar">
-        <div className="topbar-left">
-          <img src="/logo.png" alt="Logo" />
-          <div className="text-group">
-            <h2>RMS</h2>
-            <p>Kerala Police Academy</p>
-          </div>
-        </div>
-        <div className="topbar-actions">
-          <a href="#"><FaHome /> Home</a>
-          <a onClick={logout} style={{ cursor: 'pointer' }}><FaSignOutAlt /> Logout</a>
-        </div>
-      </header> */}
-
       <div className="dashboard-container">
         <aside className="sidebar">
           <div className="profile">
@@ -79,21 +64,41 @@ const BlockHeadDashboard = () => {
             <p>Block Head - {blockName || '...'}</p>
           </div>
           <nav className="menu">
-            <a href="#"><FaTachometerAlt /> Dashboard</a>
-            <a href="/AllocateRoom"><FaDoorOpen /> Allocate Room</a>
-            <a href="/VacateRoom"><FaDoorClosed /> Vacate Room</a>
-            <a href="/ViewBlock"><FaList /> Display Block</a>
+            <Link to={`/blockhead/dashboard/${blockName}`}>
+              <FaTachometerAlt /> Dashboard
+            </Link>
+
+            <button onClick={() => navigate(`/blockhead/allocate-room/${blockName}`)}>
+              <FaDoorOpen /> Allocate Room
+            </button>
+
+            <Link to={`/blockhead/vacate-room/${blockName}`}>
+              <FaDoorClosed /> Vacate Room
+            </Link>
+
+            <Link to={`/blockhead/display-block/${blockName}`}>
+              <FaList /> Display Block
+            </Link>
           </nav>
+
+          <button
+            onClick={logout}
+            style={{
+              marginTop: '2rem',
+              background: 'none',
+              border: '1px solid white',
+              padding: '0.5rem 1rem',
+              color: 'white',
+              borderRadius: '8px',
+              cursor: 'pointer'
+            }}
+          >
+            <FaSignOutAlt /> Logout
+          </button>
         </aside>
 
         <main className="main-content">
-          <h3>{blockName?.toUpperCase() || 'LOADING'} ROOM ALLOCATION</h3>
-
-          <div className="legend">
-            <span className="dot green"></span> Vacant
-            <span className="dot red"></span> Allocated
-            <span className="dot yellow"></span> Partial
-          </div>
+          <h3 className="allocation-title">{blockName?.toUpperCase() || 'LOADING'} ROOM ALLOCATION</h3>
 
           <h4>Block Statistics</h4>
           <div className="stats">
