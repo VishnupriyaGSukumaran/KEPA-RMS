@@ -4,6 +4,7 @@ const router = express.Router();
 const Notification = require('../models/notificationModel');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
+
 // GET all notifications
 router.get('/', async (req, res) => {
   try {
