@@ -17,6 +17,23 @@ const TopBar = () => {
     roleText = 'Block Head';
   }
 
+  // Show "Home" only on the Login page
+  const showHome = location.pathname === '/login';
+
+  // Show "Logout" only if not on Welcome or Login page
+  const showLogout = location.pathname !== '/' && location.pathname !== '/login';
+
+ const handleLogout = () => {
+  localStorage.removeItem('pen');
+  localStorage.removeItem('password'); // Only if you stored it (not recommended)
+  localStorage.removeItem('role');
+  // Optionally clear everything (if needed)
+  // localStorage.clear();
+
+  navigate('/login');
+};
+
+
   return (
     <div className="top-bar">
       <div className="left-section">
@@ -32,9 +49,16 @@ const TopBar = () => {
       </div>
 
       <div className="right-section">
-        <button className="home-button" onClick={() => navigate('/')}>
-          Home
-        </button>
+        {showHome && (
+          <button className="home-button" onClick={() => navigate('/')}>
+            Home
+          </button>
+        )}
+        {showLogout && (
+          <button className="logout-button" onClick={handleLogout}>
+            Logout
+          </button>
+        )}
       </div>
     </div>
   );

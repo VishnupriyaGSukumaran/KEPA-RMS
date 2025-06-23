@@ -122,7 +122,7 @@ const CreateRoomDashboard = () => {
 
   return (
     <div className="dashboard-container">
-      <header className="dashboard-header">
+      {/* <header className="dashboard-header">
         <div className="left-section">
           <img src="/logo.png" alt="Kerala Police Logo" className="logo" />
           <div className="title-group">
@@ -135,7 +135,7 @@ const CreateRoomDashboard = () => {
           <button onClick={() => navigate('/')}>Home</button>
           <button onClick={() => navigate('/login')}>Logout</button>
         </div>
-      </header>
+      </header> */}
 
       <div className="form-area">
         <h3>Block: {blockData.blockName}</h3>
