@@ -1,0 +1,91 @@
+/* ... previous styles ... */
+
+.view-block-container {
+  padding: 20px;
+  background: #f9f9f9;
+}
+
+.summary-boxes {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  margin-top: 50px;
+}
+
+.summary-boxes .box {
+  background: #fff;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  flex: 1 1 160px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.summary-boxes .box span {
+  display: block;
+  font-size: 1.4em;
+  color: #001ba0;
+}
+
+.overview-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  background: white;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.overview-table th, .overview-table td {
+  padding: 12px;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+}
+
+.overview-table th {
+  background: #f4f4f4;
+  color: #333;
+}
+
+.dot {
+  display: inline-block;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  margin: 0 2px;
+}
+
+.red { background: red; }
+.green { background: green; }
+.yellow { background: orange; }
+.gray { background: gray; }
+
+/* Modal Styling */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  width: 400px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.modal-content ul {
+  text-align: left;
+  margin: 10px 0;
+}

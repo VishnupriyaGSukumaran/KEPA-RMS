@@ -16,9 +16,11 @@ import BlockHeadDashboard from './Block_Head/BlockHeadDashboard';
 import RemoveBlock from './system_adm/RemoveBlock';
 import Modify from './system_adm/Modify';
 import CreateRooms from './system_adm/CreateRooms';
+import AllocateRoom from './Block_Head/AllocateRoom';
 import AdminDashboard from './Admin/AdminDashboard';
 import BlockHeads from './Admin/BlockHeads';
-import AllocateRoom from './Block_Head/AllocateRoom';
+import ViewBlock from './Block_Head/ViewBlock';
+import VacateRoom from './Block_Head/VacateRoom';
 
 const App = () => {
   return (
@@ -133,7 +135,24 @@ const App = () => {
               <AllocateRoom />
             </ProtectedRoute>
           }
-          />
+        />
+        <Route
+  path="/blockhead/ViewBlock/:blockName"
+  element={
+    <ProtectedRoute>
+      <ViewBlock />
+    </ProtectedRoute>
+  }
+/>
+ <Route
+          path="/blockhead/VacateRoom"
+          element={
+            <ProtectedRoute>
+              <VacateRoom />
+            </ProtectedRoute>
+          }
+        />
+
       </Routes>
     </Router>
   );
