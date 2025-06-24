@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './BlockHeadDashboard.css';
+import { Link } from 'react-router-dom';
 import {
   FaBed, FaUsers, FaDoorOpen, FaHome,
   FaSignOutAlt, FaTachometerAlt, FaDoorClosed, FaList
@@ -67,12 +68,15 @@ const BlockHeadDashboard = () => {
             <h3>{userData ? `Insp. ${userData.firstName} ${userData.lastName}` : 'Loading...'}</h3>
             <p>Block Head - {blockName || '...'}</p>
           </div>
-          <nav className="menu">
-            <a href="#"><FaTachometerAlt /> Dashboard</a>
-            <a href="/AllocateRoom"><FaDoorOpen /> Allocate Room</a>
-            <a href="/VacateRoom"><FaDoorClosed /> Vacate Room</a>
-            <a href="#"><FaList /> Display Block</a>
-          </nav>
+            <nav className="menu">
+          <Link to={`/blockhead/dashboard/${blockName}`}><FaTachometerAlt /> Dashboard</Link>
+          <Link to={`/blockhead/AllocateRoom`}><FaDoorOpen /> Allocate Room</Link>
+          <Link to={`/blockhead/VacateRoom`}><FaDoorClosed /> Vacate Room</Link>
+          <Link to={`/blockhead/ViewBlock/${blockName}`}><FaList /> Display Block</Link>
+
+        </nav>
+
+
         </aside>
 
         <main className="main-content">
