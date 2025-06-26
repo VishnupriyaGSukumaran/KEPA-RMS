@@ -49,95 +49,86 @@ const CreateRoomDashboard = () => {
     }
   };
 
- const handleSave = async () => {
-  // Validation
-  for (const type of blockData.blockTypes) {
-    const rooms = roomDetails[type];
-    for (const room of rooms) {
-      if (!room.roomName || room.floorNumber === '' || room.bedCount === '') {
-        setModalMessage(`❌ Please fill all details for ${type}`);
-        setShowModal(true);
-        return;
+  const handleSave = async () => {
+    // Validation: Check for duplicate room names within the same block
+    for (const type of blockData.blockTypes) {
+      const rooms = roomDetails[type];
+      const roomNames = new Set();
+      for (const room of rooms) {
+        if (!room.roomName || room.floorNumber === '' || room.bedCount === '') {
+          setModalMessage(`❌ Please fill all details for ${type}`);
+          setShowModal(true);
+          return;
+        }
+        if (roomNames.has(room.roomName)) {
+          setModalMessage(`❌ Duplicate room name "${room.roomName}" found in ${type}`);
+          setShowModal(true);
+          return;
+        }
+        roomNames.add(room.roomName);
       }
     }
-  }
 
-  try {
-    const allRooms = [];
-    for (const type of blockData.blockTypes) {
-      roomDetails[type].forEach(room => {
-        allRooms.push({
-          blockName: blockData.blockName,
-          roomType: type,
-          allocatedBeds: 0,
-          ...room
+    try {
+      const allRooms = [];
+      for (const type of blockData.blockTypes) {
+        roomDetails[type].forEach(room => {
+          allRooms.push({
+            blockName: blockData.blockName,
+            roomType: type,
+            allocatedBeds: 0,
+            ...room
+          });
         });
+      }
+
+      // ✅ First Save to Block DB
+      const blockRes = await fetch('http://localhost:5000/api/block', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          blockName: blockData.blockName,
+          blockTypes: blockData.blockTypes,
+          roomCounts: blockData.roomCounts,
+          createdRooms: allRooms
+        })
       });
-    }
 
-    // ✅ First Save to Block DB
-    const blockRes = await fetch('http://localhost:5000/api/block', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        blockName: blockData.blockName,
-        blockTypes: blockData.blockTypes,
-        roomCounts: blockData.roomCounts,
-        createdRooms: allRooms
-      })
-    });
+      // ✅ Then Save to Room DB
+      const roomRes = await fetch('http://localhost:5000/api/room/superadmin/create-rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blockName: blockData.blockName, rooms: allRooms })
+      });
 
-    // ✅ Then Save to Room DB
-    const roomRes = await fetch('http://localhost:5000/api/room/superadmin/create-rooms', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ blockName: blockData.blockName, rooms: allRooms })
-    });
+      const blockResult = await blockRes.json();
+      const roomResult = await roomRes.json();
 
-    const blockResult = await blockRes.json();
-    const roomResult = await roomRes.json();
-
-    if (blockRes.ok && roomRes.ok) {
-      sessionStorage.setItem('createdRooms', JSON.stringify(allRooms));
-      sessionStorage.removeItem('blockData');
-      setModalMessage('✅ Block and Room details saved successfully! Redirecting...');
-      setShowModal(true);
-      setTimeout(() => {
-        setShowModal(false);
-        navigate('/superadmin/Add-block');
-      }, 2000);
-    } else {
-      const errorMsg = blockResult.message || roomResult.message || '❌ Failed to save data';
-      setModalMessage(errorMsg);
+      if (blockRes.ok && roomRes.ok) {
+        sessionStorage.setItem('createdRooms', JSON.stringify(allRooms));
+        sessionStorage.removeItem('blockData');
+        setModalMessage('✅ Block and Room details saved successfully! Redirecting...');
+        setShowModal(true);
+        setTimeout(() => {
+          setShowModal(false);
+          navigate('/superadmin/Add-block');
+        }, 2000);
+      } else {
+        const errorMsg = blockResult.message || roomResult.message || '❌ Failed to save data';
+        setModalMessage(errorMsg);
+        setShowModal(true);
+      }
+    } catch (err) {
+      console.error(err);
+      setModalMessage('❌ Server error');
       setShowModal(true);
     }
-  } catch (err) {
-    console.error(err);
-    setModalMessage('❌ Server error');
-    setShowModal(true);
-  }
-};
-
+  };
 
   if (!blockData) return null;
 
   return (
     <div className="dashboard-container">
-      {/* <header className="dashboard-header">
-        <div className="left-section">
-          <img src="/logo.png" alt="Kerala Police Logo" className="logo" />
-          <div className="title-group">
-            <div className="title">RAMS</div>
-            <div className="subtitle">Kerala Police Academy</div>
-          </div>
-        </div>
-        <h2 className="center-title">System Admin</h2>
-        <div className="nav-buttons">
-          <button onClick={() => navigate('/')}>Home</button>
-          <button onClick={() => navigate('/login')}>Logout</button>
-        </div>
-      </header> */}
-
       <div className="form-area">
         <h3>Block: {blockData.blockName}</h3>
         <div className="button-group">

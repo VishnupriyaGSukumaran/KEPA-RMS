@@ -21,6 +21,8 @@ const purposes = [
 
 const AllocateRoom = () => {
   const [visibleCards, setVisibleCards] = useState([]);
+  console.log("Visible cards:", visibleCards);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -54,7 +56,7 @@ const AllocateRoom = () => {
           </div>
           <nav className="menu">
             <Link to="/blockhead/dashboard/A Block"><FaTachometerAlt /> Dashboard</Link>
-            <Link to="/blockhead/allocate-room/A Block" className="active"><FaDoorOpen /> Allocate Room</Link>
+            <Link to="/blockhead/AllocateRoom" className="active"><FaDoorOpen /> Allocate Room</Link>
             <Link to="/blockhead/vacate-room/A Block"><FaDoorClosed /> Vacate Room</Link>
             <Link to="/blockhead/display-block/A Block"><FaList /> Display Block</Link>
           </nav>
