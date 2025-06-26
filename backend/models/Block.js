@@ -54,14 +54,17 @@ const blockSchema = new mongoose.Schema({
   }
 });
 
-// Always store blockName in Title Case
+// Always store blockName in Title Case (letters and numbers allowed)
 blockSchema.pre('save', function (next) {
   this.blockName = this.blockName
     .toLowerCase()
-    .replace(/\b\w/g, char => char.toUpperCase())
+    .replace(/\b\w/g, (char) => {
+      return /[a-z]/i.test(char) ? char.toUpperCase() : char;
+    })
     .replace(/\s+/g, ' ')
     .trim();
   next();
 });
+
 
 module.exports = mongoose.model('Block', blockSchema);
