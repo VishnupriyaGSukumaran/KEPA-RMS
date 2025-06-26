@@ -69,6 +69,7 @@ const CreateRoomDashboard = () => {
         allRooms.push({
           blockName: blockData.blockName,
           roomType: type,
+          allocatedBeds: 0,
           ...room
         });
       });
@@ -77,7 +78,7 @@ const CreateRoomDashboard = () => {
     // ✅ First Save to Block DB
     const blockRes = await fetch('http://localhost:5000/api/block', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': '' },
       body: JSON.stringify({
         blockName: blockData.blockName,
         blockTypes: blockData.blockTypes,
