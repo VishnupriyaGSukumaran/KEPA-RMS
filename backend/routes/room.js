@@ -1,29 +1,24 @@
 const express = require('express');
 const router = express.Router();
-const Block = require('../models/Block');
-const Room = require('../models/Room');
+const Block = require('../models/Block'); // make sure it's imported
+const Room = require('../models/Room'); // ✅ Add this line
 
-// ===== ✅ POST: Create Rooms and Update Block =====
+
 router.post('/superadmin/create-rooms', async (req, res) => {
   const { blockName, rooms } = req.body;
 
+    // If using Block model only (nested rooms), insert into that model instead
   if (!blockName || !rooms || !Array.isArray(rooms)) {
     return res.status(400).json({ message: 'Incomplete room data received' });
   }
 
   try {
-    // ✅ Ensure all rooms include allocatedBeds = 0
-    const roomsWithAllocation = rooms.map(room => ({
-      ...room,
-      allocatedBeds: room.allocatedBeds ?? 0  // default to 0 if not present
-    }));
-
-    // ✅ Save to Room collection
-    await Room.insertMany(roomsWithAllocation);
+    // 1. Save rooms in Room collection
+    const insertedRooms = await Room.insertMany(rooms);
 
     // 2. Group by roomType
    const grouped = {};
-  roomsWithAllocation.forEach(room => {
+   insertedRooms.forEach(room => {
    if (!grouped[room.roomType]) {
     grouped[room.roomType] = [];
    }
@@ -46,19 +41,14 @@ router.post('/superadmin/create-rooms', async (req, res) => {
 
     }));
 
-    // ✅ Save rooms to the Block document as well
+    // 4. Update Block
     await Block.findOneAndUpdate(
       { blockName },
-      {
-        $set: {
-          blockTypeDetails,
-          createdRooms: roomsWithAllocation
-        }
-      },
-      { new: true, upsert: true }
+      { $set: { blockTypeDetails } },
+      { new: true, upsert: true } // create if not exists
     );
 
-    // ✅ Build summary for response
+    // 5. Prepare summary response
     const summary = blockTypeDetails.map(typeGroup => {
       const facilitySet = new Set();
       typeGroup.rooms.forEach(room => {
@@ -66,6 +56,7 @@ router.post('/superadmin/create-rooms', async (req, res) => {
         if (room.attachedBathroom) facilitySet.add('Attached Bathroom');
         Object.keys(room.additionalFacilities || {}).forEach(f => facilitySet.add(f));
       });
+
       return {
         blockType: typeGroup.type,
         count: typeGroup.count,
@@ -82,7 +73,7 @@ router.post('/superadmin/create-rooms', async (req, res) => {
 
 
 // PUT /api/room/:roomId
-router.put('/:id', async (req, res) => {
+router.put('/:roomId', async (req, res) => {
   const roomId = req.params.roomId;
   const {
     roomName,
@@ -95,7 +86,7 @@ router.put('/:id', async (req, res) => {
 
   try {
     const updatedRoom = await Room.findByIdAndUpdate(
-      id,
+      roomId,
       {
         roomName,
         floorNumber,

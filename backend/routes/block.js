@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Block = require('../models/Block');
-const Room = require('../models/Room');
+const Room = require('../models/Room'); // Room model for deletion
 
 // Convert to "Title Case"
 function toTitleCase(input) {
@@ -26,7 +26,7 @@ router.post('/', async (req, res) => {
     blockName = `${blockName} Block`;
   }
 
-  const normalizedBlockName = toTitleCase(blockName);
+  const normalizedBlockName = toTitleCase(blockName); // e.g. "A Block"
 
   // Validate room counts
   for (const type of blockTypes) {
@@ -37,6 +37,7 @@ router.post('/', async (req, res) => {
   }
 
   try {
+    // Check for existing block (case-insensitive)
     const existingBlock = await Block.findOne({
       blockName: { $regex: `^${normalizedBlockName}$`, $options: 'i' }
     });
@@ -45,6 +46,7 @@ router.post('/', async (req, res) => {
       return res.status(409).json({ message: `Block "${normalizedBlockName}" already exists.` });
     }
 
+    // --- Fetch matching rooms from request body ---
     const createdRooms = req.body.createdRooms || [];
 
     // ✅ Insert into DB and capture inserted rooms with `_id`
@@ -83,7 +85,7 @@ router.post('/', async (req, res) => {
 });
 
 
-// ===== Get all Blocks =====
+// Get all blocks
 router.get('/', async (req, res) => {
   try {
     const blocks = await Block.find();
@@ -94,56 +96,30 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ✅ Updated: Get block statistics from Room collection
-router.get('/name/:blockName', async (req, res) => {
-  const rawName = req.params.blockName.replace(/%20/g, ' ');
-  const formattedBlockName = toTitleCase(rawName);
-
+// Get a specific block by ID
+router.get('/:id', async (req, res) => {
   try {
-    const block = await Block.findOne({
-      blockName: { $regex: `^${formattedBlockName}$`, $options: 'i' }
-    });
-
+    const block = await Block.findById(req.params.id);
     if (!block) return res.status(404).json({ message: 'Block not found' });
-
-    // 🟢 Get rooms from Room collection
-    const rooms = await Room.find({ blockName: formattedBlockName });
-
-    const totalRooms = rooms.length;
-    const totalBeds = rooms.reduce((sum, room) => sum + (room.bedCount || 0), 0);
-    const vacantBeds = rooms.reduce((sum, room) => {
-      const total = room.bedCount || 0;
-      const allocated = room.allocatedBeds || 0;
-      return sum + (total - allocated);
-    }, 0);
-    const dormitories = rooms.filter(r => r.roomType === 'Dormitory').length;
-
-    res.status(200).json({
-      blockName: block.blockName,
-      totalRooms,
-      totalBeds,
-      vacantBeds,
-      dormitories,
-      blockTypes: block.blockTypes,
-      blockTypeDetails: block.blockTypeDetails,
-      createdRooms: rooms // ✅ Send rooms directly from DB
-    });
-  } catch (err) {
-    console.error('Error fetching block by name:', err);
+    res.json(block);
+  } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-
-// ===== Delete a block and its rooms =====
+// Delete a block and associated rooms
 router.delete('/:id', async (req, res) => {
   try {
+    // Step 1: Find the block
     const block = await Block.findById(req.params.id);
     if (!block) {
       return res.status(404).json({ message: 'Block not found' });
     }
 
+    // Step 2: Delete all associated rooms from the Room collection
     await Room.deleteMany({ blockName: block.blockName });
+
+    // Step 3: Delete the block
     await Block.findByIdAndDelete(req.params.id);
 
     res.json({ message: 'Block and associated rooms deleted successfully' });
@@ -214,57 +190,6 @@ block.blockTypeDetails.forEach(detail => {
 // Prevent room count modifications
 router.put('/:id/counts', async (req, res) => {
   res.status(403).json({ message: 'Room count modification is not allowed after creation.' });
-});
-
-// ===== Add Block Type to Existing Block =====
-router.post('/:id/type', async (req, res) => {
-  const { type } = req.body;
-
-  if (!type) return res.status(400).json({ message: 'Block type is required' });
-
-  try {
-    const block = await Block.findById(req.params.id);
-    if (!block) return res.status(404).json({ message: 'Block not found' });
-
-    const exists = block.blockTypeDetails.some(bt => bt.type === type);
-    if (exists) return res.status(409).json({ message: 'Block type already exists' });
-
-    block.blockTypes.push(type);
-    block.roomCounts[type] = 0;
-    block.blockTypeDetails.push({ type, count: 0, rooms: [] });
-
-    await block.save();
-    res.status(200).json({ message: 'Block type added successfully' });
-  } catch (err) {
-    console.error('Error adding block type:', err);
-    res.status(500).json({ message: 'Server error while adding block type' });
-  }
-});
-
-// ===== Delete Block Type from Block =====
-router.delete('/:id/type/:type', async (req, res) => {
-  const { id, type } = req.params;
-
-  try {
-    const block = await Block.findById(id);
-    if (!block) return res.status(404).json({ message: 'Block not found' });
-
-    const beforeLength = block.blockTypeDetails.length;
-
-    block.blockTypeDetails = block.blockTypeDetails.filter(bt => bt.type !== type);
-    block.blockTypes = block.blockTypes.filter(t => t !== type);
-    delete block.roomCounts[type];
-
-    if (block.blockTypeDetails.length === beforeLength) {
-      return res.status(404).json({ message: 'Block type not found' });
-    }
-
-    await block.save();
-    res.status(200).json({ message: 'Block type removed successfully' });
-  } catch (err) {
-    console.error('Error removing block type:', err);
-    res.status(500).json({ message: 'Server error while removing block type' });
-  }
 });
 
 module.exports = router;

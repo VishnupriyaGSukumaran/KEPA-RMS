@@ -1,20 +1,13 @@
 const mongoose = require('mongoose');
 
 const roomDetailSchema = new mongoose.Schema({
-  roomType: { // ✅ ADD THIS FIELD
-    type: String,
-    enum: ['Room', 'Dormitory', 'Suite Room', 'Barrack'],
-    required: true
-  },
   roomName: String,
   floorNumber: Number,
   bedCount: Number,
-  allocatedBeds: { type: Number, default: 0 },
   isAC: Boolean,
   attachedBathroom: Boolean,
   additionalFacilities: Object
 }, { _id: false });
-
 
 const blockTypeDetailSchema = new mongoose.Schema({
   type: {

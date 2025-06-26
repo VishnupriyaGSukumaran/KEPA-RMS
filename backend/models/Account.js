@@ -17,8 +17,7 @@ assignedBlock: {
   type: String,
   required: function () {
     return this.userType === 'blockhead';
-  },
-  default: null
+  }
   // remove unique for now
 }
 
