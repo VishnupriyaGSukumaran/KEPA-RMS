@@ -15,13 +15,18 @@ const BlockHeadDashboard = () => {
   const [blockName, setBlockName] = useState(blockNameFromStorage || '');
 
   useEffect(() => {
-    if (!pen || !blockNameFromStorage) return;
+  if (!pen || !blockNameFromStorage) return;
 
-    // Fetch block data
-    fetch(`http://localhost:5000/api/block/name/${encodeURIComponent(blockNameFromStorage)}`)
-      .then(res => res.json())
-      .then(data => setBlockData(data))
-      .catch(err => console.error('Error fetching block data:', err));
+  // Fetch block data
+  fetch(`http://localhost:5000/api/block/name/${encodeURIComponent(blockNameFromStorage)}`)
+    .then(res => res.json())
+    .then(data => {
+      setBlockData(data);
+      if (data._id) {
+        localStorage.setItem('blockId', data._id); // ✅ store blockId
+      }
+    })
+    .catch(err => console.error('Error fetching block data:', err));
 
     // Fetch user data
     fetch(`http://localhost:5000/api/blockheadnew/${pen}`)
@@ -68,8 +73,8 @@ const BlockHeadDashboard = () => {
         <nav className="menu">
           <Link to={`/blockhead/dashboard/${blockName}`}><FaTachometerAlt /> Dashboard</Link>
           <Link to={`/blockhead/AllocateRoom`}><FaDoorOpen /> Allocate Room</Link>
-          <Link to={`/blockhead/vacate-room/${blockName}`}><FaDoorClosed /> Vacate Room</Link>
-          <Link to={`/blockhead/display-block/${blockName}`}><FaList /> Display Block</Link>
+          <Link to={`/blockhead/VacateRoom`}><FaDoorClosed /> Vacate Room</Link>
+          <Link to={`/blockhead/ViewBlock/${blockName}`}><FaList /> Display Block</Link>
         </nav>
       </aside>
       <main className="main-content">

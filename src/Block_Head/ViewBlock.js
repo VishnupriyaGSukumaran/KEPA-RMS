@@ -1,30 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import './ViewBlock.css';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { FaHome, FaSignOutAlt } from 'react-icons/fa';
 
 const ViewBlock = () => {
   const { blockName } = useParams();
+  const navigate = useNavigate();
   const [blockData, setBlockData] = useState(null);
-  const [userData, setUserData] = useState(null);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const pen = localStorage.getItem('pen');
+  const decodedBlockName = decodeURIComponent(blockName);
 
   useEffect(() => {
-    if (pen) {
-      fetch(`http://localhost:5000/api/blockheadnew/${pen}`)
-        .then(res => res.json())
-        .then(user => {
-          setUserData(user);
-          if (user.assignedBlock) {
-            fetch(`http://localhost:5000/api/block/name/${encodeURIComponent(user.assignedBlock)}`)
-              .then(res => res.json())
-              .then(data => setBlockData(data));
-          }
-        });
+    const fetchBlockData = async () => {
+      try {
+        const response = await fetch(`http://localhost:5000/api/block/name/${encodeURIComponent(decodedBlockName)}`);
+        if (!response.ok) throw new Error('Block not found');
+        const data = await response.json();
+        setBlockData(data);
+      } catch (error) {
+        console.error('Error fetching block data:', error);
+      }
+    };
+
+    if (decodedBlockName) {
+      fetchBlockData();
     }
-  }, [pen]);
+  }, [decodedBlockName]);
 
   const logout = () => {
     localStorage.clear();
@@ -43,23 +45,17 @@ const ViewBlock = () => {
     setShowModal(true);
   };
 
+  const goBackToForm = () => {
+    const purpose = localStorage.getItem('purpose');
+    if (purpose) {
+      navigate(`/blockhead/AllocateForm/${encodeURIComponent(purpose)}`);
+    } else {
+      navigate(-1); // fallback to browser back
+    }
+  };
+
   return (
     <>
-      {/* ✅ Topbar same as BlockHeadDashboard */}
-      {/* <header className="topbar">
-        <div className="topbar-left">
-          <img src="/logo.png" alt="Logo" />
-          <div className="text-group">
-            <h2>RMS</h2>
-            <p>Kerala Police Academy</p>
-          </div>
-        </div>
-        <div className="topbar-actions">
-          <a href="#"><FaHome /> Home</a>
-          <a onClick={logout} style={{ cursor: 'pointer' }}><FaSignOutAlt /> Logout</a>
-        </div>
-      </header> */}
-
       <div className="view-block-container">
         <h2>Block Overview - {blockData?.blockName || 'Loading...'}</h2>
 
@@ -70,6 +66,11 @@ const ViewBlock = () => {
           <div className="box">Occupied Beds <span>{(blockData?.totalBeds || 0) - (blockData?.vacantBeds || 0)}</span></div>
           <div className="box">Available Beds <span>{blockData?.vacantBeds || 0}</span></div>
         </div>
+
+        {/* 🔙 Back Button */}
+        <button className="back-button" onClick={goBackToForm}>
+          ← Back to Allocation Form
+        </button>
 
         <h3>Room Overview</h3>
         <table className="overview-table">
@@ -82,10 +83,15 @@ const ViewBlock = () => {
             </tr>
           </thead>
           <tbody>
-            {blockData?.createdRooms?.filter(r => r.roomType !== 'Dormitory').map((room, idx) => (
-              <tr key={idx}>
+            {blockData?.createdRooms?.filter(r => r.roomType !== 'Dormitory').map((room) => (
+              <tr key={room._id}>
                 <td>{room.roomName}</td>
-                <td>{room.beds?.map((bed, i) => <span key={i} className={getDotClass(bed.status)}></span>)}</td>
+                <td>
+                  {room.beds?.length > 0
+                    ? room.beds.map((bed, i) => <span key={i} className={getDotClass(bed.status)}></span>)
+                    : <span className={getDotClass('vacant')}>•</span>
+                  }
+                </td>
                 <td>{room.features || '-'}</td>
                 <td>
                   <button onClick={() => openDetail(room)}>👁️ View</button>
@@ -107,8 +113,8 @@ const ViewBlock = () => {
             </tr>
           </thead>
           <tbody>
-            {blockData?.createdRooms?.filter(r => r.roomType === 'Dormitory').map((dorm, idx) => (
-              <tr key={idx}>
+            {blockData?.createdRooms?.filter(r => r.roomType === 'Dormitory').map((dorm) => (
+              <tr key={dorm._id}>
                 <td>{dorm.roomName}</td>
                 <td>{dorm.bedCount}</td>
                 <td>{dorm.occupiedCount || 0}</td>
