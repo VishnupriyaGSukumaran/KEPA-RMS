@@ -113,8 +113,8 @@ const handleCourseSubmit = async (e) => {
             <div className="nav-heading">MANAGEMENT</div>
             <button className="nav-item" onClick={() => navigate('/admin/blockheads')}><FaUsers /> Assign Block Heads</button>
             <button className="nav-item" onClick={() => setShowAllocForm(true)}><FaPlus /> Create Allocation Order</button>
-            <button className="nav-item"><FaCubes /> Display Block Structure</button>
-           <button className="nav-item" onClick={() => setShowModal(true)}><FaBook /> Forward Course Order</button>
+            <button className="nav-item" onClick={() => navigate('/admin/display-block')}><FaCubes /> Display Block Structure</button>
+            <button className="nav-item" onClick={() => setShowModal(true)}><FaBook /> Forward Course Order</button>
             <button className="nav-item"><FaChartBar />Generate Reports</button>
             <button className="nav-item"><FaBell /> Notifications</button>
           </div>

@@ -8,8 +8,11 @@ const roomSchema = new mongoose.Schema({
   attachedBathroom: { type: Boolean, default: false },
   floorNumber: { type: Number },
   bedCount: { type: Number },
-  allocatedBeds: { type: Number, default: 0 }, // ✅ New field added here
+  allocatedBeds: { type: Number, default: 0 },
   additionalFacilities: { type: Map, of: String }
 }, { timestamps: true });
+
+// 👇 Enforce unique roomName within the same block
+roomSchema.index({ blockName: 1, roomName: 1 }, { unique: true });
 
 module.exports = mongoose.model('Room', roomSchema);

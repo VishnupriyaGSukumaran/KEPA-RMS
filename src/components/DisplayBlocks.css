@@ -1,0 +1,53 @@
+/* DisplayBlocks.css */
+
+.display-block-container {
+  padding: 2rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.display-block-container h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #2c3e50;
+}
+
+.block-table {
+  width: 100%;
+  border-collapse: collapse;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.block-table th,
+.block-table td {
+  padding: 1rem;
+  text-align: left;
+  border: 1px solid #ccc;
+}
+
+.block-table th {
+  background-color: #f4f6f8;
+  color: #333;
+}
+
+.block-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.block-table tbody tr:hover {
+  background-color: #e6f7ff;
+}
+
+.block-table button {
+  padding: 0.5rem 1rem;
+  border: none;
+  background-color: #3498db;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background-color 0.2s;
+}
+
+.block-table button:hover {
+  background-color: #2980b9;
+}

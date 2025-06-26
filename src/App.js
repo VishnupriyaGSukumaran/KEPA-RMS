@@ -10,7 +10,7 @@ import SuperAdminDashboard from './system_adm/SuperAdminDashboard';
 import CreateUser from './system_adm/CreateUser';
 import DesignBlock from './system_adm/DesignBlock';
 import CreateCourse from './system_adm/CreateCourse';
-import DisplayBlock from './system_adm/DisplayBlock';
+import DisplayBlocks from './components/DisplayBlocks';
 import GenerateReport from './system_adm/GenerateReport';
 import BlockHeadDashboard from './Block_Head/BlockHeadDashboard';
 import RemoveBlock from './system_adm/RemoveBlock';
@@ -64,14 +64,14 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-        <Route
+        {/* <Route
           path="/superadmin/display-block"
           element={
             <ProtectedRoute>
               <DisplayBlock />
             </ProtectedRoute>
           }
-        />
+        /> */}
         <Route
           path="/superadmin/generate-report"
           element={
@@ -160,6 +160,24 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+  path="/admin/display-block"
+  element={
+    <ProtectedRoute>
+      <DisplayBlocks />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/superadmin/display-block"
+  element={
+    <ProtectedRoute>
+      <DisplayBlocks />
+    </ProtectedRoute>
+  }
+/>
+
 
       </Routes>
     </Router>

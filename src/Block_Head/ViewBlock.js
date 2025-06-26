@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import './ViewBlock.css';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { FaHome, FaSignOutAlt } from 'react-icons/fa';
 
 const ViewBlock = () => {
   const { blockName } = useParams();
+  const navigate = useNavigate();
   const [blockData, setBlockData] = useState(null);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -44,6 +45,15 @@ const ViewBlock = () => {
     setShowModal(true);
   };
 
+  const goBackToForm = () => {
+    const purpose = localStorage.getItem('purpose');
+    if (purpose) {
+      navigate(`/blockhead/AllocateForm/${encodeURIComponent(purpose)}`);
+    } else {
+      navigate(-1); // fallback to browser back
+    }
+  };
+
   return (
     <>
       <div className="view-block-container">
@@ -56,6 +66,11 @@ const ViewBlock = () => {
           <div className="box">Occupied Beds <span>{(blockData?.totalBeds || 0) - (blockData?.vacantBeds || 0)}</span></div>
           <div className="box">Available Beds <span>{blockData?.vacantBeds || 0}</span></div>
         </div>
+
+        {/* 🔙 Back Button */}
+        <button className="back-button" onClick={goBackToForm}>
+          ← Back to Allocation Form
+        </button>
 
         <h3>Room Overview</h3>
         <table className="overview-table">

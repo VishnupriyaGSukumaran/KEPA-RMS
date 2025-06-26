@@ -42,6 +42,12 @@ const AllocateForm = () => {
         console.error('Failed to fetch courses:', err);
       }
     };
+
+    const savedData = localStorage.getItem('allocationForm');
+  if (savedData) {
+    setFormData(JSON.parse(savedData));
+    localStorage.removeItem('allocationForm');  // Optional: clear after use
+  }
     fetchCourses();
   }, []);
 
@@ -266,9 +272,17 @@ if (!blockName || !allocatedBy) {
             <label>Room Number:</label>
             <input type="text" name="roomNumber" value={formData.roomNumber} onChange={handleChange} required />
           </div>
-          <button type="button" className="check-vacancy-btn" onClick={() => navigate(`/blockhead/ViewBlock/${encodeURIComponent(blockName)}`)}>
-            Check Vacancies
-          </button>
+          <button
+  type="button"
+  className="check-vacancy-btn"
+  onClick={() => {
+    localStorage.setItem('allocationForm', JSON.stringify(formData));
+    navigate(`/blockhead/ViewBlock/${encodeURIComponent(blockName)}`);
+  }}
+>
+  Check Vacancies
+</button>
+
         </div>
 
         <div className="form-group full-width">
