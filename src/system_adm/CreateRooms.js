@@ -97,7 +97,8 @@ const CreateRoomDashboard = () => {
     const roomResult = await roomRes.json();
 
     if (blockRes.ok && roomRes.ok) {
-      sessionStorage.setItem('createdRooms', JSON.stringify(allRooms));
+sessionStorage.setItem('createdRooms', JSON.stringify(roomResult.blockTypeDetails));
+
       sessionStorage.removeItem('blockData');
       setModalMessage('✅ Block and Room details saved successfully! Redirecting...');
       setShowModal(true);

@@ -8,7 +8,7 @@ const roomSchema = new mongoose.Schema({
   attachedBathroom: { type: Boolean, default: false },
   floorNumber: { type: Number },
   bedCount: { type: Number },
-  additionalFacilities: { type: Map, of: String }
+  additionalFacilities: Object
 }, { timestamps: true });
 
 module.exports = mongoose.model('Room', roomSchema);

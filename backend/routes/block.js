@@ -13,6 +13,7 @@ function toTitleCase(input) {
 }
 
 // Create Block
+// Create Block
 router.post('/', async (req, res) => {
   let { blockName, blockTypes, roomCounts } = req.body;
 
@@ -48,26 +49,30 @@ router.post('/', async (req, res) => {
     // --- Fetch matching rooms from request body ---
     const createdRooms = req.body.createdRooms || [];
 
-    // Group rooms by roomType
+    // ✅ Insert into DB and capture inserted rooms with `_id`
+    const insertedRooms = await Room.insertMany(createdRooms);
+
+    // ✅ Group by roomType using insertedRooms (not createdRooms)
     const groupedRooms = {};
-    createdRooms.forEach(room => {
+    insertedRooms.forEach(room => {
       if (!groupedRooms[room.roomType]) groupedRooms[room.roomType] = [];
       groupedRooms[room.roomType].push(room);
     });
 
-    // Build blockTypeDetails with rooms
+    // ✅ Build blockTypeDetails using insertedRooms
     const blockTypeDetails = blockTypes.map(type => ({
       type,
       count: roomCounts[type],
       rooms: groupedRooms[type] || []
     }));
 
-    // Save new block with embedded room data
+    // ✅ Save new block with embedded room data (with valid `_id`)
     const newBlock = new Block({
       blockName: normalizedBlockName,
       blockTypes,
       roomCounts,
-      blockTypeDetails
+      blockTypeDetails,
+      createdRooms: insertedRooms
     });
 
     await newBlock.save();
@@ -78,6 +83,7 @@ router.post('/', async (req, res) => {
     res.status(500).json({ message: 'Server error. Could not save block.' });
   }
 });
+
 
 // Get all blocks
 router.get('/', async (req, res) => {
