@@ -1,8 +1,10 @@
 const express = require('express');
-const router = express.Router(); // <-- this line is missing
+const router = express.Router();
 const SystemAdmin = require('../models/SystemAdmin');
 const Account = require('../models/Account');
+const Block = require('../models/Block'); // <-- NEW
 const bcrypt = require('bcryptjs');
+
 router.post('/login', async (req, res) => {
   const { pen, password } = req.body;
 
@@ -19,7 +21,20 @@ router.post('/login', async (req, res) => {
         return res.status(401).json({ msg: 'Invalid pen or user not found' });
       }
       role = user.userType;
-      assignedBlock = user.assignedBlock; // <-- get the block
+      assignedBlock = user.assignedBlock;
+
+      // ✅ Check if Block still exists for BlockHead
+      if (user.userType === 'blockhead') {
+        const blockExists = await Block.findOne({
+          blockName: { $regex: `^${user.assignedBlock}$`, $options: 'i' }
+        });
+
+        if (!blockExists) {
+          return res.status(403).json({
+            msg: `Your assigned block "${user.assignedBlock}" no longer exists. Please contact the administrator.`
+          });
+        }
+      }
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -39,7 +54,5 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ msg: 'Server error' });
   }
 });
-
-
 
 module.exports = router;

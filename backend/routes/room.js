@@ -18,6 +18,17 @@ router.post('/superadmin/create-rooms', async (req, res) => {
       allocatedBeds: room.allocatedBeds ?? 0  // default to 0 if not present
     }));
 
+    // ✅ Check for duplicates in DB before insert
+    const existingRooms = await Room.find({ blockName });
+    const existingRoomNames = new Set(existingRooms.map(r => r.roomName));
+
+    const duplicates = roomsWithAllocation.filter(room => existingRoomNames.has(room.roomName));
+    if (duplicates.length > 0) {
+      return res.status(400).json({
+        message: `Duplicate room name(s) found in this block: ${duplicates.map(r => r.roomName).join(', ')}`
+      });
+    }
+
     // ✅ Save to Room collection
     await Room.insertMany(roomsWithAllocation);
 
@@ -63,8 +74,18 @@ router.post('/superadmin/create-rooms', async (req, res) => {
     });
 
     return res.status(200).json({ message: 'Rooms saved successfully', summary });
+
   } catch (error) {
     console.error('Error saving rooms:', error);
+
+    // ✅ Catch MongoDB duplicate key error
+    if (error.code === 11000) {
+      const duplicateField = Object.keys(error.keyValue || {}).join(', ');
+      return res.status(400).json({
+        message: `Duplicate room name in the same block: ${duplicateField}`
+      });
+    }
+
     return res.status(500).json({ message: 'Server error while saving room data' });
   }
 });

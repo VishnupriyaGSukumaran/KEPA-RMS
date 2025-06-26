@@ -26,9 +26,19 @@ const BlockHeadDashboard = () => {
           setBlockName(user.assignedBlock);
 
           fetch(`http://localhost:5000/api/block/name/${encodeURIComponent(user.assignedBlock)}`)
-            .then(res => res.json())
+            .then(res => {
+              if (!res.ok) {
+                throw new Error(`Block "${user.assignedBlock}" not found`);
+              }
+              return res.json();
+            })
             .then(data => setBlockData(data))
-            .catch(err => console.error('Error fetching block data:', err));
+            .catch(err => {
+              console.error('Error fetching block data:', err);
+              alert(`Assigned block "${user.assignedBlock}" does not exist. You will be logged out.`);
+              localStorage.clear();
+              window.location.href = '/login';
+            });
         } else {
           console.warn('User is not a blockhead or has no assigned block');
         }
@@ -47,20 +57,6 @@ const BlockHeadDashboard = () => {
 
   return (
     <>
-      {/* <header className="topbar">
-        <div className="topbar-left">
-          <img src="/logo.png" alt="Logo" />
-          <div className="text-group">
-            <h2>RMS</h2>
-            <p>Kerala Police Academy</p>
-          </div>
-        </div>
-        <div className="topbar-actions">
-          <a href="#"><FaHome /> Home</a>
-          <a onClick={logout} style={{ cursor: 'pointer' }}><FaSignOutAlt /> Logout</a>
-        </div>
-      </header> */}
-
       <div className="dashboard-container">
         <aside className="sidebar">
           <div className="profile">
@@ -86,7 +82,6 @@ const BlockHeadDashboard = () => {
 
           <h4>Block Statistics</h4>
           <div className="stats">
-            {/* 🔁 Dynamic Room Type Cards */}
             {Object.entries(roomTypeCounts).map(([type, count]) => (
               <div key={type} className="stat-card blue">
                 <h5>{type}</h5>
@@ -95,14 +90,12 @@ const BlockHeadDashboard = () => {
               </div>
             ))}
 
-            {/* Total Beds Card */}
             <div className="stat-card green">
               <h5>Total Beds</h5>
               <p>{totalBeds}</p>
               <FaBed className="icon" />
             </div>
 
-            {/* Vacant Beds Card */}
             <div className="stat-card red">
               <h5>Vacant Beds</h5>
               <p>{vacantBeds}</p>

@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Block = require('../models/Block');
 const Room = require('../models/Room');
+const Account = require('../models/Account');
 
-// Convert to "Title Case"
+// Helper: Convert to Title Case
 function toTitleCase(input) {
   return input
     .toLowerCase()
@@ -27,11 +28,10 @@ router.post('/', async (req, res) => {
 
   const normalizedBlockName = toTitleCase(blockName);
 
-  // Validate room counts
   for (const type of blockTypes) {
     const count = roomCounts[type];
     if (typeof count !== 'number' || isNaN(count) || count < 0) {
-      return res.status(400).json({ message: `Invalid or missing room count for "${type}". `});
+      return res.status(400).json({ message: `Invalid or missing room count for "${type}".` });
     }
   }
 
@@ -75,7 +75,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// ===== Get all Blocks =====
+// ===== Get All Blocks =====
 router.get('/', async (req, res) => {
   try {
     const blocks = await Block.find();
@@ -86,7 +86,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ✅ Updated: Get block statistics from Room collection with dynamic roomType counts
+// ===== Get Block by Name (with stats) =====
 router.get('/name/:blockName', async (req, res) => {
   const rawName = req.params.blockName.replace(/%20/g, ' ');
   const formattedBlockName = toTitleCase(rawName);
@@ -107,7 +107,6 @@ router.get('/name/:blockName', async (req, res) => {
       return sum + (total - allocated);
     }, 0);
 
-    // 🔁 Dynamic count of each room type
     const roomTypeCounts = rooms.reduce((acc, room) => {
       const type = room.roomType || 'Unknown';
       acc[type] = (acc[type] || 0) + 1;
@@ -123,7 +122,7 @@ router.get('/name/:blockName', async (req, res) => {
       totalBeds,
       vacantBeds,
       dormitories,
-      roomTypeCounts, // 👉 Send for dynamic frontend
+      roomTypeCounts,
       blockTypes: block.blockTypes,
       blockTypeDetails: block.blockTypeDetails,
       createdRooms: rooms
@@ -134,7 +133,7 @@ router.get('/name/:blockName', async (req, res) => {
   }
 });
 
-// ===== Delete a block and its rooms =====
+// ===== Delete Block, Rooms, and Unassign BlockHeads =====
 router.delete('/:id', async (req, res) => {
   try {
     const block = await Block.findById(req.params.id);
@@ -142,13 +141,29 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Block not found' });
     }
 
-    await Room.deleteMany({ blockName: block.blockName });
+    const blockName = block.blockName;
+
+    // Delete all rooms associated with the block
+    await Room.deleteMany({ blockName });
+
+    // Unassign block from blockhead users instead of deleting them
+    const updatedUsers = await Account.updateMany(
+      {
+        userType: 'blockhead',
+        assignedBlock: { $regex: `^${blockName}$`, $options: 'i' }
+      },
+      { $unset: { assignedBlock: "" } }
+    );
+
+    // Delete the block itself
     await Block.findByIdAndDelete(req.params.id);
 
-    res.json({ message: 'Block and associated rooms deleted successfully' });
+    res.json({
+      message: `Block and associated rooms deleted successfully. ${updatedUsers.modifiedCount} blockhead(s) unassigned.`
+    });
   } catch (error) {
-    console.error('Error deleting block and rooms:', error);
-    res.status(500).json({ message: 'Failed to delete block and associated rooms' });
+    console.error('Error deleting block and related data:', error);
+    res.status(500).json({ message: 'Failed to delete block and associated data' });
   }
 });
 
