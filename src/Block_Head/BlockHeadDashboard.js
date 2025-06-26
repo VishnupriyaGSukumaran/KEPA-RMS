@@ -1,22 +1,29 @@
+// BlockHeadDashboard.js
 import React, { useEffect, useState } from 'react';
-import './BlockHeadDashboard.css';
+import { Link } from 'react-router-dom';
 import {
-  FaBed, FaUsers, FaDoorOpen, FaHome,
-  FaSignOutAlt, FaTachometerAlt, FaDoorClosed, FaList
+  FaBed, FaUsers, FaDoorOpen,
+  FaTachometerAlt, FaDoorClosed, FaList
 } from 'react-icons/fa';
+import './BlockHeadDashboard.css';
 
 const BlockHeadDashboard = () => {
   const pen = localStorage.getItem('pen');
+  const blockNameFromStorage = localStorage.getItem('assignedBlock');
   const [blockData, setBlockData] = useState(null);
   const [userData, setUserData] = useState(null);
-  const [blockName, setBlockName] = useState('');
+  const [blockName, setBlockName] = useState(blockNameFromStorage || '');
 
   useEffect(() => {
-    if (!pen) {
-      console.warn('No PEN found in localStorage');
-      return;
-    }
+    if (!pen || !blockNameFromStorage) return;
 
+    // Fetch block data
+    fetch(`http://localhost:5000/api/block/name/${encodeURIComponent(blockNameFromStorage)}`)
+      .then(res => res.json())
+      .then(data => setBlockData(data))
+      .catch(err => console.error('Error fetching block data:', err));
+
+    // Fetch user data
     fetch(`http://localhost:5000/api/blockheadnew/${pen}`)
       .then(res => res.json())
       .then(user => {
@@ -44,12 +51,7 @@ const BlockHeadDashboard = () => {
         }
       })
       .catch(err => console.error('Error fetching user data:', err));
-  }, [pen]);
-
-  const logout = () => {
-    localStorage.clear();
-    window.location.href = '/login';
-  };
+  }, [pen, blockNameFromStorage]);
 
   const totalBeds = blockData?.totalBeds || 0;
   const vacantBeds = blockData?.vacantBeds || 0;
@@ -57,28 +59,27 @@ const BlockHeadDashboard = () => {
 
   return (
     <>
-      <div className="dashboard-container">
-        <aside className="sidebar">
-          <div className="profile">
-            <h3>{userData ? `Insp. ${userData.firstName} ${userData.lastName}` : 'Loading...'}</h3>
-            <p>Block Head - {blockName || '...'}</p>
-          </div>
-          <nav className="menu">
-            <a href="#"><FaTachometerAlt /> Dashboard</a>
-            <a href="/AllocateRoom"><FaDoorOpen /> Allocate Room</a>
-            <a href="/VacateRoom"><FaDoorClosed /> Vacate Room</a>
-            <a href="#"><FaList /> Display Block</a>
-          </nav>
-        </aside>
+       <div className="dashboard-container">
+      <aside className="sidebar">
+        <div className="profile">
+          <h3>{userData ? `Insp. ${userData.firstName} ${userData.lastName}` : 'Loading...'}</h3>
+          <p>Block Head - {blockName || ''}</p>
+        </div>
+        <nav className="menu">
+          <Link to={`/blockhead/dashboard/${blockName}`}><FaTachometerAlt /> Dashboard</Link>
+          <Link to={`/blockhead/AllocateRoom`}><FaDoorOpen /> Allocate Room</Link>
+          <Link to={`/blockhead/vacate-room/${blockName}`}><FaDoorClosed /> Vacate Room</Link>
+          <Link to={`/blockhead/display-block/${blockName}`}><FaList /> Display Block</Link>
+        </nav>
+      </aside>
+      <main className="main-content">
+        <h3>{blockName?.toUpperCase() || ''} ROOM ALLOCATION</h3>
 
-        <main className="main-content">
-          <h3>{blockName?.toUpperCase() || 'LOADING'} ROOM ALLOCATION</h3>
-
-          <div className="legend">
-            <span className="dot green"></span> Vacant
-            <span className="dot red"></span> Allocated
-            <span className="dot yellow"></span> Partial
-          </div>
+        <div className="legend">
+          <span className="dot green"></span> Vacant
+          <span className="dot red"></span> Allocated
+          <span className="dot yellow"></span> Partial
+        </div>
 
           <h4>Block Statistics</h4>
           <div className="stats">
@@ -109,3 +110,4 @@ const BlockHeadDashboard = () => {
 };
 
 export default BlockHeadDashboard;
+
