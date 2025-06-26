@@ -21,7 +21,7 @@ import AdminDashboard from './Admin/AdminDashboard';
 import BlockHeads from './Admin/BlockHeads';
 import ViewBlock from './Block_Head/ViewBlock';
 import VacateRoom from './Block_Head/VacateRoom';
-
+import AllocateForm from './Block_Head/AllocateForm';
 const App = () => {
   return (
     <Router>
@@ -149,6 +149,14 @@ const App = () => {
           element={
             <ProtectedRoute>
               <VacateRoom />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/blockhead/AllocateForm/:purpose"
+          element={
+            <ProtectedRoute>
+              <AllocateForm />
             </ProtectedRoute>
           }
         />

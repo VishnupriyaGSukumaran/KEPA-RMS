@@ -6,25 +6,26 @@ import { FaHome, FaSignOutAlt } from 'react-icons/fa';
 const ViewBlock = () => {
   const { blockName } = useParams();
   const [blockData, setBlockData] = useState(null);
-  const [userData, setUserData] = useState(null);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const pen = localStorage.getItem('pen');
+  const decodedBlockName = decodeURIComponent(blockName);
 
   useEffect(() => {
-    if (pen) {
-      fetch(`http://localhost:5000/api/blockheadnew/${pen}`)
-        .then(res => res.json())
-        .then(user => {
-          setUserData(user);
-          if (user.assignedBlock) {
-            fetch(`http://localhost:5000/api/block/name/${encodeURIComponent(user.assignedBlock)}`)
-              .then(res => res.json())
-              .then(data => setBlockData(data));
-          }
-        });
+    const fetchBlockData = async () => {
+      try {
+        const response = await fetch(`http://localhost:5000/api/block/name/${encodeURIComponent(decodedBlockName)}`);
+        if (!response.ok) throw new Error('Block not found');
+        const data = await response.json();
+        setBlockData(data);
+      } catch (error) {
+        console.error('Error fetching block data:', error);
+      }
+    };
+
+    if (decodedBlockName) {
+      fetchBlockData();
     }
-  }, [pen]);
+  }, [decodedBlockName]);
 
   const logout = () => {
     localStorage.clear();
@@ -45,21 +46,6 @@ const ViewBlock = () => {
 
   return (
     <>
-      {/* ✅ Topbar same as BlockHeadDashboard */}
-      {/* <header className="topbar">
-        <div className="topbar-left">
-          <img src="/logo.png" alt="Logo" />
-          <div className="text-group">
-            <h2>RMS</h2>
-            <p>Kerala Police Academy</p>
-          </div>
-        </div>
-        <div className="topbar-actions">
-          <a href="#"><FaHome /> Home</a>
-          <a onClick={logout} style={{ cursor: 'pointer' }}><FaSignOutAlt /> Logout</a>
-        </div>
-      </header> */}
-
       <div className="view-block-container">
         <h2>Block Overview - {blockData?.blockName || 'Loading...'}</h2>
 
@@ -82,10 +68,15 @@ const ViewBlock = () => {
             </tr>
           </thead>
           <tbody>
-            {blockData?.createdRooms?.filter(r => r.roomType !== 'Dormitory').map((room, idx) => (
-              <tr key={idx}>
+            {blockData?.createdRooms?.filter(r => r.roomType !== 'Dormitory').map((room) => (
+              <tr key={room._id}>
                 <td>{room.roomName}</td>
-                <td>{room.beds?.map((bed, i) => <span key={i} className={getDotClass(bed.status)}></span>)}</td>
+                <td>
+                  {room.beds?.length > 0
+                    ? room.beds.map((bed, i) => <span key={i} className={getDotClass(bed.status)}></span>)
+                    : <span className={getDotClass('vacant')}>•</span>
+                  }
+                </td>
                 <td>{room.features || '-'}</td>
                 <td>
                   <button onClick={() => openDetail(room)}>👁️ View</button>
@@ -107,8 +98,8 @@ const ViewBlock = () => {
             </tr>
           </thead>
           <tbody>
-            {blockData?.createdRooms?.filter(r => r.roomType === 'Dormitory').map((dorm, idx) => (
-              <tr key={idx}>
+            {blockData?.createdRooms?.filter(r => r.roomType === 'Dormitory').map((dorm) => (
+              <tr key={dorm._id}>
                 <td>{dorm.roomName}</td>
                 <td>{dorm.bedCount}</td>
                 <td>{dorm.occupiedCount || 0}</td>
