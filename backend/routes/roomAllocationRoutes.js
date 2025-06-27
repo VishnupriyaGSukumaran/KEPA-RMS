@@ -1,67 +1,38 @@
+
+// ✅ File: routes/roomAllocationRoutes.js
 const express = require('express');
 const router = express.Router();
 const RoomAllocation = require('../models/RoomAllocation');
-const Block = require('../models/Block');
-const Account = require('../models/Account'); // Block Head account
 
-// 🔹 Create new room allocation
 router.post('/', async (req, res) => {
   try {
-    const {
-      name, pen, recruitmentNumber, trainingCompany,
-      mobileNumber, emergencyContact, address, designation,
-      unit, district, courseDetails, remark, roomNumber,
-      allocationDate, purpose, subPurpose, blockName, allocatedBy
-    } = req.body;
+    const data = req.body;
 
-    if (!blockName || !allocatedBy) {
+    if (!data.blockName || !data.allocatedBy) {
       return res.status(400).json({ error: 'Block ID and Allocator ID are required.' });
     }
 
-    // ✅ Conditional check based on purpose
-    if (purpose === 'Basic Training') {
-      if (!recruitmentNumber) {
+    if (data.purpose === 'Basic Training') {
+      if (!data.recruitmentNumber) {
         return res.status(400).json({ error: 'Recruitment Number is required for Basic Training.' });
       }
-
-      const existingRecruit = await RoomAllocation.findOne({ recruitmentNumber });
+      const existingRecruit = await RoomAllocation.findOne({ recruitmentNumber: data.recruitmentNumber });
       if (existingRecruit) {
-        return res.status(409).json({
-          error: `Recruitment Number (${recruitmentNumber}) is already allocated in block "${existingRecruit.block}".`
-        });
+        return res.status(409).json({ error: `Recruitment Number (${data.recruitmentNumber}) is already allocated.` });
       }
     } else {
-      if (!pen) {
+      if (!data.pen) {
         return res.status(400).json({ error: 'PEN is required for non-Basic Training allocations.' });
       }
-
-      const existingPen = await RoomAllocation.findOne({ pen });
+      const existingPen = await RoomAllocation.findOne({ pen: data.pen });
       if (existingPen) {
-        return res.status(409).json({
-          error: `PEN number (${pen}) is already allocated in block "${existingPen.block}".`
-        });
+        return res.status(409).json({ error: `PEN number (${data.pen}) is already allocated.` });
       }
     }
 
     const newAllocation = new RoomAllocation({
-      name,
-      pen,
-      recruitmentNumber,
-      trainingCompany,
-      mobileNumber,
-      emergencyContact,
-      address,
-      designation,
-      unit,
-      district,
-      courseDetails,
-      remark,
-      roomNumber,
-      allocationDate,
-      purpose,
-      subPurpose,
-      block: blockName,
-      allocatedBy
+      ...data,
+      block: data.blockName
     });
 
     await newAllocation.save();
@@ -72,32 +43,29 @@ router.post('/', async (req, res) => {
   }
 });
 
+router.post('/fetch-person', async (req, res) => {
+  const { pen, recruitmentNumber } = req.body;
 
-// 🔹 Get allocations for a specific block
-router.get('/block/:blockId', async (req, res) => {
   try {
-    const allocations = await RoomAllocation.find({ block: req.params.blockId }).populate('allocatedBy', 'pen').sort({ createdAt: -1 });
-    res.json(allocations);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch allocations.' });
+    let person = pen
+      ? await RoomAllocation.findOne({ pen })
+      : await RoomAllocation.findOne({ recruitmentNumber });
+
+    if (!person) {
+      return res.status(404).json({ error: 'No person found with given details.' });
+    }
+
+    res.status(200).json(person);
+  } catch (error) {
+    console.error('Error fetching person:', error);
+    res.status(500).json({ error: 'Internal server error.' });
   }
 });
 
-// 🔹 Get allocations by a specific Block Head
-router.get('/blockhead/:blockHeadId', async (req, res) => {
-  try {
-    const allocations = await RoomAllocation.find({ allocatedBy: req.params.blockHeadId }).populate('block', 'name').sort({ createdAt: -1 });
-    res.json(allocations);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch allocations.' });
-  }
-});
-
-// 🔹 Delete (vacate) an allocation by ID
 router.delete('/:id', async (req, res) => {
   try {
     await RoomAllocation.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Room vacated successfully.' });
+    res.status(200).json({ message: 'Room vacated successfully.' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to vacate room.' });
   }

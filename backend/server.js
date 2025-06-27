@@ -39,6 +39,8 @@ app.use('/api/blockheadnew', BlockHeadNewRoutes);
 app.use('/api/course-orders', courseOrderRoutes);
 app.use('/uploads', express.static('uploads'));
 app.use('/api/allocate', roomAllocationRoutes);
+app.use('/api/roomallocations', roomAllocationRoutes); // ✅ Add this
+
 
 
 

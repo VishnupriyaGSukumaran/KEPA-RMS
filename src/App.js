@@ -22,6 +22,7 @@ import BlockHeads from './Admin/BlockHeads';
 import ViewBlock from './Block_Head/ViewBlock';
 import VacateRoom from './Block_Head/VacateRoom';
 import AllocateForm from './Block_Head/AllocateForm';
+import PaymentPage from './Block_Head/PaymentPage';
 const App = () => {
   return (
     <Router>
@@ -136,6 +137,8 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+       <Route path="/payment" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
+
         <Route
   path="/blockhead/ViewBlock/:blockName"
   element={
