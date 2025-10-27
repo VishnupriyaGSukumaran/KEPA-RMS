@@ -1,17 +1,19 @@
-
 // ✅ File: routes/roomAllocationRoutes.js
 const express = require('express');
 const router = express.Router();
 const RoomAllocation = require('../models/RoomAllocation');
+const Room = require('../models/Room'); // ✅ import Room model
 
+// ✅ Allocate Room / Bed
 router.post('/', async (req, res) => {
   try {
     const data = req.body;
 
     if (!data.blockName || !data.allocatedBy) {
-      return res.status(400).json({ error: 'Block ID and Allocator ID are required.' });
+      return res.status(400).json({ error: 'Block name and Allocator name are required.' });
     }
 
+    // ✅ Duplicate check
     if (data.purpose === 'Basic Training') {
       if (!data.recruitmentNumber) {
         return res.status(400).json({ error: 'Recruitment Number is required for Basic Training.' });
@@ -30,19 +32,50 @@ router.post('/', async (req, res) => {
       }
     }
 
+    // ✅ Create allocation record
     const newAllocation = new RoomAllocation({
       ...data,
       block: data.blockName
     });
-
     await newAllocation.save();
-    res.status(201).json(newAllocation);
+
+    // ✅ Update Room document — handle individual bed status
+    const room = await Room.findOne({ blockName: data.blockName, roomName: data.roomNumber });
+
+    if (room) {
+      // Ensure bed array exists
+      if (!room.beds) {
+        room.beds = Array.from({ length: room.bedCount || 0 }, (_, i) => ({
+          bedNumber: i + 1,
+          status: 'vacant',
+          occupantName: null,
+        }));
+      }
+
+      const bedIndex = data.bedIndex;
+      if (room.beds[bedIndex]) {
+        room.beds[bedIndex].status = 'allocated';
+        room.beds[bedIndex].occupantName = data.name || null;
+      }
+
+      // Update allocatedBeds count safely
+      room.allocatedBeds = room.beds.filter(b => b.status === 'allocated').length;
+
+      await room.save();
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Room allocated successfully.',
+      allocation: newAllocation,
+    });
   } catch (err) {
     console.error('Allocation Error:', err);
     res.status(500).json({ error: 'Failed to allocate room.' });
   }
 });
 
+// ✅ Fetch allocated person
 router.post('/fetch-person', async (req, res) => {
   const { pen, recruitmentNumber } = req.body;
 
@@ -62,11 +95,58 @@ router.post('/fetch-person', async (req, res) => {
   }
 });
 
+/// ✅ Vacate allocation — free bed & update status and block counts
 router.delete('/:id', async (req, res) => {
   try {
-    await RoomAllocation.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: 'Room vacated successfully.' });
+    const allocation = await RoomAllocation.findByIdAndDelete(req.params.id);
+
+    if (allocation) {
+      const room = await Room.findOne({
+        blockName: allocation.blockName,
+        roomName: allocation.roomNumber,
+      });
+
+      if (room && Array.isArray(room.beds)) {
+        // Find bed occupied by this person
+        const bed = room.beds.find(
+          (b) => b.occupantName === allocation.name && b.status === 'allocated'
+        );
+
+        if (bed) {
+          bed.status = 'vacant';
+          bed.occupantName = null;
+        }
+
+        // Recalculate allocated count
+        room.allocatedBeds = room.beds.filter((b) => b.status === 'allocated').length;
+
+        await room.save();
+      }
+
+      // ✅ Update block vacant beds count (to reflect on top cards)
+      const Block = require('../models/Block');
+      const block = await Block.findOne({ blockName: allocation.blockName });
+      if (block) {
+        // recalculate from all rooms
+        const allRooms = await Room.find({ blockName: block.blockName });
+        const totalBeds = allRooms.reduce(
+          (sum, r) => sum + (r.bedCount || 0),
+          0
+        );
+        const vacantBeds = allRooms.reduce(
+          (sum, r) => sum + (r.beds?.filter((b) => b.status === 'vacant').length || 0),
+          0
+        );
+
+        block.totalBeds = totalBeds;
+        block.vacantBeds = vacantBeds;
+        await block.save();
+      }
+    }
+
+    res.status(200).json({ success: true, message: 'Room vacated successfully.' });
   } catch (err) {
+    console.error('Vacate error:', err);
     res.status(500).json({ error: 'Failed to vacate room.' });
   }
 });

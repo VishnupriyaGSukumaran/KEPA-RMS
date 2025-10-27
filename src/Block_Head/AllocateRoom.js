@@ -24,6 +24,11 @@ const AllocateRoom = () => {
   console.log("Visible cards:", visibleCards);
 
   const navigate = useNavigate();
+  
+  const pen = localStorage.getItem('pen');
+  const blockNameFromStorage = localStorage.getItem('assignedBlock');
+  const [userData, setUserData] = useState(null);
+  const [blockName, setBlockName] = useState(blockNameFromStorage || '');
 
   useEffect(() => {
     let timeout;
@@ -48,21 +53,21 @@ const AllocateRoom = () => {
     <>
       {/* 🔴 Removed extra topbar here */}
 
-      <div className="dashboard-container" style={{ marginTop: '60px' }}>
-        <aside className="sidebar">
+      <div className="dashboard-containeer" >
+        <aside className="sidebaar">
           <div className="profile">
-            <h3>Insp. Rajesh Kumar</h3>
-            <p>Block Head - A Block</p>
+            <h3>{userData ? `Insp. ${userData.firstName} ${userData.lastName}` : 'Loading...'}</h3>
+          <p>Block Head - {blockName || ''}</p>
           </div>
           <nav className="menu">
-            <Link to="/blockhead/dashboard/A Block"><FaTachometerAlt /> Dashboard</Link>
+            <Link to="/blockhead/dashboard/:blockName"><FaTachometerAlt /> Dashboard</Link>
             <Link to="/blockhead/AllocateRoom/AllocateForm" className="active"><FaDoorOpen /> Allocate Room</Link>
-            <Link to="/blockhead/vacate-room/A Block"><FaDoorClosed /> Vacate Room</Link>
-            <Link to="/blockhead/display-block/A Block"><FaList /> Display Block</Link>
+            <Link to="/blockhead/VacateRoom"><FaDoorClosed /> Vacate Room</Link>
+            <Link to="/blockhead/ViewBlock/:blockName"><FaList /> Display Block</Link>
           </nav>
         </aside>
 
-        <main className="main-content allocate-room-container">
+        <main className="allocate-room-container">
           <h3>Allocate Room</h3>
           <h4>Select Purpose of Visit</h4>
           <p>Choose the purpose to proceed with room allocation</p>

@@ -72,15 +72,24 @@ const CreateRoomDashboard = () => {
     try {
       const allRooms = [];
       for (const type of blockData.blockTypes) {
-        roomDetails[type].forEach(room => {
-          allRooms.push({
-            blockName: blockData.blockName,
-            roomType: type,
-            allocatedBeds: 0,
-            ...room
-          });
-        });
-      }
+  roomDetails[type].forEach(room => {
+    const bedCount = parseInt(room.bedCount) || 0;
+    const beds = Array.from({ length: bedCount }, (_, i) => ({
+      bedNumber: i + 1,
+      status: 'vacant',
+      occupantName: ''
+    }));
+
+    allRooms.push({
+      blockName: blockData.blockName,
+      roomType: type,
+      allocatedBeds: 0,
+      ...room,
+      beds
+    });
+  });
+}
+
 
       // ✅ First Save to Block DB
       const blockRes = await fetch('http://localhost:5000/api/block', {

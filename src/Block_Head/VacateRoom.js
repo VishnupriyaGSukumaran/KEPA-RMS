@@ -17,7 +17,7 @@ const VacateRoom = () => {
     if (!idValue) return alert('Please enter an ID value.');
 
     try {
-      const res = await axios.post('http://localhost:5000/api/allocate/fetch-person',
+      const res = await axios.post('http://localhost:5000/api/roomallocations/fetch-person',
         idType === 'pen' ? { pen: idValue } : { recruitmentNumber: idValue });
 
       setPersonDetails(res.data);
@@ -35,9 +35,15 @@ const VacateRoom = () => {
 
     if (paid === 'No') {
       try {
-        await axios.delete(`http://localhost:5000/api/allocate/${personDetails._id}`);
-        alert('Room vacated successfully.');
-        window.location.reload();
+        await axios.delete(`http://localhost:5000/api/roomallocations/${personDetails._id}`);
+alert('Room vacated successfully.');
+
+// ✅ Trigger ViewBlock auto-refresh
+localStorage.setItem('triggerViewBlockRefresh', 'true');
+
+// Optional: redirect back to the block overview
+navigate(`/blockhead/ViewBlock/${encodeURIComponent(personDetails.block)}`);
+
       } catch (error) {
         alert('Error vacating.');
       }

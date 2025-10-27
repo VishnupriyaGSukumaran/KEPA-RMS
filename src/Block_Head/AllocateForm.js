@@ -6,10 +6,10 @@ const AllocateForm = () => {
   const { purpose } = useParams();
   const navigate = useNavigate();
   const decodedPurpose = decodeURIComponent(purpose || '');
-   
+
   const blockName = localStorage.getItem('assignedBlock');
   const allocatedBy = localStorage.getItem('pen');
-  
+
   const initialState = {
     name: '',
     pen: '',
@@ -44,10 +44,27 @@ const AllocateForm = () => {
     };
 
     const savedData = localStorage.getItem('allocationForm');
-  if (savedData) {
-    setFormData(JSON.parse(savedData));
-    localStorage.removeItem('allocationForm');  // Optional: clear after use
-  }
+    const selectedRoom = localStorage.getItem('selectedRoom');
+    
+
+    if (savedData) {
+      const parsed = JSON.parse(savedData);
+      if (selectedRoom && !parsed.roomNumber) {
+        parsed.roomNumber = selectedRoom;
+      }
+      setFormData(parsed);
+      localStorage.removeItem('allocationForm');
+    } else if (selectedRoom) {
+      setFormData(prev => ({
+        ...prev,
+        roomNumber: selectedRoom
+      }));
+    }
+
+    // Clean up after use
+    localStorage.removeItem('selectedRoom');
+    // localStorage.removeItem('selectedBedNumber');
+
     fetchCourses();
   }, []);
 
@@ -58,35 +75,50 @@ const AllocateForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+
+    const selectedBed = localStorage.getItem('selectedBedNumber');
+    
+    if (!selectedBed) {
+      alert('Please select a bed before allocation.');
+      return;
+    }
+
     if (decodedPurpose !== 'Basic Training' && !/^[0-9]{6,}$/.test(formData.pen)) {
       alert('PEN number must be at least 6 digits.');
       return;
     }
 
+    if (!blockName || !allocatedBy) {
+      alert('Missing block or allocator information. Please log in again.');
+      return;
+    }
 
-
-if (!blockName || !allocatedBy) {
-  alert('Missing block or allocator information. Please log in again.');
-  return;
-}
+    const formattedDate = new Date(formData.allocationDate).toISOString();
 
     const payload = {
       ...formData,
+      allocationDate: formattedDate,
       blockName,
-      allocatedBy
+      allocatedBy,
+      bedIndex: parseInt(selectedBed, 10) - 1, // Convert to zero-based index
     };
 
     try {
-      const response = await fetch('http://localhost:5000/api/allocate', {
+      const response = await fetch('http://localhost:5000/api/roomallocations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
-      if (response.ok) {
+      if (response.ok) { 
         alert('Room allocated successfully!');
-        navigate('/BlockHeadDashboard');
-         } else if (response.status === 409) {
+
+        // ✅ Remove from localStorage after successful allocation
+        localStorage.removeItem('selectedBedNumber');
+
+        // navigate('/blockhead/dashboard/${encodeURIComponent(blockName)}');
+          navigate('/blockhead/dashboard/:blockName');
+      } else if (response.status === 409) {
         const data = await response.json();
         alert(data.error || 'This PEN is already allocated.');
       } else {
@@ -102,10 +134,10 @@ if (!blockName || !allocatedBy) {
     if (decodedPurpose === 'Guest / Faculty' || decodedPurpose === 'Others') {
       return (
         <>
-        <div className="form-group">
-        <label>PEN Number:</label>
-        <input type="text" name="pen" value={formData.pen} onChange={handleChange} required />
-      </div>
+          <div className="form-group">
+            <label>PEN Number:</label>
+            <input type="text" name="pen" value={formData.pen} onChange={handleChange} required />
+          </div>
           <div className="form-group">
             <label>Select Purpose Type:</label>
             <select name="subPurpose" value={formData.subPurpose} onChange={handleChange} required>
@@ -273,16 +305,17 @@ if (!blockName || !allocatedBy) {
             <input type="text" name="roomNumber" value={formData.roomNumber} onChange={handleChange} required />
           </div>
           <button
-  type="button"
-  className="check-vacancy-btn"
-  onClick={() => {
-    localStorage.setItem('allocationForm', JSON.stringify(formData));
-    navigate(`/blockhead/ViewBlock/${encodeURIComponent(blockName)}`);
-  }}
->
-  Check Vacancies
-</button>
-
+            type="button"
+            className="check-vacancy-btn"
+            onClick={() => {
+              localStorage.setItem('allocationForm', JSON.stringify(formData));
+              localStorage.setItem('fromAllocateForm', 'true');
+              localStorage.setItem('purpose', decodedPurpose);
+              navigate(`/blockhead/ViewBlock/${encodeURIComponent(blockName)}`);
+            }}
+          >
+            Check Vacancies
+          </button>
         </div>
 
         <div className="form-group full-width">

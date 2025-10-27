@@ -64,8 +64,8 @@ const BlockHeadDashboard = () => {
 
   return (
     <>
-       <div className="dashboard-container">
-      <aside className="sidebar">
+       <div className="dashboard-containerr">
+      <aside className="sidebarr">
         <div className="profile">
           <h3>{userData ? `Insp. ${userData.firstName} ${userData.lastName}` : 'Loading...'}</h3>
           <p>Block Head - {blockName || ''}</p>
@@ -77,7 +77,7 @@ const BlockHeadDashboard = () => {
           <Link to={`/blockhead/ViewBlock/${blockName}`}><FaList /> Display Block</Link>
         </nav>
       </aside>
-      <main className="main-content">
+      <main className="main-contentt">
         <h3>{blockName?.toUpperCase() || ''} ROOM ALLOCATION</h3>
 
         <div className="legend">
