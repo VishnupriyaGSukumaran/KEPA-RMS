@@ -72,56 +72,150 @@ router.post('/superadmin/create-rooms', async (req, res) => {
 });
 
 
-// PUT /api/room/:roomId
-router.put('/:roomId', async (req, res) => {
-  const roomId = req.params.roomId;
-  const {
-    roomName,
-    floorNumber,
-    bedCount,
-    isAC,
-    attachedBathroom,
-    additionalFacilities
-  } = req.body;
+
+
+// Get rooms by block and type
+router.get('/', async (req, res) => {
+  try {
+    const { blockId, roomType } = req.query;
+    if (!blockId || !roomType) {
+      return res.status(400).json({ message: 'Block ID and room type are required' });
+    }
+
+    const block = await Block.findById(blockId);
+    if (!block) {
+      return res.status(404).json({ message: 'Block not found' });
+    }
+
+    const rooms = await Room.find({
+      blockName: block.blockName,
+      roomType: roomType
+    });
+
+    res.status(200).json(rooms);
+  } catch (error) {
+    console.error('Error fetching rooms:', error);
+    res.status(500).json({ message: 'Server error while fetching rooms' });
+  }
+});
+router.put('/:blockId/type/:type', async (req, res) => {
+  const { blockId, type } = req.params;
+  const { newType, count } = req.body;
+
+  if (!newType || !newType.trim()) {
+    return res.status(400).json({ message: 'New type name is required' });
+  }
 
   try {
-    const updatedRoom = await Room.findByIdAndUpdate(
-      roomId,
-      {
-        roomName,
-        floorNumber,
-        bedCount,
-        isAC,
-        attachedBathroom,
-        additionalFacilities
-      },
-      { new: true } // return updated doc
+    const block = await Block.findById(blockId);
+    if (!block) return res.status(404).json({ message: 'Block not found' });
+
+    // Normalize all type names for consistent comparison
+    const normalizeType = (t) => t.trim().replace(/\s+/g, '').toLowerCase();
+    const currentNormalized = normalizeType(type);
+    const newNormalized = normalizeType(newType);
+
+    // Check for duplicates (case and space insensitive)
+    const hasDuplicate = block.blockTypes.some(bt => 
+      normalizeType(bt) !== currentNormalized && 
+      normalizeType(bt) === newNormalized
     );
 
-    if (!updatedRoom) {
-      return res.status(404).json({ message: 'Room not found' });
+    if (hasDuplicate) {
+      return res.status(400).json({ message: 'Room type already exists' });
     }
 
-    // Optional: Also update it inside the Block model (embedded data)
-    const block = await Block.findOne({ blockName: updatedRoom.blockName });
-    if (block) {
-      const detail = block.blockTypeDetails.find(d => d.type === updatedRoom.roomType);
-      if (detail) {
-      const roomIndex = detail.rooms.findIndex(r => {return r._id && r._id.toString() === roomId;});
+    // Get the properly formatted current type from block (respects enum values)
+    const currentTypeInBlock = block.blockTypes.find(bt => 
+      normalizeType(bt) === currentNormalized
+    );
 
-        if (roomIndex !== -1) {
-          detail.rooms[roomIndex] = { ...detail.rooms[roomIndex]._doc, ...req.body };
-          await block.save();
-        }
-      }
+    if (!currentTypeInBlock) {
+      return res.status(404).json({ message: 'Current room type not found in block' });
     }
 
-    res.status(200).json({ message: 'Room updated successfully' });
-  } catch (error) {
-    console.error('Error updating room:', error);
-    res.status(500).json({ message: 'Failed to update room' });
+    // Format new type according to enum values
+    let formattedNewType = newType.trim();
+    if (newNormalized === 'suiteroom') formattedNewType = 'Suite Room';
+    if (newNormalized === 'barrack') formattedNewType = 'Barrack';
+    if (newNormalized === 'dormitory') formattedNewType = 'Dormitory';
+    if (newNormalized === 'room') formattedNewType = 'Room';
+
+    // Update rooms - using original formatted type from block
+    const updateResult = await Room.updateMany(
+      { 
+        blockName: block.blockName,
+        roomType: currentTypeInBlock // Use the properly formatted type from block
+      },
+      { $set: { roomType: formattedNewType } }
+    );
+
+    if (updateResult.modifiedCount === 0) {
+      console.warn('No rooms were updated - check query parameters');
+    }
+
+    // Update block data using original formatted type
+    block.blockTypeDetails = block.blockTypeDetails.map(bt => 
+      normalizeType(bt.type) === currentNormalized 
+        ? { ...bt, type: formattedNewType, count } 
+        : bt
+    );
+
+    block.blockTypes = block.blockTypes.map(bt => 
+      normalizeType(bt) === currentNormalized ? formattedNewType : bt
+    );
+
+    // Update counts
+    block.roomCounts = {};
+    block.blockTypeDetails.forEach(detail => {
+      block.roomCounts[detail.type] = detail.count;
+    });
+
+    await block.save();
+
+    res.status(200).json({
+      message: `Room type updated successfully`,
+      updatedBlock: block,
+      roomsUpdated: updateResult.modifiedCount
+    });
+  } catch (err) {
+    console.error('Error updating room type:', err);
+    res.status(500).json({ message: 'Failed to update room type' });
   }
 });
 
+// Delete a room
+router.delete('/:id', async (req, res) => {
+  try {
+    const { blockId, roomType } = req.body;
+    if (!blockId || !roomType) {
+      return res.status(400).json({ message: 'Block ID and room type are required' });
+    }
+
+    const block = await Block.findById(blockId);
+    if (!block) {
+      return res.status(404).json({ message: 'Block not found' });
+    }
+
+    // Delete the room
+    const deletedRoom = await Room.findByIdAndDelete(req.params.id);
+    if (!deletedRoom) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
+
+    // Update the block's reference
+    const blockTypeDetail = block.blockTypeDetails.find(t => t.type === roomType);
+    if (blockTypeDetail) {
+      blockTypeDetail.rooms = blockTypeDetail.rooms.filter(r => r._id.toString() !== req.params.id);
+      blockTypeDetail.count = blockTypeDetail.rooms.length;
+      await block.save();
+    }
+
+    res.status(200).json({ message: 'Room deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting room:', error);
+    res.status(500).json({ message: 'Server error while deleting room' });
+  }
+});
 
 module.exports = router;

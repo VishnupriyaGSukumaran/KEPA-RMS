@@ -184,7 +184,7 @@ function BlockHeads() {
 
   return (
     <div className="blockheads-wrapper">
-      <div className="top-bar">
+      {/* <div className="top-bar">
         <div className="top-left">
           <img src="/logo.png" alt="Logo" className="top-logo" />
           <div className="top-heading">
@@ -197,7 +197,7 @@ function BlockHeads() {
           <div className="top-button" onClick={handleBackClick}>🔙 Back</div>
           <div className="top-button" onClick={handleHomeClick}><FaHome /> Home</div>
         </div>
-      </div>
+      </div> */}
 
       <div className="blockheads-page">
   <div className="blockheads-header">

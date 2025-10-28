@@ -85,10 +85,12 @@ router.post('/', async (req, res) => {
 });
 
 
-// Get all blocks
+// In your block.js routes, update the get blocks endpoint:
 router.get('/', async (req, res) => {
   try {
-    const blocks = await Block.find();
+    console.log('Fetching all blocks...'); // Debug log
+    const blocks = await Block.find().lean();
+    console.log('Blocks found:', blocks.length); // Debug log
     res.status(200).json(blocks);
   } catch (error) {
     console.error("Error fetching blocks:", error);
@@ -96,10 +98,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get a specific block by ID
+// Update the get single block endpoint:
 router.get('/:id', async (req, res) => {
   try {
-    const block = await Block.findById(req.params.id);
+    const block = await Block.findById(req.params.id).lean();
     if (!block) return res.status(404).json({ message: 'Block not found' });
     res.json(block);
   } catch (error) {
@@ -128,11 +130,6 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ message: 'Failed to delete block and associated rooms' });
   }
 });
-
-
-
-
-
 
 
 router.delete('/:blockId/type/:type', async (req, res) => {
@@ -171,7 +168,6 @@ block.blockTypeDetails.forEach(detail => {
 
 // ✅ With the fixed version above
 
-
     await block.save();
 
     res.status(200).json({
@@ -183,9 +179,66 @@ block.blockTypeDetails.forEach(detail => {
     res.status(500).json({ message: 'Failed to remove room type and associated rooms' });
   }
 });
+   
 
 
 
+
+router.put('/:blockId/type/:type', async (req, res) => {
+  const { blockId, type } = req.params;
+  const { newType, count } = req.body;
+
+  if (!newType || !newType.trim()) {
+    return res.status(400).json({ message: 'New type name is required' });
+  }
+
+  try {
+    const block = await Block.findById(blockId);
+    if (!block) return res.status(404).json({ message: 'Block not found' });
+
+    const normalizedNewType = newType.trim();
+    const normalizedOldType = type.trim().toLowerCase();
+
+    // Check for duplicate type names
+    if (block.blockTypes.some(bt => 
+      bt.trim().toLowerCase() !== normalizedOldType && 
+      bt.trim().toLowerCase() === normalizedNewType.toLowerCase()
+    )) {
+      return res.status(400).json({ message: 'Room type already exists' });
+    }
+
+    // Update rooms
+    await Room.updateMany(
+      { blockName: block.blockName, roomType: type },
+      { $set: { roomType: normalizedNewType } }
+    );
+
+    // Update block data
+    block.blockTypeDetails = block.blockTypeDetails.map(bt => 
+      bt.type === type ? { ...bt, type: normalizedNewType, count } : bt
+    );
+
+    block.blockTypes = block.blockTypes.map(bt => 
+      bt === type ? normalizedNewType : bt
+    );
+
+    // Update counts
+    block.roomCounts = {};
+    block.blockTypeDetails.forEach(detail => {
+      block.roomCounts[detail.type] = detail.count;
+    });
+
+    await block.save();
+
+    res.status(200).json({
+      message: `Room type updated successfully`,
+      updatedBlock: block
+    });
+  } catch (err) {
+    console.error('Error updating room type:', err);
+    res.status(500).json({ message: 'Failed to update room type' });
+  }
+});
 
 // Prevent room count modifications
 router.put('/:id/counts', async (req, res) => {
