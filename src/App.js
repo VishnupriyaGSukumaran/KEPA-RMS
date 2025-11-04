@@ -1,6 +1,7 @@
 import React from 'react';
 import TopBar from './components/TopBar';
 import ProtectedRoute from './components/ProtectedRoute'; // import this
+import View from './components/view';
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
@@ -10,15 +11,19 @@ import SuperAdminDashboard from './system_adm/SuperAdminDashboard';
 import CreateUser from './system_adm/CreateUser';
 import DesignBlock from './system_adm/DesignBlock';
 import CreateCourse from './system_adm/CreateCourse';
-import DisplayBlock from './system_adm/DisplayBlock';
+import DisplayBlocks from './components/DisplayBlocks';
 import GenerateReport from './system_adm/GenerateReport';
-import BlockHeadDashboard from './BlockHeadDashboard';
+import BlockHeadDashboard from './Block_Head/BlockHeadDashboard';
 import RemoveBlock from './system_adm/RemoveBlock';
 import Modify from './system_adm/Modify';
 import CreateRooms from './system_adm/CreateRooms';
+import AllocateRoom from './Block_Head/AllocateRoom';
 import AdminDashboard from './Admin/AdminDashboard';
 import BlockHeads from './Admin/BlockHeads';
-
+import ViewBlock from './Block_Head/ViewBlock';
+import VacateRoom from './Block_Head/VacateRoom';
+import AllocateForm from './Block_Head/AllocateForm';
+import PaymentPage from './Block_Head/PaymentPage';
 const App = () => {
   return (
     <Router>
@@ -61,14 +66,14 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-        <Route
+        {/* <Route
           path="/superadmin/display-block"
           element={
             <ProtectedRoute>
               <DisplayBlock />
             </ProtectedRoute>
           }
-        />
+        /> */}
         <Route
           path="/superadmin/generate-report"
           element={
@@ -125,6 +130,77 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/blockhead/AllocateRoom"
+          element={
+            <ProtectedRoute>
+              <AllocateRoom />
+            </ProtectedRoute>
+          }
+        />
+       <Route path="/payment" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
+
+        <Route
+  path="/blockhead/ViewBlock/:blockName"
+  element={
+    <ProtectedRoute>
+      <ViewBlock />
+    </ProtectedRoute>
+  }
+/>
+ <Route
+          path="/blockhead/VacateRoom"
+          element={
+            <ProtectedRoute>
+              <VacateRoom />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/blockhead/AllocateForm/:purpose"
+          element={
+            <ProtectedRoute>
+              <AllocateForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+  path="/admin/display-block"
+  element={
+    <ProtectedRoute>
+      <DisplayBlocks />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/superadmin/display-block"
+  element={
+    <ProtectedRoute>
+      <DisplayBlocks />
+    </ProtectedRoute>
+  }
+/>
+
+
+
+
+
+                  <Route
+  path="/view/:blockName"
+  element={
+    <ProtectedRoute>
+      <View />
+    </ProtectedRoute>
+  }
+/>
+
+
+
+
+
+
+
       </Routes>
     </Router>
   );

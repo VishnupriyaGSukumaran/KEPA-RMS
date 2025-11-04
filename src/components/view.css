@@ -1,0 +1,380 @@
+/* view.css */
+
+.view-block-container {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+.back-btn {
+  background-color: #1e3a8a;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-bottom: 20px;
+  transition: background-color 0.3s;
+}
+
+.back-btn:hover {
+  background-color: #1e40af;
+}
+
+.block-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.block-header h2 {
+  color: #1e3a8a;
+  font-size: 32px;
+  margin: 10px 0;
+}
+
+/* Status Legend */
+.status-legend {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-bottom: 30px;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Filter Section */
+.filter-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.filter-label {
+  font-weight: 600;
+  color: #1e3a8a;
+  font-size: 16px;
+}
+
+.block-type-select {
+  padding: 10px 40px 10px 15px;
+  font-size: 16px;
+  border: 2px solid #1e3a8a;
+  border-radius: 8px;
+  background-color: white;
+  color: #1e3a8a;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%231e3a8a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 20px;
+  min-width: 280px;
+}
+
+.block-type-select:hover {
+  border-color: #1e40af;
+  background-color: #f0f9ff;
+}
+
+.block-type-select:focus {
+  outline: none;
+  border-color: #1e40af;
+  box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+}
+
+/* Total Beds Card */
+.total-beds-card {
+  background: linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%);
+  padding: 40px;
+  border-radius: 15px;
+  text-align: center;
+  margin: 30px auto;
+  max-width: 400px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.total-beds-card h3 {
+  font-size: 28px;
+  color: #1e3a8a;
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* Section Title */
+.section-title {
+  color: #1e3a8a;
+  font-size: 24px;
+  margin: 30px 0 15px 0;
+  font-weight: 600;
+}
+
+/* Table Styles */
+.overview-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+}
+
+.overview-table thead {
+  background-color: #1e3a8a;
+  color: white;
+}
+
+.overview-table th {
+  padding: 15px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.overview-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+}
+
+.overview-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.overview-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Clickable Row Styles */
+.clickable-row {
+  transition: background-color 0.2s;
+}
+
+.clickable-row:hover {
+  background-color: #e0f2fe !important;
+}
+
+.clickable-row td:first-child strong {
+  color: #1e3a8a;
+}
+
+/* Expanded Section Styles */
+.expanded-section {
+  background-color: #f0f9ff;
+  padding: 0 !important;
+}
+
+.rooms-list {
+  padding: 20px;
+}
+
+.rooms-list h4 {
+  color: #1e3a8a;
+  margin: 0 0 15px 0;
+  font-size: 18px;
+}
+
+/* Nested Table for Rooms */
+.nested-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.nested-table thead {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.nested-table th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.nested-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 13px;
+}
+
+.nested-table .room-row:hover {
+  background-color: #dbeafe !important;
+}
+
+/* Person Details Section */
+.person-details-section {
+  background-color: #eff6ff;
+  padding: 0 !important;
+}
+
+.person-details {
+  padding: 20px;
+}
+
+.person-details h5 {
+  color: #1e3a8a;
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.person-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 15px;
+}
+
+.person-card {
+  background: white;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.person-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.person-info p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #374151;
+}
+
+.person-info p strong {
+  color: #1e3a8a;
+  font-weight: 600;
+  display: inline-block;
+  min-width: 100px;
+}
+
+.no-data {
+  text-align: center;
+  color: #6b7280;
+  font-style: italic;
+  padding: 20px;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Vacant - Green */
+.status-badge.status-vacant {
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+/* Partial - Yellow/Orange */
+.status-badge.status-partial {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+/* Allocated - Red */
+.status-badge.status-allocated {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .view-block-container {
+    padding: 10px;
+  }
+
+  .filter-section {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .block-type-select {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .status-legend {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .total-beds-card {
+    padding: 30px;
+  }
+
+  .total-beds-card h3 {
+    font-size: 24px;
+  }
+
+  .overview-table {
+    font-size: 12px;
+  }
+
+  .overview-table th,
+  .overview-table td {
+    padding: 10px 8px;
+  }
+
+  .person-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nested-table {
+    font-size: 12px;
+  }
+}
+
+/* Loading State */
+.loading-spinner {
+  text-align: center;
+  padding: 50px;
+  color: #1e3a8a;
+  font-size: 18px;
+}
+
+
+

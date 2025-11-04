@@ -99,7 +99,7 @@ const DesignBlock = () => {
     if (!blockName.trim()) {
       newErrors.blockName = 'Block name is required.';
       hasError = true;
-    } else if (!/^[a-zA-Z\s]+$/.test(blockName)) {
+    } else if (!/^[a-zA-Z0-9\s]+$/.test(blockName)) {
       newErrors.blockName = 'Block name must contain only letters and spaces.';
       hasError = true;
     }

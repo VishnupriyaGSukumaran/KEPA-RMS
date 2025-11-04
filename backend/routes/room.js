@@ -13,6 +13,24 @@ router.post('/superadmin/create-rooms', async (req, res) => {
   }
 
   try {
+    // ✅ Ensure all rooms include allocatedBeds = 0
+    const roomsWithAllocation = rooms.map(room => ({
+      ...room,
+      allocatedBeds: room.allocatedBeds ?? 0  // default to 0 if not present
+    }));
+
+    // ✅ Check for duplicates in DB before insert
+    const existingRooms = await Room.find({ blockName });
+    const existingRoomNames = new Set(existingRooms.map(r => r.roomName));
+
+    const duplicates = roomsWithAllocation.filter(room => existingRoomNames.has(room.roomName));
+    if (duplicates.length > 0) {
+      return res.status(400).json({
+        message: `Duplicate room name(s) found in this block: ${duplicates.map(r => r.roomName).join(', ')}`
+      });
+    }
+
+   
     // 1. Save rooms in Room collection
     const insertedRooms = await Room.insertMany(rooms);
 
@@ -41,12 +59,26 @@ router.post('/superadmin/create-rooms', async (req, res) => {
 
     }));
 
-    // 4. Update Block
-    await Block.findOneAndUpdate(
+  // 4. Update Block
+   // ✅ Save rooms to the Block document as well
+
+     await Block.findOneAndUpdate(
       { blockName },
-      { $set: { blockTypeDetails } },
-      { new: true, upsert: true } // create if not exists
+      {
+        $set: {
+          blockTypeDetails,
+          createdRooms: roomsWithAllocation
+        }
+      },
+      { new: true, upsert: true }
     );
+
+    // 4. Update Block
+   //  await Block.findOneAndUpdate(
+    //   { blockName },
+    //    { $set: {   blockTypeDetails } },
+     // { new: true, upsert: true } // create if not exists
+   // );
 
     // 5. Prepare summary response
     const summary = blockTypeDetails.map(typeGroup => {
@@ -65,8 +97,18 @@ router.post('/superadmin/create-rooms', async (req, res) => {
     });
 
     return res.status(200).json({ message: 'Rooms saved successfully', summary ,  blockTypeDetails });
+
   } catch (error) {
     console.error('Error saving rooms:', error);
+
+    // ✅ Catch MongoDB duplicate key error
+    if (error.code === 11000) {
+      const duplicateField = Object.keys(error.keyValue || {}).join(', ');
+      return res.status(400).json({
+        message: `Duplicate room name in the same block: ${duplicateField}`
+      });
+    }
+
     return res.status(500).json({ message: 'Server error while saving room data' });
   }
 });
@@ -98,6 +140,11 @@ router.get('/', async (req, res) => {
     res.status(500).json({ message: 'Server error while fetching rooms' });
   }
 });
+
+
+
+
+
 router.put('/:blockId/type/:type', async (req, res) => {
   const { blockId, type } = req.params;
   const { newType, count } = req.body;
@@ -184,6 +231,12 @@ router.put('/:blockId/type/:type', async (req, res) => {
   }
 });
 
+
+
+
+
+
+
 // Delete a room
 router.delete('/:id', async (req, res) => {
   try {
@@ -217,5 +270,65 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ message: 'Server error while deleting room' });
   }
 });
+
+
+
+// PUT /api/room/:roomId
+router.put('/:roomId', async (req, res) => {
+  const roomId = req.params.roomId;
+  const {
+    roomName,
+    floorNumber,
+    bedCount,
+    isAC,
+    attachedBathroom,
+    additionalFacilities
+  } = req.body;
+
+  try {
+    const updatedRoom = await Room.findByIdAndUpdate(
+      roomId,
+      {
+        roomName,
+        floorNumber,
+        bedCount,
+        isAC,
+        attachedBathroom,
+        additionalFacilities
+      },
+      { new: true } // return updated doc
+    );
+
+    if (!updatedRoom) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
+
+    // Optional: Also update it inside the Block model (embedded data)
+    const block = await Block.findOne({ blockName: updatedRoom.blockName });
+    if (block) {
+      const detail = block.blockTypeDetails.find(d => d.type === updatedRoom.roomType);
+      if (detail) {
+      const roomIndex = detail.rooms.findIndex(r => {return r._id && r._id.toString() === roomId;});
+
+        if (roomIndex !== -1) {
+          detail.rooms[roomIndex] = { ...detail.rooms[roomIndex]._doc, ...req.body };
+          await block.save();
+        }
+      }
+    }
+
+    res.status(200).json({ message: 'Room updated successfully' });
+  } catch (error) {
+    console.error('Error updating room:', error);
+    res.status(500).json({ message: 'Failed to update room' });
+  }
+});
+
+
+
+
+
+
+
 
 module.exports = router;

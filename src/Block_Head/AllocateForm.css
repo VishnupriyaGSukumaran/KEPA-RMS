@@ -1,0 +1,138 @@
+/* Container wrapper */
+.form-wrapper {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 30px;
+  background-color: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* Title */
+.form-wrapper h2 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #000080;
+  font-weight: bold;
+}
+
+/* Grid layout */
+.allocation-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 30px;
+}
+
+/* Each field */
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Label */
+.form-group label {
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+/* Input & Textarea */
+.form-group input,
+.form-group textarea,
+.form-group select {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #000080;
+}
+
+/* Make elements span both columns */
+.full-width {
+  grid-column: 1 / -1;
+}
+
+/* Room check button row */
+.room-check {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Adjust room input inside the row */
+.room-input {
+  flex: 1;
+  margin-right: 10px;
+}
+
+.room-input input {
+  width: 100%;
+}
+
+/* Check vacancy button */
+.check-vacancy-btn {
+  padding: 10px 16px;
+  background-color: #000080;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.check-vacancy-btn:hover {
+  background-color: #000066;
+}
+
+/* Submit button */
+.submit-btn {
+  padding: 12px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.2s;
+}
+
+.submit-btn:hover {
+  background-color: #0056b3;
+}
+
+/* Responsive layout for small screens */
+@media (max-width: 768px) {
+  .allocation-form {
+    grid-template-columns: 1fr;
+  }
+
+  .room-check {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .room-input {
+    width: 100%;
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
+
+  .check-vacancy-btn {
+    width: 100%;
+  }
+
+  .submit-btn {
+    width: 100%;
+  }
+}

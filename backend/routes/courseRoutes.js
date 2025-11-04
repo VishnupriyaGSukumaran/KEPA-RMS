@@ -24,6 +24,13 @@ router.post('/', async (req, res) => {
   }
 });
 
+
+
+
+
+
+
+
 // Update course
 router.put('/:id', async (req, res) => {
   try {
@@ -43,5 +50,10 @@ router.delete('/:id', async (req, res) => {
     res.status(400).json({ error: 'Failed to delete course' });
   }
 });
+
+
+
+
+
 
 module.exports = router;

@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Block = require('../models/Block');
 const Room = require('../models/Room'); // Room model for deletion
+const Account = require('../models/Account');
 
-// Convert to "Title Case"
+// Helper: Convert to Title Case
 function toTitleCase(input) {
   return input
     .toLowerCase()
@@ -98,10 +99,137 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Update the get single block endpoint:
-router.get('/:id', async (req, res) => {
+// ===== Get Block by Name (with stats) =====
+router.get('/name/:blockName', async (req, res) => {
+  const rawName = req.params.blockName.replace(/%20/g, ' ');
+  const formattedBlockName = toTitleCase(rawName);
+
+
   try {
     const block = await Block.findById(req.params.id).lean();
+    if (!block) return res.status(404).json({ message: 'Block not found' });
+
+    const rooms = await Room.find({ blockName: formattedBlockName });
+
+    const totalBeds = rooms.reduce((sum, room) => sum + (room.bedCount || 0), 0);
+    const vacantBeds = rooms.reduce((sum, room) => {
+      const total = room.bedCount || 0;
+      const allocated = room.allocatedBeds || 0;
+      return sum + (total - allocated);
+    }, 0);
+
+    const roomTypeCounts = rooms.reduce((acc, room) => {
+      const type = room.roomType || 'Unknown';
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {});
+
+    const totalRooms = roomTypeCounts['Room'] || 0;
+    const dormitories = roomTypeCounts['Dormitory'] || 0;
+
+    res.status(200).json({
+      blockName: block.blockName,
+      totalRooms,
+      totalBeds,
+      vacantBeds,
+      dormitories,
+      roomTypeCounts,
+      blockTypes: block.blockTypes,
+      blockTypeDetails: block.blockTypeDetails,
+      createdRooms: rooms
+    });
+  } catch (err) {
+    console.error('Error fetching block by name:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+
+
+
+
+
+// ✅ New route: Get full block details by blockName (not ID) FOR SUPER ADMIN
+router.get('/details/:blockName', async (req, res) => {
+  try {
+    const rawName = req.params.blockName.replace(/%20/g, ' ');
+    const formattedBlockName = toTitleCase(rawName);
+
+    console.log(`Fetching block details for: ${formattedBlockName}`);
+
+    // 1️⃣ Find the block by name (case-insensitive)
+    const block = await Block.findOne({
+      blockName: { $regex: `^${formattedBlockName}$`, $options: 'i' }
+    }).lean();
+
+    if (!block) {
+      return res.status(404).json({ message: `Block "${formattedBlockName}" not found.` });
+    }
+
+    // 2️⃣ Find all rooms under this block
+    const rooms = await Room.find({
+      blockName: { $regex: `^${formattedBlockName}$`, $options: 'i' }
+    }).lean();
+
+    // 3️⃣ Compute statistics
+    const totalBeds = rooms.reduce((sum, r) => sum + (r.bedCount || 0), 0);
+    const allocatedBeds = rooms.reduce((sum, r) => sum + (r.allocatedBeds || 0), 0);
+    const vacantBeds = totalBeds - allocatedBeds;
+
+    const roomTypeStats = {};
+
+    rooms.forEach(room => {
+      const type = room.roomType || 'Unknown';
+      if (!roomTypeStats[type]) {
+        roomTypeStats[type] = {
+          totalBeds: 0,
+          allocatedBeds: 0,
+          vacantBeds: 0,
+          vacantRooms: 0,
+          partialRooms: 0,
+          allocatedRooms: 0
+        };
+      }
+
+      const total = room.bedCount || 0;
+      const allocated = room.allocatedBeds || 0;
+      const vacant = total - allocated;
+
+      roomTypeStats[type].totalBeds += total;
+      roomTypeStats[type].allocatedBeds += allocated;
+      roomTypeStats[type].vacantBeds += vacant;
+
+      if (allocated === 0) roomTypeStats[type].vacantRooms += 1;
+      else if (allocated < total) roomTypeStats[type].partialRooms += 1;
+      else roomTypeStats[type].allocatedRooms += 1;
+    });
+
+    // 4️⃣ Respond with full details
+    res.status(200).json({
+      blockName: block.blockName,
+      totalBeds,
+      allocatedBeds,
+      vacantBeds,
+      roomTypeStats,
+      createdRooms: rooms,
+      blockTypes: block.blockTypes,
+      blockTypeDetails: block.blockTypeDetails
+    });
+
+  } catch (err) {
+    console.error('Error in /details/:blockName:', err);
+    res.status(500).json({ message: 'Server error while fetching block details' });
+  }
+});
+
+
+
+
+// Get a specific block by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const block = await Block.findById(req.params.id);
     if (!block) return res.status(404).json({ message: 'Block not found' });
     res.json(block);
   } catch (error) {
@@ -109,7 +237,12 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+
+
+
+
 // Delete a block and associated rooms
+// ===== Delete Block, Rooms, and Unassign BlockHeads =====
 router.delete('/:id', async (req, res) => {
   try {
     // Step 1: Find the block
@@ -121,10 +254,23 @@ router.delete('/:id', async (req, res) => {
     // Step 2: Delete all associated rooms from the Room collection
     await Room.deleteMany({ blockName: block.blockName });
 
+
+    // Unassign block from blockhead users instead of deleting them
+    const updatedUsers = await Account.updateMany(
+      {
+        userType: 'blockhead',
+        assignedBlock: { $regex: `^${blockName}$`, $options: 'i' }
+      },
+      { $unset: { assignedBlock: "" } }
+    );     
+
+
     // Step 3: Delete the block
     await Block.findByIdAndDelete(req.params.id);
 
-    res.json({ message: 'Block and associated rooms deleted successfully' });
+    res.json({
+      message: `Block and associated rooms deleted successfully. ${updatedUsers.modifiedCount} blockhead(s) unassigned.`
+    });
   } catch (error) {
     console.error('Error deleting block and rooms:', error);
     res.status(500).json({ message: 'Failed to delete block and associated rooms' });
@@ -141,11 +287,13 @@ router.delete('/:blockId/type/:type', async (req, res) => {
 
     const blockName = block.blockName;
 
-    // Delete all rooms with matching roomType for this block
+    // Delete all rooms associated with the block
+
     await Room.deleteMany({
       blockName: new RegExp(`^${blockName}$`, 'i'),
       roomType: new RegExp(`^${type}$`, 'i')
     });
+    // await Room.deleteMany({ blockName });
 
     // Remove from blockTypeDetails
     block.blockTypeDetails = block.blockTypeDetails.filter(
@@ -170,13 +318,12 @@ block.blockTypeDetails.forEach(detail => {
 
     await block.save();
 
-    res.status(200).json({
-      message: `Room type "${type}" and associated rooms removed successfully.`,
-      updatedRoomCounts: block.roomCounts
+    res.json({
+      message: `Block and associated rooms deleted successfully. ${updatedUsers.modifiedCount} blockhead(s) unassigned.`
     });
-  } catch (err) {
-    console.error('Error removing room type:', err);
-    res.status(500).json({ message: 'Failed to remove room type and associated rooms' });
+  } catch (error) {
+    console.error('Error deleting block and related data:', error);
+    res.status(500).json({ message: 'Failed to delete block and associated data' });
   }
 });
    
@@ -239,6 +386,64 @@ router.put('/:blockId/type/:type', async (req, res) => {
     res.status(500).json({ message: 'Failed to update room type' });
   }
 });
+
+
+
+
+
+
+// ===== Add Block Type to Existing Block =====
+router.post('/:id/type', async (req, res) => {
+  const { type } = req.body;
+
+  if (!type) return res.status(400).json({ message: 'Block type is required' });
+
+  try {
+    const block = await Block.findById(req.params.id);
+    if (!block) return res.status(404).json({ message: 'Block not found' });
+
+    const exists = block.blockTypeDetails.some(bt => bt.type === type);
+    if (exists) return res.status(409).json({ message: 'Block type already exists' });
+
+    block.blockTypes.push(type);
+    block.roomCounts[type] = 0;
+    block.blockTypeDetails.push({ type, count: 0, rooms: [] });
+
+    await block.save();
+    res.status(200).json({ message: 'Block type added successfully' });
+  } catch (err) {
+    console.error('Error adding block type:', err);
+    res.status(500).json({ message: 'Server error while adding block type' });
+  }
+});
+
+// ===== Delete Block Type from Block =====
+router.delete('/:id/type/:type', async (req, res) => {
+  const { id, type } = req.params;
+
+  try {
+    const block = await Block.findById(id);
+    if (!block) return res.status(404).json({ message: 'Block not found' });
+
+    const beforeLength = block.blockTypeDetails.length;
+
+    block.blockTypeDetails = block.blockTypeDetails.filter(bt => bt.type !== type);
+    block.blockTypes = block.blockTypes.filter(t => t !== type);
+    delete block.roomCounts[type];
+
+    if (block.blockTypeDetails.length === beforeLength) {
+      return res.status(404).json({ message: 'Block type not found' });
+    }
+
+    await block.save();
+    res.status(200).json({ message: 'Block type removed successfully' });
+  } catch (err) {
+    console.error('Error removing block type:', err);
+    res.status(500).json({ message: 'Server error while removing block type' });
+  }
+});
+
+
 
 // Prevent room count modifications
 router.put('/:id/counts', async (req, res) => {

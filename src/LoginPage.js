@@ -1,3 +1,4 @@
+// Login.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LoginPage.css';
@@ -11,9 +12,7 @@ const Login = () => {
     try {
       const response = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pen, password }),
       });
 
@@ -31,7 +30,9 @@ const Login = () => {
           navigate('/superadmin/dashboard');
         } else if (role === 'blockhead') {
           if (data.assignedBlock) {
-            navigate(`/blochead/dashboard/:blockname${data.assignedBlock}`);
+            localStorage.setItem('assignedBlock', data.assignedBlock);
+            // Navigate immediately
+            navigate(`/blockhead/dashboard/${data.assignedBlock}`);
           } else {
             alert('No block assigned to this Block Head.');
           }
@@ -68,7 +69,7 @@ const Login = () => {
         />
 
         <div className="button-group">
-          <button onClick={() => navigate('/')} className="back-button">BACK</button>
+          <button onClick={() => navigate('/')} className="back-buttonn">BACK</button>
           <button onClick={handleLogin} className="signin-button">SIGN IN</button>
         </div>
       </div>

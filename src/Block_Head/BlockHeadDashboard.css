@@ -1,0 +1,217 @@
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f8f9fa;
+}
+
+/* Topbar */
+.topbar {
+  background-color: #0000a0;
+  color: white;
+  height: 80px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2rem;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.topbar-left img {
+  height: 50px;
+}
+
+.topbar-left .text-group {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.topbar-left .text-group h2 {
+  font-size: 1.4rem;
+  margin: 0;
+}
+
+.topbar-left .text-group p {
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.topbar-actions a {
+  color: white;
+  text-decoration: none;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.topbar-actions a svg {
+  margin-right: 5px;
+}
+
+/* Layout */
+.dashboard-containerr {
+  display: flex;
+  min-height: calc(100vh - 80px);
+}
+
+/* Sidebar */
+.sidebarr {
+   background-color: #14008a;
+  width: 250px;
+  color: white;
+  padding: 20px;
+  margin-top: 40px;
+  height: 125vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.profile {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.profile h3 {
+  font-weight: bold;
+  margin-bottom: 0.3rem;
+}
+
+.profile p {
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.menu {
+  width: 100%;
+}
+
+.menu a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: transparent;
+  color: white;
+  text-decoration: none;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  margin: 0.5rem 0;
+  transition: background 0.3s;
+  font-weight: 500;
+  font-size: 1.25rem;
+}
+
+.menu a:hover,
+.menu a.active {
+  background-color: #0f172a;
+}
+
+/* Main Content */
+.main-contentt {
+  flex: 1;
+  padding: 40px;
+  background-color: #ffffff;
+  margin-top: 40px;
+}
+
+.main-content h3 {
+  margin-top: 0;
+  font-weight: bold;
+  font-size: 1.5rem;
+}
+
+.legend {
+  display: flex;
+  gap: 1.5rem;
+  margin: 1rem 0;
+  font-size: 0.95rem;
+  align-items: center;
+}
+
+.dot {
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot.green {
+  background-color: #2ecc71;
+}
+
+.dot.red {
+  background-color: #e74c3c;
+}
+
+.dot.yellow {
+  background-color: #f1c40f;
+}
+
+/* Stats Section */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.stat-card {
+  background-color: #f0f4ff;
+  height: 140px;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  padding: 1rem 1rem;
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+}
+
+.stat-card.green {
+  background-color: #e8fce8;
+}
+
+.stat-card.red {
+  background-color: #ffe8e8;
+}
+
+.stat-card h5 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.stat-card p {
+  margin: 0.3rem 0;
+  font-size: 1.8rem;
+  font-weight: bold;
+}
+
+.stat-card .icon {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  font-size: 1.4rem;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.4rem;
+  border-radius: 50%;
+  color: #333;
+}
