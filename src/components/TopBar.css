@@ -81,7 +81,19 @@
 .home-button:hover {
   background-color: #e0e0e0;
 }
+.logout-button {
+  margin-left: 10px;
+  padding: 8px 16px;
+  background-color: #ffffff;
+  color: rgb(0, 0, 0);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
 
+.logout-button:hover {
+  background-color: #ffffff;
+}
 /* Responsive: Stack layout on small screens */
 @media (max-width: 768px) {
   .top-bar {
@@ -114,19 +126,7 @@
     text-align: center;
   }
   /* src/components/TopBar.css */
-.logout-button {
-  margin-left: 10px;
-  padding: 8px 16px;
-  background-color: #e53935;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
 
-.logout-button:hover {
-  background-color: #c62828;
-}
 
  
 }

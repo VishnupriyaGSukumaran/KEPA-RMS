@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
 
 import './GenerateReport.css';
 
 const GenerateReport = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [reportType, setReportType] = useState('');
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -22,7 +22,7 @@ const GenerateReport = () => {
   const [selectedYears, setSelectedYears] = useState([]);
   const [selectedBlock, setSelectedBlock] = useState('');
   const [selectedPurpose, setSelectedPurpose] = useState('');
-  const [dateFilterType, setDateFilterType] = useState('range');
+  const [dateFilterType, setDateFilterType] = useState('');
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
@@ -43,7 +43,14 @@ const GenerateReport = () => {
 
   useEffect(() => {
     fetchBlocks();
-  }, []);
+    
+    const params = new URLSearchParams(location.search);
+    const type = params.get('type');
+    if (type) {
+      setReportType(type);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [location]);
 
   const fetchBlocks = async () => {
     try {
@@ -58,118 +65,130 @@ const GenerateReport = () => {
     { 
       id: 'allocation', 
       title: 'Allocation Report', 
-      desc: 'View room allocations with advanced date filters',
-      icon: '📋'
+      desc: 'View room allocations with date filters',
+      color: '#3b82f6'
     },
     { 
       id: 'vacancy', 
       title: 'Vacancy Report', 
-      desc: 'Check room vacancy with historical analysis',
-      icon: '🛏️'
+      desc: 'Check room vacancy status',
+      color: '#10b981'
     },
     { 
       id: 'course', 
       title: 'Course Report', 
-      desc: 'All training courses information',
-      icon: '📚'
+      desc: 'Training courses information',
+      color: '#f59e0b'
     },
     { 
       id: 'block', 
       title: 'Block Report', 
-      desc: 'Complete block structure and details',
-      icon: '🏢'
-    },
-    { 
-      id: 'admin', 
-      title: 'Admin Report', 
-      desc: 'Administrator and super admin details',
-      icon: '👨‍💼'
+      desc: 'Block structure and details',
+      color: '#8b5cf6'
     },
     { 
       id: 'blockhead', 
       title: 'Block Head Report', 
-      desc: 'Block head assignments and details',
-      icon: '👨‍🏫'
+      desc: 'Block head assignments',
+      color: '#06b6d4'
     },
     { 
-      id: 'system', 
-      title: 'System Report', 
-      desc: 'Completeness, actions, proof, output of reliability',
-      icon: '📊'
+      id: 'admin', 
+      title: 'Admin Report', 
+      desc: 'Administrator details',
+      color: '#ec4899'
     }
   ];
 
-        const handleGenerateReport = async () => {
-  if (!reportType) {
-    alert('Please select a report type');
-    return;
-  }
+  const handleCardClick = (typeId) => {
+    navigate(`?type=${typeId}`);
+    setReportType(typeId);
+    setReportData(null);
+    clearFilters();
+  };
 
-  setLoading(true);
-  try {
-    const payload = {
-      generatedBy: 'Admin',
-      startDate,
-      endDate,
-      month: selectedMonth,
-      year: selectedYear,
-      years: selectedYears,
-      blockName: selectedBlock,
-      purpose: selectedPurpose
-    };
+  const handleGenerateReport = async () => {
+    if (!reportType) {
+      alert('Please select a report type');
+      return;
+    }
 
-    // Clean up payload - remove empty values
-    Object.keys(payload).forEach(key => {
-      if (payload[key] === '' || (Array.isArray(payload[key]) && payload[key].length === 0)) {
-        delete payload[key];
-      }
-    });
+    // Validate filters based on report type
+    if (!validateFilters()) {
+      alert('Please select at least one filter before generating the report');
+      return;
+    }
 
-    console.log('Sending payload:', payload);
-    console.log('Report type:', reportType);
-    console.log('Endpoint URL:', `http://localhost:5000/api/reports/${reportType}`);
+    setLoading(true);
+    try {
+      const payload = {
+        generatedBy: 'Admin',
+        startDate,
+        endDate,
+        month: selectedMonth,
+        year: selectedYear,
+        years: selectedYears,
+        blockName: selectedBlock,
+        purpose: selectedPurpose
+      };
 
-    // ✅ FIXED: Use reportType directly - no mapping needed
-    const response = await axios.post(
-      `http://localhost:5000/api/reports/${reportType}`, 
-      payload,
-      {
-        headers: {
-          'Content-Type': 'application/json'
+      Object.keys(payload).forEach(key => {
+        if (payload[key] === '' || (Array.isArray(payload[key]) && payload[key].length === 0)) {
+          delete payload[key];
         }
-      }
-    );
-    
-    console.log('Response received:', response.data);
-    
-    if (response.data && response.data.success) {
-      setReportData(response.data);
-      console.log('Report data set successfully');
-    } else {
-      throw new Error('Invalid response format from server');
-    }
+      });
 
-  } catch (error) {
-    console.error('Error generating report:', error);
-    
-    // Better error message
-    let errorMessage = 'Failed to generate report';
-    if (error.response) {
-      errorMessage += `: ${error.response.data?.error || error.response.statusText}`;
-      console.error('Server response:', error.response.data);
-      console.error('Status code:', error.response.status);
-    } else if (error.request) {
-      errorMessage += ': No response from server. Check if backend is running.';
-      console.error('No response received:', error.request);
-    } else {
-      errorMessage += `: ${error.message}`;
+      const response = await axios.post(
+        `http://localhost:5000/api/reports/${reportType}`, 
+        payload,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      if (response.data && response.data.success) {
+        setReportData(response.data);
+      } else {
+        throw new Error('Invalid response format from server');
+      }
+
+    } catch (error) {
+      console.error('Error generating report:', error);
+      
+      let errorMessage = 'Failed to generate report';
+      if (error.response) {
+        errorMessage += `: ${error.response.data?.error || error.response.statusText}`;
+      } else if (error.request) {
+        errorMessage += ': No response from server. Check if backend is running.';
+      } else {
+        errorMessage += `: ${error.message}`;
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setLoading(false);
     }
-    
-    alert(errorMessage);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
+  const validateFilters = () => {
+    switch (reportType) {
+      case 'allocation':
+      case 'vacancy':
+        return dateFilterType !== '';
+      case 'course':
+        return dateFilterType !== '';
+      case 'block':
+        return true; // Block report doesn't require filters
+      case 'admin':
+        return selectedYear !== '' || (selectedMonth !== '' && selectedYear !== '');
+      case 'blockhead':
+        return selectedBlock !== '';
+      default:
+        return false;
+    }
+  };
 
   const handleYearSelection = (year) => {
     setSelectedYears(prev => {
@@ -187,7 +206,6 @@ const GenerateReport = () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     
-    // Header
     doc.setFillColor(0, 0, 128);
     doc.rect(0, 0, pageWidth, 40, 'F');
     
@@ -202,7 +220,6 @@ const GenerateReport = () => {
     doc.setFontSize(14);
     doc.text(reportData.report?.reportTitle || 'Report', pageWidth / 2, 35, { align: 'center' });
 
-    // Report details
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
@@ -212,7 +229,6 @@ const GenerateReport = () => {
 
     let yPos = 75;
 
-    // Enhanced Summary section
     if (reportData.report?.summary) {
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
@@ -233,7 +249,6 @@ const GenerateReport = () => {
         ['Occupancy Rate', summary.occupancyRate]
       ].filter(stat => stat[1] !== undefined);
 
-      // Main statistics
       mainStats.forEach(([label, value], index) => {
         if (index % 2 === 0) {
           doc.text(`${label}: ${value}`, 14, yPos);
@@ -247,14 +262,12 @@ const GenerateReport = () => {
       yPos += 10;
     }
 
-    // Data tables
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 128);
     doc.text('DETAILED DATA', 14, yPos);
     yPos += 15;
 
-    // Table rendering
     if (reportData.data && reportData.data.length > 0) {
       let tableData = [];
       let headers = [];
@@ -284,12 +297,23 @@ const GenerateReport = () => {
             item.status || '-'
           ]);
           break;
-        case 'system':
-          headers = ['Metric', 'Value', 'Status'];
-          tableData = Object.entries(reportData.report?.summary || {}).map(([key, value]) => [
-            key.replace(/([A-Z])/g, ' $1').replace(/\b\w/g, l => l.toUpperCase()),
-            value,
-            'Completed'
+        case 'admin':
+          headers = ['Name', 'Email', 'PEN Number', 'Phone Number'];
+          tableData = reportData.data.map(item => [
+            `${item.firstName || ''} ${item.lastName || ''}`.trim() || '-',
+            item.email || '-',
+            item.pen || '-',
+            item.phoneNumber || '-'
+          ]);
+          break;
+        case 'blockhead':
+          headers = ['Name', 'Email', 'PEN Number', 'Phone Number', 'Assigned Block'];
+          tableData = reportData.data.map(item => [
+            `${item.firstName || ''} ${item.lastName || ''}`.trim() || '-',
+            item.email || '-',
+            item.pen || '-',
+            item.phoneNumber || '-',
+            item.assignedBlock || '-'
           ]);
           break;
         default:
@@ -300,22 +324,20 @@ const GenerateReport = () => {
       }
 
       autoTable(doc, {
-  startY: yPos,
-  head: [headers],
-  body: tableData,
-  theme: 'grid',
-  headStyles: { 
-    fillColor: [0, 0, 128],
-    textColor: 255,
-    fontStyle: 'bold'
-  },
-  styles: { fontSize: 8 },
-  margin: { top: 10 }
-});
-
+        startY: yPos,
+        head: [headers],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { 
+          fillColor: [0, 0, 128],
+          textColor: 255,
+          fontStyle: 'bold'
+        },
+        styles: { fontSize: 8 },
+        margin: { top: 10 }
+      });
     }
 
-    // Footer
     const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
@@ -364,12 +386,24 @@ const GenerateReport = () => {
         ]);
         break;
       
-      case 'system':
-        headers = ['Metric', 'Value', 'Status'];
-        rows = Object.entries(reportData.report?.summary || {}).map(([key, value]) => [
-          key.replace(/([A-Z])/g, ' $1').replace(/\b\w/g, l => l.toUpperCase()),
-          value,
-          'Completed'
+      case 'admin':
+        headers = ['Name', 'Email', 'PEN Number', 'Phone Number'];
+        rows = reportData.data.map(item => [
+          `${item.firstName || ''} ${item.lastName || ''}`.trim(),
+          item.email,
+          item.pen,
+          item.phoneNumber
+        ]);
+        break;
+      
+      case 'blockhead':
+        headers = ['Name', 'Email', 'PEN Number', 'Phone Number', 'Assigned Block'];
+        rows = reportData.data.map(item => [
+          `${item.firstName || ''} ${item.lastName || ''}`.trim(),
+          item.email,
+          item.pen,
+          item.phoneNumber,
+          item.assignedBlock
         ]);
         break;
       
@@ -461,9 +495,6 @@ const GenerateReport = () => {
               body { margin: 0.5in; }
               table { font-size: 10px; }
             }
-            @page {
-              margin: 0.5in;
-            }
           </style>
         </head>
         <body>
@@ -491,20 +522,22 @@ const GenerateReport = () => {
   };
 
   const renderDateFilters = () => {
+    if (!dateFilterType) return null;
+
     return (
-      <div className="date-filter-section">
-        <div className="filter-type-selector">
-          <label>Date Filter Type:</label>
-          <select 
-            value={dateFilterType} 
-            onChange={(e) => setDateFilterType(e.target.value)}
-            className="filter-type-dropdown"
-          >
-            <option value="range">Date Range</option>
-            <option value="monthYear">Month & Year</option>
-            <option value="multipleYears">Multiple Years</option>
-          </select>
-        </div>
+      <div className="date-filter-content">
+        {dateFilterType === 'dateOnly' && (
+          <div className="filter-row">
+            <div className="filter-group">
+              <label>Select Date</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
 
         {dateFilterType === 'range' && (
           <div className="filter-row">
@@ -523,6 +556,44 @@ const GenerateReport = () => {
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />
+            </div>
+          </div>
+        )}
+
+        {dateFilterType === 'monthOnly' && (
+          <div className="filter-row">
+            <div className="filter-group">
+              <label>Month</label>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+              >
+                <option value="">Select Month</option>
+                {months.map(month => (
+                  <option key={month.value} value={month.value}>
+                    {month.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
+        {dateFilterType === 'yearOnly' && (
+          <div className="filter-row">
+            <div className="filter-group">
+              <label>Year</label>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+              >
+                <option value="">Select Year</option>
+                {years.map(year => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         )}
@@ -560,7 +631,7 @@ const GenerateReport = () => {
           </div>
         )}
 
-        {dateFilterType === 'multipleYears' && (
+        {dateFilterType === 'yearRange' && (
           <div className="filter-group">
             <label>Select Years</label>
             <div className="years-checkbox-grid">
@@ -577,7 +648,7 @@ const GenerateReport = () => {
             </div>
             {selectedYears.length > 0 && (
               <div className="selected-years">
-                Selected Years: {selectedYears.join(', ')}
+                Selected: {selectedYears.join(', ')}
               </div>
             )}
           </div>
@@ -586,13 +657,134 @@ const GenerateReport = () => {
     );
   };
 
+  const renderFilterOptions = () => {
+    switch (reportType) {
+      case 'allocation':
+      case 'vacancy':
+        return (
+          <>
+            <div className="filter-group">
+              <label>Date Filter Type</label>
+              <select 
+                value={dateFilterType} 
+                onChange={(e) => setDateFilterType(e.target.value)}
+              >
+                <option value="">Select Filter Type</option>
+                <option value="dateOnly">Date Only</option>
+                <option value="monthOnly">Month Only</option>
+                <option value="yearOnly">Year Only</option>
+                <option value="monthYear">Month & Year</option>
+                <option value="yearRange">Year Range</option>
+              </select>
+            </div>
+            {renderDateFilters()}
+          </>
+        );
+
+      case 'course':
+        return (
+          <>
+            <div className="filter-group">
+              <label>Date Filter Type</label>
+              <select 
+                value={dateFilterType} 
+                onChange={(e) => setDateFilterType(e.target.value)}
+              >
+                <option value="">Select Filter Type</option>
+                <option value="range">Date Range</option>
+                <option value="monthOnly">Month Only</option>
+                <option value="yearOnly">Year Only</option>
+                <option value="monthYear">Month & Year</option>
+                <option value="yearRange">Year Range</option>
+              </select>
+            </div>
+            {renderDateFilters()}
+          </>
+        );
+
+      case 'admin':
+        return (
+          <>
+            <div className="filter-group">
+              <label>Year</label>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+              >
+                <option value="">Select Year</option>
+                {years.map(year => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="filter-group">
+              <label>Month (Optional)</label>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+              >
+                <option value="">Select Month</option>
+                {months.map(month => (
+                  <option key={month.value} value={month.value}>
+                    {month.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </>
+        );
+
+      case 'blockhead':
+        return (
+          <div className="filter-group">
+            <label>Select Block</label>
+            <select
+              value={selectedBlock}
+              onChange={(e) => setSelectedBlock(e.target.value)}
+            >
+              <option value="">Select Block</option>
+              {blocks.map(block => (
+                <option key={block._id} value={block.blockName}>
+                  {block.blockName}
+                </option>
+              ))}
+            </select>
+          </div>
+        );
+
+      case 'block':
+        return (
+          <div className="filter-group">
+            <label>Block (Optional)</label>
+            <select
+              value={selectedBlock}
+              onChange={(e) => setSelectedBlock(e.target.value)}
+            >
+              <option value="">All Blocks</option>
+              {blocks.map(block => (
+                <option key={block._id} value={block.blockName}>
+                  {block.blockName}
+                </option>
+              ))}
+            </select>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   const renderEnhancedSummary = () => {
     if (!reportData?.report?.summary) return null;
 
     const summary = reportData.report.summary;
+    const selectedReport = reportTypes.find(r => r.id === reportType);
 
     return (
-      <div className="enhanced-summary">
+      <div className="enhanced-summary" style={{ '--summary-color': selectedReport?.color }}>
         <div className="summary-cards">
           {Object.entries(summary).map(([key, value]) => {
             if (typeof value === 'object' || Array.isArray(value)) return null;
@@ -620,111 +812,95 @@ const GenerateReport = () => {
     switch (reportType) {
       case 'allocation':
         return (
-          <div className="table-container">
-            <table className="report-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>PEN/Recruit No</th>
-                  <th>Block</th>
-                  <th>Room</th>
-                  <th>Purpose</th>
-                  <th>Designation</th>
-                  <th>Unit</th>
-                  <th>Allocation Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reportData.data.map((item, idx) => (
-                  <tr key={idx}>
-                    <td>{item.name}</td>
-                    <td>{item.pen || item.recruitmentNumber || '-'}</td>
-                    <td>{item.block}</td>
-                    <td>{item.roomNumber}</td>
-                    <td>{item.purpose}</td>
-                    <td>{item.designation}</td>
-                    <td>{item.unit || '-'}</td>
-                    <td>{item.allocationDate ? new Date(item.allocationDate).toLocaleDateString('en-IN') : '-'}</td>
+          <div className="table-wrapper">
+            <div className="table-container">
+              <table className="report-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>PEN/Recruit No</th>
+                    <th>Block</th>
+                    <th>Room</th>
+                    <th>Purpose</th>
+                    <th>Designation</th>
+                    <th>Unit</th>
+                    <th>Allocation Date</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {reportData.data.map((item, idx) => (
+                    <tr key={idx}>
+                      <td>{item.name}</td>
+                      <td>{item.pen || item.recruitmentNumber || '-'}</td>
+                      <td>{item.block}</td>
+                      <td>{item.roomNumber}</td>
+                      <td>{item.purpose}</td>
+                      <td>{item.designation}</td>
+                      <td>{item.unit || '-'}</td>
+                      <td>{item.allocationDate ? new Date(item.allocationDate).toLocaleDateString('en-IN') : '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         );
 
-      case 'vacancy':
+      case 'admin':
         return (
-          <div className="table-container">
-            <table className="report-table">
-              <thead>
-                <tr>
-                  <th>Block</th>
-                  <th>Room</th>
-                  <th>Type</th>
-                  <th>Total Beds</th>
-                  <th>Allocated</th>
-                  <th>Current Vacant</th>
-                  <th>Historical Allocations</th>
-                  <th>Last Allocation</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reportData.data.map((item, idx) => (
-                  <tr key={idx}>
-                    <td>{item.blockName}</td>
-                    <td>{item.roomName}</td>
-                    <td>{item.roomType}</td>
-                    <td>{item.totalBeds}</td>
-                    <td>{item.allocatedBeds}</td>
-                    <td>{item.currentVacantBeds}</td>
-                    <td>{item.historicalAllocations}</td>
-                    <td>
-                      {item.lastAllocation ? 
-                        new Date(item.lastAllocation).toLocaleDateString('en-IN') : 
-                        'Never'
-                      }
-                    </td>
-                    <td>
-                      <span className={`status-badge ${
-                        item.status === 'Vacant' ? 'status-vacant' :
-                        item.status === 'Full' ? 'status-allocated' : 'status-partial'
-                      }`}>
-                        {item.status}
-                      </span>
-                    </td>
+          <div className="table-wrapper">
+            <div className="table-container">
+              <table className="report-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>PEN Number</th>
+                    <th>Phone Number</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {reportData.data.map((item, idx) => (
+                    <tr key={idx}>
+                      <td>{`${item.firstName || ''} ${item.lastName || ''}`.trim() || '-'}</td>
+                      <td>{item.email || '-'}</td>
+                      <td>{item.pen || '-'}</td>
+                      <td>{item.phoneNumber || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         );
 
-      case 'system':
+      case 'blockhead':
         return (
-          <div className="table-container">
-            <table className="report-table">
-              <thead>
-                <tr>
-                  <th>Metric</th>
-                  <th>Value</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(reportData.report?.summary || {}).map(([key, value], idx) => (
-                  <tr key={idx}>
-                    <td>{key.replace(/([A-Z])/g, ' $1').replace(/\b\w/g, l => l.toUpperCase())}</td>
-                    <td>{value}</td>
-                    <td>
-                      <span className="status-badge status-completed">
-                        Completed
-                      </span>
-                    </td>
+          <div className="table-wrapper">
+            <div className="table-container">
+              <table className="report-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>PEN Number</th>
+                    <th>Phone Number</th>
+                    <th>Assigned Block</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {reportData.data.map((item, idx) => (
+                    <tr key={idx}>
+                      <td>{`${item.firstName || ''} ${item.lastName || ''}`.trim() || '-'}</td>
+                      <td>{item.email || '-'}</td>
+                      <td>{item.pen || '-'}</td>
+                      <td>{item.phoneNumber || '-'}</td>
+                      <td>{item.assignedBlock || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         );
 
@@ -732,27 +908,29 @@ const GenerateReport = () => {
         if (reportData.data.length > 0) {
           const headers = Object.keys(reportData.data[0]);
           return (
-            <div className="table-container">
-              <table className="report-table">
-                <thead>
-                  <tr>
-                    {headers.map(header => (
-                      <th key={header}>
-                        {header.replace(/([A-Z])/g, ' $1').replace(/\b\w/g, l => l.toUpperCase())}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportData.data.map((item, idx) => (
-                    <tr key={idx}>
+            <div className="table-wrapper">
+              <div className="table-container">
+                <table className="report-table">
+                  <thead>
+                    <tr>
                       {headers.map(header => (
-                        <td key={header}>{item[header] || '-'}</td>
+                        <th key={header}>
+                          {header.replace(/([A-Z])/g, ' $1').replace(/\b\w/g, l => l.toUpperCase())}
+                        </th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {reportData.data.map((item, idx) => (
+                      <tr key={idx}>
+                        {headers.map(header => (
+                          <td key={header}>{item[header] || '-'}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           );
         }
@@ -768,119 +946,110 @@ const GenerateReport = () => {
     setSelectedYears([]);
     setSelectedBlock('');
     setSelectedPurpose('');
-    setDateFilterType('range');
+    setDateFilterType('');
   };
 
-  const handleHome = () => {
-    navigate('/');
+  const handleBackToSelection = () => {
+    navigate('/superadmin/generate-report');
+    setReportType('');
+    setReportData(null);
+    clearFilters();
   };
+
+  const currentReport = reportTypes.find(r => r.id === reportType);
+
+  if (!reportType) {
+    return (
+      <div className="report-container">
+        <main className="report-main">
+          <section className="report-section selection-screen">
+            <div className="report-header-inline">
+              <h2 className="section-title">Choose Report Type</h2>
+              <button onClick={() => navigate('/superadmin/dashboard')} className="back-btn-inlineS">
+                ← Back to Dashboard
+              </button>
+            </div>
+            <p className="section-subtitle">Select a report to view detailed information and apply filters</p>
+            <div className="report-cards-grid">
+              {reportTypes.map(type => (
+                <div
+                  key={type.id}
+                  className="modern-card"
+                  onClick={() => handleCardClick(type.id)}
+                  style={{ '--card-color': type.color }}
+                >
+                  <div className="card-icon">{type.icon}</div>
+                  <h3>{type.title}</h3>
+                  <p>{type.desc}</p>
+                  <div className="card-arrow">→</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
 
   return (
-    <div className="report-container">
-      <header className="report-header">
-        
-        <div className="report-header-center">
-          <h2>Generate Report</h2>
-        </div>
-        <div className="report-header-right">
-          <button onClick={() => navigate('/superadmin/dashboard')} className="header-btn">
-            Back
+    <div className="report-container" style={{ '--report-color': currentReport?.color }}>
+      <main className="report-main report-detail-main">
+        <div className="report-detail-header-inline">
+          <button onClick={handleBackToSelection} className="back-btn-inline">
+            ← All Reports
           </button>
-          <button className="header-btn" onClick={handleHome}>🏠 Home</button>
+          <div className="report-title-inline">
+            <span className="report-icon">{currentReport?.icon}</span>
+            <h2>{currentReport?.title}</h2>
+          </div>
         </div>
-      </header>
 
-      <main className="report-main">
         <section className="report-section">
-          <h2 className="section-title">Select Report Type</h2>
-          <div className="report-cards">
-            {reportTypes.map(type => (
-              <div
-                key={type.id}
-                className={`report-card ${reportType === type.id ? 'selected' : ''}`}
-                onClick={() => setReportType(type.id)}
+          <h2 className="section-title">Apply Filters</h2>
+          <div className="filters-container">
+            
+            <div className="other-filters">
+              {renderFilterOptions()}
+
+              {reportType === 'allocation' && (
+                <div className="filter-group">
+                  <label>Purpose (Optional)</label>
+                  <select
+                    value={selectedPurpose}
+                    onChange={(e) => setSelectedPurpose(e.target.value)}
+                  >
+                    <option value="">All Purposes</option>
+                    <option value="Basic Training">Basic Training</option>
+                    <option value="Inservice Training">Inservice Training</option>
+                    <option value="Faculty/Guest">Faculty/Guest</option>
+                    <option value="KEPA Officers">KEPA Officers</option>
+                    <option value="Others">Others</option>
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="action-buttons">
+              <button className="btn-clear" onClick={clearFilters}>
+                🗑️ Clear All
+              </button>
+              <button 
+                className="btn-generate" 
+                onClick={handleGenerateReport}
+                disabled={loading}
               >
-                <div className="card-icon">{type.icon}</div>
-                <h3>{type.title}</h3>
-                <p>{type.desc}</p>
-                {reportType === type.id && (
-                  <div className="selected-indicator">✓ Selected</div>
-                )}
-              </div>
-            ))}
+                {loading ? '⏳ Generating...' : '📊 Generate Report'}
+              </button>
+            </div>
           </div>
         </section>
 
-        {reportType && (
-          <section className="report-section">
-            <h2 className="section-title">Filter Options</h2>
-            <div className="filter-section">
-              
-              {/* Date Filters */}
-              {(reportType === 'allocation' || reportType === 'vacancy' || reportType === 'course' || reportType === 'system') && (
-                renderDateFilters()
-              )}
-
-              <div className="filter-grid">
-                {/* Block Filter */}
-                {['allocation', 'vacancy', 'block'].includes(reportType) && (
-                  <div className="filter-group">
-                    <label>Block</label>
-                    <select
-                      value={selectedBlock}
-                      onChange={(e) => setSelectedBlock(e.target.value)}
-                    >
-                      <option value="">All Blocks</option>
-                      {blocks.map(block => (
-                        <option key={block._id} value={block.blockName}>
-                          {block.blockName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Purpose Filter */}
-                {reportType === 'allocation' && (
-                  <div className="filter-group">
-                    <label>Purpose</label>
-                    <select
-                      value={selectedPurpose}
-                      onChange={(e) => setSelectedPurpose(e.target.value)}
-                    >
-                      <option value="">All Purposes</option>
-                      <option value="Basic Training">Basic Training</option>
-                      <option value="Inservice Training">Inservice Training</option>
-                      <option value="Faculty/Guest">Faculty/Guest</option>
-                      <option value="KEPA Officers">KEPA Officers</option>
-                      <option value="Others">Others</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <div className="filter-buttons">
-                <button className="btn btn-secondary" onClick={clearFilters}>
-                  🗑️ Clear Filters
-                </button>
-                <button 
-                  className="btn btn-primary" 
-                  onClick={handleGenerateReport}
-                  disabled={loading}
-                >
-                  {loading ? '⏳ Generating...' : '📊 Generate Report'}
-                </button>
-              </div>
-            </div>
-          </section>
-        )}
-
         {loading && (
           <section className="report-section">
-            <div className="loading">
+            <div className="loading-state">
               <div className="spinner"></div>
-              <h3>Generating Report...</h3>
-              <p>Please wait while we process your request.</p>
+              <h3>Generating Your Report</h3>
+              <p>Please wait while we fetch the data...</p>
             </div>
           </section>
         )}
@@ -897,25 +1066,26 @@ const GenerateReport = () => {
               </div>
             </div>
 
-            <div className="export-buttons">
-              <button className="btn btn-success" onClick={handleExportPDF}>
+            <div className="export-actions">
+              <button className="btn-export pdf" onClick={handleExportPDF}>
                 📄 Export PDF
               </button>
-              <button className="btn btn-success" onClick={handleExportCSV}>
+              <button className="btn-export csv" onClick={handleExportCSV}>
                 📊 Export CSV
               </button>
-              <button className="btn btn-primary" onClick={handlePrint}>
-                🖨️ Print Report
+              <button className="btn-export print" onClick={handlePrint}>
+                🖨️ Print
               </button>
             </div>
           </section>
         )}
 
-        {reportData && reportData.data && reportData.data.length === 0 && (
+        {reportData && reportData.data && reportData.data.length === 0 && !loading && (
           <section className="report-section">
-            <div className="no-data">
-              <h3>📭 No Data Found</h3>
-              <p>No records match your selected filters. Try adjusting your filter criteria.</p>
+            <div className="empty-state">
+              <div className="empty-icon">📭</div>
+              <h3>No Data Found</h3>
+              <p>No records match your selected filters. Try adjusting your criteria.</p>
             </div>
           </section>
         )}
