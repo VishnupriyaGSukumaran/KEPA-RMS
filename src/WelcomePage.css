@@ -14,7 +14,7 @@ html, body {
 
 /* Container setup */
 .welcome-container {
-  background-color: white;
+  background-color: #e8ecf1;
   height: 100vh;
   display: flex;
   flex-direction: column;

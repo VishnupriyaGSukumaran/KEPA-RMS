@@ -15,6 +15,7 @@ const roomRoutes = require('./routes/room');
 const courseOrderRoutes = require('./routes/courseOrderRoutes');
 const roomAllocationRoutes = require('./routes/roomAllocationRoutes');
 const reportRoutes = require('./routes/report'); // ✅ Import report routes
+const dashboardRoutes = require('./routes/dashboardRoutes'); // Add this line
 
 const app = express();
 app.use(cors());
@@ -46,6 +47,7 @@ app.use('/api/roomallocations', roomAllocationRoutes);
 
 // ✅ CRITICAL FIX: Use plural 'reports' to match frontend
 app.use('/api/reports', reportRoutes);
+app.use('/api/dashboard', dashboardRoutes); // Add this line
 
 
 // Test endpoint

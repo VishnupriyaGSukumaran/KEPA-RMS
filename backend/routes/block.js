@@ -99,22 +99,64 @@ router.get('/', async (req, res) => {
   }
 });
 
+
+
+
+
 // ===== Get Block by Name (with stats) =====
 router.get('/name/:blockName', async (req, res) => {
   const rawName = req.params.blockName.replace(/%20/g, ' ');
   const formattedBlockName = toTitleCase(rawName);
-
+  
+  console.log(`[BLOCK API] Requested blockName: "${rawName}" -> Formatted: "${formattedBlockName}"`);
 
   try {
-    const block = await Block.findById(req.params.id).lean();
-    if (!block) return res.status(404).json({ message: 'Block not found' });
+    const block = await Block.findOne({
+      blockName: { $regex: `^${formattedBlockName}$`, $options: 'i' }
+    });
 
-    const rooms = await Room.find({ blockName: formattedBlockName });
+    if (!block) {
+      console.log(`[BLOCK API] Block not found for: "${formattedBlockName}"`);
+      return res.status(404).json({ message: 'Block not found' });
+    }
 
-    const totalBeds = rooms.reduce((sum, room) => sum + (room.bedCount || 0), 0);
+    console.log(`[BLOCK API] Block found: "${block.blockName}"`);
+
+    // Use the actual blockName from database (guaranteed correct format) to find rooms
+    // This ensures we match rooms regardless of case differences
+    const rooms = await Room.find({ 
+      blockName: { $regex: `^${block.blockName}$`, $options: 'i' }
+    });
+    
+    console.log(`[BLOCK API] Querying rooms with blockName: "${block.blockName}"`);
+    console.log(`[BLOCK API] Found ${rooms.length} rooms`);
+
+    // Calculate total beds - handle both bedCount and beds array
+    const totalBeds = rooms.reduce((sum, room) => {
+      if (room.bedCount) {
+        return sum + room.bedCount;
+      } else if (room.beds && Array.isArray(room.beds)) {
+        return sum + room.beds.length;
+      }
+      return sum;
+    }, 0);
+    
+    // Calculate vacant beds
     const vacantBeds = rooms.reduce((sum, room) => {
-      const total = room.bedCount || 0;
-      const allocated = room.allocatedBeds || 0;
+      let total = 0;
+      if (room.bedCount) {
+        total = room.bedCount;
+      } else if (room.beds && Array.isArray(room.beds)) {
+        total = room.beds.length;
+      }
+      
+      let allocated = 0;
+      if (room.allocatedBeds !== undefined && room.allocatedBeds !== null) {
+        allocated = room.allocatedBeds;
+      } else if (room.beds && Array.isArray(room.beds)) {
+        allocated = room.beds.filter(bed => bed.status === 'allocated').length;
+      }
+      
       return sum + (total - allocated);
     }, 0);
 
@@ -127,7 +169,20 @@ router.get('/name/:blockName', async (req, res) => {
     const totalRooms = roomTypeCounts['Room'] || 0;
     const dormitories = roomTypeCounts['Dormitory'] || 0;
 
+    // Debug logging
+    console.log(`[BLOCK STATS] Block: "${block.blockName}"`);
+    console.log(`[BLOCK STATS] Rooms found: ${rooms.length}`);
+    console.log(`[BLOCK STATS] Total Beds: ${totalBeds}, Vacant: ${vacantBeds}`);
+    console.log(`[BLOCK STATS] Room Types:`, roomTypeCounts);
+    console.log(`[BLOCK STATS] First room sample:`, rooms[0] ? {
+      blockName: rooms[0].blockName,
+      roomName: rooms[0].roomName,
+      bedCount: rooms[0].bedCount,
+      allocatedBeds: rooms[0].allocatedBeds
+    } : 'No rooms found');
+
     res.status(200).json({
+      _id: block._id,
       blockName: block.blockName,
       totalRooms,
       totalBeds,
@@ -150,78 +205,13 @@ router.get('/name/:blockName', async (req, res) => {
 
 
 
-// ✅ New route: Get full block details by blockName (not ID) FOR SUPER ADMIN
-router.get('/details/:blockName', async (req, res) => {
-  try {
-    const rawName = req.params.blockName.replace(/%20/g, ' ');
-    const formattedBlockName = toTitleCase(rawName);
 
-    console.log(`Fetching block details for: ${formattedBlockName}`);
 
-    // 1️⃣ Find the block by name (case-insensitive)
-    const block = await Block.findOne({
-      blockName: { $regex: `^${formattedBlockName}$`, $options: 'i' }
-    }).lean();
 
-    if (!block) {
-      return res.status(404).json({ message: `Block "${formattedBlockName}" not found.` });
-    }
 
-    // 2️⃣ Find all rooms under this block
-    const rooms = await Room.find({
-      blockName: { $regex: `^${formattedBlockName}$`, $options: 'i' }
-    }).lean();
 
-    // 3️⃣ Compute statistics
-    const totalBeds = rooms.reduce((sum, r) => sum + (r.bedCount || 0), 0);
-    const allocatedBeds = rooms.reduce((sum, r) => sum + (r.allocatedBeds || 0), 0);
-    const vacantBeds = totalBeds - allocatedBeds;
 
-    const roomTypeStats = {};
 
-    rooms.forEach(room => {
-      const type = room.roomType || 'Unknown';
-      if (!roomTypeStats[type]) {
-        roomTypeStats[type] = {
-          totalBeds: 0,
-          allocatedBeds: 0,
-          vacantBeds: 0,
-          vacantRooms: 0,
-          partialRooms: 0,
-          allocatedRooms: 0
-        };
-      }
-
-      const total = room.bedCount || 0;
-      const allocated = room.allocatedBeds || 0;
-      const vacant = total - allocated;
-
-      roomTypeStats[type].totalBeds += total;
-      roomTypeStats[type].allocatedBeds += allocated;
-      roomTypeStats[type].vacantBeds += vacant;
-
-      if (allocated === 0) roomTypeStats[type].vacantRooms += 1;
-      else if (allocated < total) roomTypeStats[type].partialRooms += 1;
-      else roomTypeStats[type].allocatedRooms += 1;
-    });
-
-    // 4️⃣ Respond with full details
-    res.status(200).json({
-      blockName: block.blockName,
-      totalBeds,
-      allocatedBeds,
-      vacantBeds,
-      roomTypeStats,
-      createdRooms: rooms,
-      blockTypes: block.blockTypes,
-      blockTypeDetails: block.blockTypeDetails
-    });
-
-  } catch (err) {
-    console.error('Error in /details/:blockName:', err);
-    res.status(500).json({ message: 'Server error while fetching block details' });
-  }
-});
 
 
 

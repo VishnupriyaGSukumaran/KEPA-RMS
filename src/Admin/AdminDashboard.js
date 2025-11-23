@@ -1,5 +1,5 @@
 // No change to imports
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './AdminDashboard.css';
 import {
   FaHome,
@@ -14,6 +14,11 @@ import {
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Doughnut } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+
+// Register Chart.js components
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -32,6 +37,93 @@ function AdminDashboard() {
   const [notes, setNotes] = useState('');
   const [officerFile, setOfficerFile] = useState(null);
   const [courseFile, setCourseFile] = useState(null);
+
+  // Blocks state for allocation order dropdown
+  const [blocks, setBlocks] = useState([]);
+  const [loadingBlocks, setLoadingBlocks] = useState(false);
+
+  // Dashboard statistics state - updated to include room types
+  const [dashboardStats, setDashboardStats] = useState({
+    totalBlocks: 0,
+    totalRooms: 0,
+    occupied: 0,
+    unoccupied: 0,
+    partiallyOccupied: 0,
+    roomTypeCounts: {
+      room: 0,
+      suiteRoom: 0,
+      dormitory: 0,
+      barrack: 0
+    }
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch dashboard statistics
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/dashboard/stats');
+        console.log('Dashboard API Response:', response.data); // Debug log
+        if (response.data.success) {
+          setDashboardStats(response.data.data);
+          setError(null);
+        } else {
+          setError('Failed to load dashboard statistics');
+        }
+      } catch (error) {
+        console.error('Failed to fetch dashboard stats:', error);
+        console.error('Error details:', error.response?.data || error.message);
+        setError(`Failed to load dashboard statistics: ${error.response?.data?.error || error.message}`);
+        // Set default values
+        setDashboardStats({
+          totalBlocks: 0,
+          totalRooms: 0,
+          occupied: 0,
+          unoccupied: 0,
+          partiallyOccupied: 0,
+          roomTypeCounts: {
+            room: 0,
+            suiteRoom: 0,
+            dormitory: 0,
+            barrack: 0
+          }
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardStats();
+  }, []);
+
+  // Fetch blocks from backend when allocation form opens
+  useEffect(() => {
+    const fetchBlocks = async () => {
+      if (showAllocForm) {
+        try {
+          setLoadingBlocks(true);
+          const response = await axios.get('http://localhost:5000/api/block');
+          console.log('Blocks fetched:', response.data);
+          
+          // Extract block names from the response
+          if (Array.isArray(response.data) && response.data.length > 0) {
+            const blockNames = response.data.map(block => block.blockName).filter(Boolean);
+            setBlocks(blockNames);
+          } else {
+            setBlocks([]);
+          }
+        } catch (error) {
+          console.error('Failed to fetch blocks:', error);
+          setBlocks([]);
+        } finally {
+          setLoadingBlocks(false);
+        }
+      }
+    };
+
+    fetchBlocks();
+  }, [showAllocForm]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,43 +149,102 @@ function AdminDashboard() {
       setFromDate('');
       setToDate('');
       setNotes('');
+      setOfficerFile(null);
     } catch (err) {
       console.error('Failed to send allocation:', err);
       alert('Failed to send allocation.');
     }
   };
-const handleCourseSubmit = async (e) => {
-  e.preventDefault();
 
-  if (!courseTitle || !courseDesc) {
-    alert('Please enter both title and description.');
-    return;
-  }
+  const handleCourseSubmit = async (e) => {
+    e.preventDefault();
 
-  const formData = new FormData();
-  formData.append('courseTitle', courseTitle);
-  formData.append('courseDesc', courseDesc);
-  if (courseFile) {
-    formData.append('courseFile', courseFile);
-  }
+    if (!courseTitle || !courseDesc) {
+      alert('Please enter both title and description.');
+      return;
+    }
 
-  try {
-    await axios.post('http://localhost:5000/api/course-orders', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const formData = new FormData();
+    formData.append('courseTitle', courseTitle);
+    formData.append('courseDesc', courseDesc);
+    if (courseFile) {
+      formData.append('courseFile', courseFile);
+    }
 
-    alert('✅ Course order sent to SuperAdmin.');
-    // Clear form
-    setCourseTitle('');
-    setCourseDesc('');
-    setCourseFile(null);
-    setShowModal(false);
-  } catch (error) {
-    console.error('Error submitting course order:', error);
-    alert('❌ Failed to send course order.');
-  }
-};
+    try {
+      await axios.post('http://localhost:5000/api/course-orders', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
 
+      alert('✅ Course order sent to SuperAdmin.');
+      setCourseTitle('');
+      setCourseDesc('');
+      setCourseFile(null);
+      setShowModal(false);
+    } catch (error) {
+      console.error('Error submitting course order:', error);
+      alert('❌ Failed to send course order.');
+    }
+  };
+
+  // Chart data for donut chart - ensure it always has data
+  const totalChartData = dashboardStats.occupied + dashboardStats.unoccupied + dashboardStats.partiallyOccupied;
+  
+  const chartData = {
+    labels: ['Occupied', 'Unoccupied', 'Partially Occupied'],
+    datasets: [
+      {
+        label: 'Room Allocation Status',
+        data: [
+          dashboardStats.occupied,
+          dashboardStats.unoccupied,
+          dashboardStats.partiallyOccupied
+        ],
+        backgroundColor: [
+          '#dc3545', // Red for Occupied
+          '#28a745', // Green for Unoccupied
+          '#ffc107'  // Orange for Partially Occupied
+        ],
+        borderColor: [
+          '#dc3545',
+          '#28a745',
+          '#ffc107'
+        ],
+        borderWidth: 2,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: true,
+    aspectRatio: 1.5,
+    plugins: {
+      legend: {
+        display: false, // Hide default legend since we have custom one
+        position: 'bottom',
+        labels: {
+          padding: 15,
+          usePointStyle: true,
+          font: {
+            size: 12
+          }
+        }
+      },
+      tooltip: {
+        enabled: true,
+        callbacks: {
+          label: function(context) {
+            const label = context.label || '';
+            const value = context.parsed || 0;
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+            return `${label}: ${value} (${percentage}%)`;
+          }
+        }
+      }
+    }
+  };
 
   
   return (
@@ -130,7 +281,7 @@ const handleCourseSubmit = async (e) => {
               <img src="/logo.png" alt="logo" className="topbar-logo" />
               <div className="topbar-title">
                 <div className="rms-title">RMS</div>
-                <div className="rms-subtitle">Kerala Police</div>
+                <div className="rms-subtitle">Kerala Police Academy</div>
               </div>
             </div>
             <div className="topbar-center"><h2>ADMIN</h2></div>
@@ -143,21 +294,94 @@ const handleCourseSubmit = async (e) => {
 
         {/* Dashboard Cards */}
         <div className="stats-grid">
-          <div className="card"><div>Total Blocks</div><strong>12</strong></div>
-          <div className="card"><div>Allocated Rooms</div><strong>84</strong></div>
-          <div className="card"><div>Vacant Rooms</div><strong>28</strong></div>
-          <div className="card"><div>Pending Order</div><strong>5</strong></div>
+          <div className="card card-blue">
+            <div className="card-label">TOTAL BLOCKS</div>
+            <div className="card-value">{loading ? '...' : dashboardStats.totalBlocks}</div>
+          </div>
+          <div className="card card-red">
+            <div className="card-label">OCCUPIED</div>
+            <div className="card-value">{loading ? '...' : dashboardStats.occupied}</div>
+          </div>
+          <div className="card card-green">
+            <div className="card-label">UNOCCUPIED</div>
+            <div className="card-value">{loading ? '...' : dashboardStats.unoccupied}</div>
+          </div>
+          <div className="card card-orange">
+            <div className="card-label">PARTIALLY OCCUPIED</div>
+            <div className="card-value">{loading ? '...' : dashboardStats.partiallyOccupied}</div>
+          </div>
         </div>
 
-        {/* Notifications */}
-        <div className="notifications-section">
-          <div className="notif-header">
-            <h3>Recent Notifications</h3>
-            <span className="view-all">View All</span>
+        {/* Room Type Breakdown Section */}
+        <div className="room-types-section">
+          <h3 className="section-title">Room Type Breakdown</h3>
+          <div className="room-types-grid">
+            <div className="room-type-card">
+              <div className="room-type-label">Room</div>
+              <div className="room-type-value">{loading ? '...' : dashboardStats.roomTypeCounts?.room || 0}</div>
+            </div>
+            <div className="room-type-card">
+              <div className="room-type-label">Suite Room</div>
+              <div className="room-type-value">{loading ? '...' : dashboardStats.roomTypeCounts?.suiteRoom || 0}</div>
+            </div>
+            <div className="room-type-card">
+              <div className="room-type-label">Dormitory</div>
+              <div className="room-type-value">{loading ? '...' : dashboardStats.roomTypeCounts?.dormitory || 0}</div>
+            </div>
+            <div className="room-type-card">
+              <div className="room-type-label">Barrack</div>
+              <div className="room-type-value">{loading ? '...' : dashboardStats.roomTypeCounts?.barrack || 0}</div>
+            </div>
           </div>
-          <div className="notif-item"><FaBell /><div><strong>Allocation confirmed by Block Head</strong><br />Block D - Room 305 has been allocated to Inspector Sharma<br /><small>30 minutes ago</small></div></div>
-          <div className="notif-item"><FaBell /><div><strong>Vacancy notification</strong><br />Block A - Room 112 is now vacant<br /><small>2 hours ago</small></div></div>
-          <div className="notif-item"><FaBell /><div><strong>Maintenance request</strong><br />Block C - AC not working in Room 208<br /><small>5 hours ago</small></div></div>
+        </div>
+
+        {/* Error message */}
+        {error && (
+          <div style={{ 
+            margin: '20px 30px', 
+            padding: '15px', 
+            background: '#fff3cd', 
+            border: '1px solid #ffc107', 
+            borderRadius: '5px',
+            color: '#856404'
+          }}>
+            ⚠️ {error}
+          </div>
+        )}
+
+        {/* Room Allocation Status Chart */}
+        <div className="chart-section">
+          <h3 className="chart-title">Room Allocation Status</h3>
+          {totalChartData > 0 ? (
+            <>
+              <div className="chart-container">
+                <Doughnut data={chartData} options={chartOptions} />
+              </div>
+              <div className="chart-legend">
+                <div className="legend-item">
+                  <span className="legend-dot legend-red"></span>
+                  <span>Occupied</span>
+                </div>
+                <div className="legend-item">
+                  <span className="legend-dot legend-green"></span>
+                  <span>Unoccupied</span>
+                </div>
+                <div className="legend-item">
+                  <span className="legend-dot legend-orange"></span>
+                  <span>Partially Occupied</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '40px', 
+              color: '#666',
+              fontSize: '16px'
+            }}>
+              No room data available to display chart
+            </div>
+          )}
         </div>
       </div>
 
@@ -205,62 +429,132 @@ const handleCourseSubmit = async (e) => {
   </div>
 )}
 
-
       {/* Allocation Modal */}
       {showAllocForm && (
-        <div className="modal-backdrop">
-          <div className="modal">
-            <div className="allocation-form">
-              <h2>Allocation Order</h2>
-              <form onSubmit={handleSubmit}>
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label>Purpose of Visit</label>
-                    <select value={purpose} onChange={(e) => setPurpose(e.target.value)} required>
-                      <option value="">Select Purpose</option>
-                      <option value="Training">Basic Training</option>
-                      <option value="Workshop">Inservice Training</option>
-                      <option value="Meeting">Faculty/Guest</option>
-                      <option value="Inspection">KEPA Officers</option>
-                      <option value="Guest Accommodation">Others</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Number of Officers</label>
-                    <input type="number" value={officerCount} onChange={(e) => setOfficerCount(e.target.value)} required />
-                  </div>
-                  <div className="form-group">
-                    <label>Requested Block</label>
-                    <select value={requestedBlock} onChange={(e) => setRequestedBlock(e.target.value)} required>
-                      <option value="">Select Block</option>
-                      <option value="Block A">Block A</option>
-                      <option value="Block B">Block B</option>
-                      <option value="Block C">Block C</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Upload Officer List</label>
-                    <input type="file" accept=".pdf,.xlsx,.xls" onChange={(e) => setOfficerFile(e.target.files[0])} />
-                  </div>
-                  <div className="form-group">
-                    <label>From Date</label>
-                    <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} required />
-                  </div>
-                  <div className="form-group">
-                    <label>To Date</label>
-                    <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} required />
-                  </div>
-                  <div className="form-group remarks">
-                    <label>Remarks / Notes</label>
-                    <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
-                  </div>
-                </div>
-                <div className="form-buttons">
-                  <button type="submit" className="save-btn">Submit</button>
-                  <button type="button" onClick={() => setShowAllocForm(false)} className="cancel-btn">Cancel</button>
-                </div>
-              </form>
+        <div className="alloc-modal-backdrop">
+          <div className="alloc-modal-container">
+            <div className="alloc-modal-header">
+              <h2 className="alloc-modal-title">Allocation Order</h2>
             </div>
+            <form onSubmit={handleSubmit} className="alloc-modal-body">
+              <div className="alloc-form-row">
+                <div className="alloc-form-field">
+                  <label htmlFor="purpose" className="alloc-label">Purpose of Visit</label>
+                  <select 
+                    id="purpose"
+                    value={purpose} 
+                    onChange={(e) => setPurpose(e.target.value)} 
+                    required
+                    className="alloc-input alloc-select"
+                  >
+                    <option value="">Select Purpose</option>
+                    <option value="Training">Basic Training</option>
+                    <option value="Workshop">Inservice Training</option>
+                    <option value="Meeting">Faculty/Guest</option>
+                    <option value="Inspection">KEPA Officers</option>
+                    <option value="Guest Accommodation">Others</option>
+                  </select>
+                </div>
+                
+                <div className="alloc-form-field">
+                  <label htmlFor="officerCount" className="alloc-label">Number of Officers</label>
+                  <input 
+                    id="officerCount"
+                    type="number" 
+                    value={officerCount} 
+                    onChange={(e) => setOfficerCount(e.target.value)} 
+                    required
+                    className="alloc-input"
+                    placeholder="Enter number of officers"
+                    min="1"
+                  />
+                </div>
+              </div>
+
+              <div className="alloc-form-row">
+                <div className="alloc-form-field">
+                  <label htmlFor="requestedBlock" className="alloc-label">Requested Block</label>
+                  <select 
+                    id="requestedBlock"
+                    value={requestedBlock} 
+                    onChange={(e) => setRequestedBlock(e.target.value)} 
+                    required
+                    className="alloc-input alloc-select"
+                    disabled={loadingBlocks}
+                  >
+                    <option value="">
+                      {loadingBlocks ? 'Loading blocks...' : 'Select Block'}
+                    </option>
+                    {blocks.map((blockName, index) => (
+                      <option key={index} value={blockName}>
+                        {blockName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="alloc-form-field">
+                  <label htmlFor="officerFile" className="alloc-label">Upload Officer List</label>
+                  <div className="alloc-file-wrapper">
+                    <input 
+                      id="officerFile"
+                      type="file" 
+                      accept=".pdf,.xlsx,.xls" 
+                      onChange={(e) => setOfficerFile(e.target.files[0])}
+                      className="alloc-file-input"
+                    />
+                    <div className="alloc-file-display">
+                      {officerFile ? officerFile.name : 'Choose File'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="alloc-form-row">
+                <div className="alloc-form-field">
+                  <label htmlFor="fromDate" className="alloc-label">From Date</label>
+                  <input 
+                    id="fromDate"
+                    type="date" 
+                    value={fromDate} 
+                    onChange={(e) => setFromDate(e.target.value)} 
+                    required
+                    className="alloc-input alloc-date"
+                  />
+                </div>
+                
+                <div className="alloc-form-field">
+                  <label htmlFor="toDate" className="alloc-label">To Date</label>
+                  <input 
+                    id="toDate"
+                    type="date" 
+                    value={toDate} 
+                    onChange={(e) => setToDate(e.target.value)} 
+                    required
+                    className="alloc-input alloc-date"
+                  />
+                </div>
+              </div>
+
+              <div className="alloc-form-row">
+                <div className="alloc-form-field alloc-field-full">
+                  <label htmlFor="notes" className="alloc-label">Remarks / Notes</label>
+                  <textarea 
+                    id="notes"
+                    value={notes} 
+                    onChange={(e) => setNotes(e.target.value)} 
+                    rows={4}
+                    className="alloc-input alloc-textarea"
+                    placeholder="Enter any additional remarks or notes..."
+                  />
+                </div>
+              </div>
+              
+              <div className="alloc-modal-footer">
+                <button type="button" onClick={() => setShowAllocForm(false)} className="alloc-btn alloc-btn-cancel">Cancel</button>
+                <button type="submit" className="alloc-btn alloc-btn-submit">Submit</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

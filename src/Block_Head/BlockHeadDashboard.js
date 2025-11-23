@@ -15,47 +15,70 @@ const BlockHeadDashboard = () => {
   const [blockName, setBlockName] = useState(blockNameFromStorage || '');
 
   useEffect(() => {
-  if (!pen || !blockNameFromStorage) return;
+    if (!pen) return;
 
-  // Fetch block data
-  fetch(`http://localhost:5000/api/block/name/${encodeURIComponent(blockNameFromStorage)}`)
-    .then(res => res.json())
-    .then(data => {
-      setBlockData(data);
-      if (data._id) {
-        localStorage.setItem('blockId', data._id); // ✅ store blockId
-      }
-    })
-    .catch(err => console.error('Error fetching block data:', err));
-
-    // Fetch user data
-    fetch(`http://localhost:5000/api/blockheadnew/${pen}`)
-      .then(res => res.json())
+    // Fetch user data first to get correct assignedBlock
+    fetch(`http://localhost:5000/api/auth/blockheadnew/${pen}`)
+      .then(res => {
+        if (!res.ok) {
+          throw new Error('Failed to fetch user data');
+        }
+        return res.json();
+      })
       .then(user => {
+        console.log('👤 User data received:', user);
         setUserData(user);
 
-        if (user.userType === 'blockhead' && user.assignedBlock) {
-          setBlockName(user.assignedBlock);
+        // Use assignedBlock from user data, fallback to localStorage
+        const blockToFetch = (user.userType === 'blockhead' && user.assignedBlock) 
+          ? user.assignedBlock 
+          : blockNameFromStorage;
+        
+        console.log('🏢 Block to fetch:', blockToFetch);
 
-          fetch(`http://localhost:5000/api/block/name/${encodeURIComponent(user.assignedBlock)}`)
-            .then(res => {
-              if (!res.ok) {
-                throw new Error(`Block "${user.assignedBlock}" not found`);
-              }
-              return res.json();
-            })
-            .then(data => setBlockData(data))
-            .catch(err => {
-              console.error('Error fetching block data:', err);
+        if (!blockToFetch) {
+          console.warn('No block name available');
+          return;
+        }
+
+        setBlockName(blockToFetch);
+
+        // Fetch block data with stats
+        fetch(`http://localhost:5000/api/block/name/${encodeURIComponent(blockToFetch)}`)
+          .then(res => {
+            if (!res.ok) {
+              throw new Error(`Block "${blockToFetch}" not found`);
+            }
+            return res.json();
+          })
+          .then(data => {
+            console.log('📊 Block data received:', data);
+            console.log('📊 Total Beds:', data.totalBeds);
+            console.log('📊 Vacant Beds:', data.vacantBeds);
+            console.log('📊 Room Type Counts:', data.roomTypeCounts);
+            
+            // Check if response has error message
+            if (data.message && !data.totalBeds) {
+              console.error('Backend error:', data.message);
+              return;
+            }
+            setBlockData(data);
+            if (data._id) {
+              localStorage.setItem('blockId', data._id);
+            }
+          })
+          .catch(err => {
+            console.error('Error fetching block data:', err);
+            if (user.userType === 'blockhead' && user.assignedBlock) {
               alert(`Assigned block "${user.assignedBlock}" does not exist. You will be logged out.`);
               localStorage.clear();
               window.location.href = '/login';
-            });
-        } else {
-          console.warn('User is not a blockhead or has no assigned block');
-        }
+            }
+          });
       })
-      .catch(err => console.error('Error fetching user data:', err));
+      .catch(err => {
+        console.error('Error fetching user data:', err);
+      });
   }, [pen, blockNameFromStorage]);
 
   const totalBeds = blockData?.totalBeds || 0;
