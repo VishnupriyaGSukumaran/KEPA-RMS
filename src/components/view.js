@@ -92,12 +92,88 @@ const ViewBlock = () => {
 
   const rooms = blockData.createdRooms || [];
 
+  const totalRooms = rooms.length;
+  const totalBedsComputed = rooms.reduce(
+    (sum, room) => sum + (room.beds?.length || room.bedCount || 0),
+    0
+  );
+  const allocatedBedsComputed = rooms.reduce((sum, room) => {
+    const allocated = room.beds
+      ? room.beds.filter(b => b.status === 'allocated').length
+      : room.allocatedBeds || 0;
+    return sum + allocated;
+  }, 0);
+  const vacantBedsComputed = totalBedsComputed - allocatedBedsComputed;
+
+  const roomTypeStats = rooms.reduce((acc, room) => {
+    const type = room.roomType || 'Unknown';
+    const totalBeds = room.beds?.length || room.bedCount || 0;
+    const allocatedBeds = room.beds
+      ? room.beds.filter(b => b.status === 'allocated').length
+      : room.allocatedBeds || 0;
+    const vacantBeds = totalBeds - allocatedBeds;
+
+    if (!acc[type]) {
+      acc[type] = {
+        totalBeds: 0,
+        allocatedBeds: 0,
+        vacantBeds: 0,
+        vacantRooms: 0,
+        partialRooms: 0,
+        allocatedRooms: 0,
+      };
+    }
+
+    acc[type].totalBeds += totalBeds;
+    acc[type].allocatedBeds += allocatedBeds;
+    acc[type].vacantBeds += vacantBeds;
+
+    if (allocatedBeds === 0) {
+      acc[type].vacantRooms += 1;
+    } else if (allocatedBeds >= totalBeds && totalBeds > 0) {
+      acc[type].allocatedRooms += 1;
+    } else {
+      acc[type].partialRooms += 1;
+    }
+
+    return acc;
+  }, {});
+
+  const getOccupantsForRoom = (room) => {
+    if (!room.beds?.length) return [];
+    return room.beds
+      .filter(bed => bed.status === 'allocated')
+      .map(bed => ({
+        name: bed.occupantName || 'Occupant',
+        bedNumber: bed.bedNumber,
+      }));
+  };
+
   return (
     <div className="view-block-container">
       <button className="back-btn" onClick={() => navigate(-1)}>← Back</button>
       
       <div className="block-header">
         <h2>{blockData.blockName} — Overview</h2>
+      </div>
+
+      <div className="summary-boxes">
+        <div className="box">
+          <p>Total Rooms</p>
+          <span>{totalRooms}</span>
+        </div>
+        <div className="box">
+          <p>Total Beds</p>
+          <span>{totalBedsComputed}</span>
+        </div>
+        <div className="box">
+          <p>Occupied Beds</p>
+          <span>{allocatedBedsComputed}</span>
+        </div>
+        <div className="box">
+          <p>Available Beds</p>
+          <span>{vacantBedsComputed}</span>
+        </div>
       </div>
 
       {/* Legend */}
@@ -115,7 +191,7 @@ const ViewBlock = () => {
 
       {/* Total Beds Card */}
       <div className="total-beds-card">
-        <h3>{blockData.totalBeds} TOTAL BEDS</h3>
+        <h3>{totalBedsComputed} TOTAL BEDS</h3>
       </div>
 
       {/* Room Type Statistics with Expandable Room Details */}
@@ -133,7 +209,7 @@ const ViewBlock = () => {
           </tr>
         </thead>
         <tbody>
-          {Object.entries(blockData.roomTypeStats || {}).map(([type, stats]) => (
+          {Object.entries(roomTypeStats).map(([type, stats]) => (
             <React.Fragment key={type}>
               <tr 
                 className="clickable-row" 
@@ -184,8 +260,10 @@ const ViewBlock = () => {
                         </thead>
                         <tbody>
                           {getRoomsByType(type).map((room, idx) => {
-                            const total = room.bedCount || 0;
-                            const allocated = room.allocatedBeds || 0;
+                            const total = room.beds?.length || room.bedCount || 0;
+                            const allocated = room.beds
+                              ? room.beds.filter(b => b.status === 'allocated').length
+                              : room.allocatedBeds || 0;
                             const vacant = total - allocated;
                             
                             let status = 'Vacant';
@@ -231,27 +309,16 @@ const ViewBlock = () => {
                                     <td colSpan="6" className="person-details-section">
                                       <div className="person-details">
                                         <h5>Occupants in {room.roomName}</h5>
-                                        {room.allocatedBeds > 0 ? (
+                                        {allocated > 0 ? (
                                           <div className="person-grid">
-                                            {/* Display allocated person details */}
-                                            {room.allocatedPersons && room.allocatedPersons.length > 0 ? (
-                                              room.allocatedPersons.map((person, pIdx) => (
-                                                <div key={pIdx} className="person-card">
-                                                  <div className="person-info">
-                                                    <p><strong>Name:</strong> {person.name || 'N/A'}</p>
-                                                    <p><strong>ID:</strong> {person.id || 'N/A'}</p>
-                                                    <p><strong>Department:</strong> {person.department || 'N/A'}</p>
-                                                    <p><strong>Phone:</strong> {person.phone || 'N/A'}</p>
-                                                    <p><strong>Email:</strong> {person.email || 'N/A'}</p>
-                                                    <p><strong>Bed Number:</strong> {person.bedNumber || 'N/A'}</p>
-                                                  </div>
+                                            {getOccupantsForRoom(room).map((person, pIdx) => (
+                                              <div key={pIdx} className="person-card">
+                                                <div className="person-info">
+                                                  <p><strong>Name:</strong> {person.name}</p>
+                                                  <p><strong>Bed Number:</strong> {person.bedNumber}</p>
                                                 </div>
-                                              ))
-                                            ) : (
-                                              <p className="no-data">
-                                                {allocated} bed(s) allocated but detailed person information not available.
-                                              </p>
-                                            )}
+                                              </div>
+                                            ))}
                                           </div>
                                         ) : (
                                           <p className="no-data">No occupants - Room is vacant</p>

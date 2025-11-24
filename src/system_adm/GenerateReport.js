@@ -660,6 +660,41 @@ const GenerateReport = () => {
   const renderFilterOptions = () => {
     switch (reportType) {
       case 'allocation':
+        return (
+          <>
+            <div className="filter-group">
+              <label>Date Filter Type</label>
+              <select 
+                value={dateFilterType} 
+                onChange={(e) => setDateFilterType(e.target.value)}
+              >
+                <option value="">Select Filter Type</option>
+                <option value="dateOnly">Date Only</option>
+                <option value="monthOnly">Month Only</option>
+                <option value="yearOnly">Year Only</option>
+                <option value="monthYear">Month & Year</option>
+                <option value="yearRange">Year Range</option>
+              </select>
+            </div>
+            {renderDateFilters()}
+
+            <div className="filter-group">
+              <label>Select Block</label>
+              <select
+                value={selectedBlock}
+                onChange={(e) => setSelectedBlock(e.target.value)}
+              >
+                <option value="">All Blocks</option>
+                {blocks.map(block => (
+                  <option key={block._id} value={block.blockName}>
+                    {block.blockName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </>
+        );
+
       case 'vacancy':
         return (
           <>
