@@ -15,10 +15,12 @@ const roomAllocationSchema = new mongoose.Schema({
   courseDetails: { type: String },
   remark: { type: String },
   roomNumber: { type: String, required: true },
+  bedIndex: { type: Number }, // ✅ ADD THIS LINE - stores which bed in the array (0-based index)
   allocationDate: { type: Date, required: true },
   purpose: { type: String, required: true },
   subPurpose: { type: String },
   block: { type: String, required: true },
+  blockName: { type: String }, // ✅ ADD THIS TOO for consistency
   allocatedBy: { type: String, required: true }
 }, { timestamps: true });
 

@@ -15,7 +15,7 @@ const ViewBlock = () => {
     const fetchBlockDetails = async () => {
       try {
         setLoading(true);
-        const url = `http://localhost:5000/api/block/details/${encodeURIComponent(blockName)}`;
+        const url = `http://localhost:5000/api/block/name/${encodeURIComponent(blockName)}`;
 
         console.log('🔍 Fetching:', url);
         

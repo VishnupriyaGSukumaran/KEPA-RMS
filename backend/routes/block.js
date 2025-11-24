@@ -3,6 +3,7 @@ const router = express.Router();
 const Block = require('../models/Block');
 const Room = require('../models/Room'); // Room model for deletion
 const Account = require('../models/Account');
+const RoomAllocation = require('../models/RoomAllocation');
 
 // Helper: Convert to Title Case
 function toTitleCase(input) {
@@ -100,9 +101,6 @@ router.get('/', async (req, res) => {
 });
 
 
-
-
-
 // ===== Get Block by Name (with stats) =====
 router.get('/name/:blockName', async (req, res) => {
   const rawName = req.params.blockName.replace(/%20/g, ' ');
@@ -122,43 +120,102 @@ router.get('/name/:blockName', async (req, res) => {
 
     console.log(`[BLOCK API] Block found: "${block.blockName}"`);
 
-    // Use the actual blockName from database (guaranteed correct format) to find rooms
-    // This ensures we match rooms regardless of case differences
-    const rooms = await Room.find({ 
+    // ✅ ALWAYS fetch fresh room data from Room collection (not from Block document)
+    let rooms = await Room.find({ 
       blockName: { $regex: `^${block.blockName}$`, $options: 'i' }
-    });
+    }).lean(); // Use .lean() for better performance
     
     console.log(`[BLOCK API] Querying rooms with blockName: "${block.blockName}"`);
     console.log(`[BLOCK API] Found ${rooms.length} rooms`);
 
-    // Calculate total beds - handle both bedCount and beds array
-    const totalBeds = rooms.reduce((sum, room) => {
-      if (room.bedCount) {
-        return sum + room.bedCount;
-      } else if (room.beds && Array.isArray(room.beds)) {
-        return sum + room.beds.length;
+    // ✅ Ensure room bed statuses reflect the latest allocations
+    const allocations = await RoomAllocation.find({
+      blockName: { $regex: `^${block.blockName}$`, $options: 'i' }
+    }).lean();
+
+    const allocationsByRoom = allocations.reduce((acc, allocation) => {
+      if (!allocation.roomNumber) return acc;
+      acc[allocation.roomNumber] = acc[allocation.roomNumber] || [];
+      acc[allocation.roomNumber].push(allocation);
+      return acc;
+    }, {});
+
+    const roomsNeedingUpdate = [];
+
+    rooms = rooms.map((room) => {
+      const bedCount = room.beds?.length || room.bedCount || 0;
+      let beds = Array.from({ length: bedCount }, (_, idx) => ({
+        bedNumber: room.beds?.[idx]?.bedNumber || idx + 1,
+        status: 'vacant',
+        occupantName: null
+      }));
+
+      const roomAllocations = allocationsByRoom[room.roomName] || [];
+      roomAllocations.forEach((allocation) => {
+        const idx = Number(allocation.bedIndex);
+        if (!Number.isNaN(idx) && beds[idx]) {
+          beds[idx].status = 'allocated';
+          beds[idx].occupantName = allocation.name || null;
+        } else {
+          const firstVacant = beds.find(bed => bed.status === 'vacant');
+          if (firstVacant) {
+            firstVacant.status = 'allocated';
+            firstVacant.occupantName = allocation.name || null;
+          }
+        }
+      });
+
+      const allocatedBedsCount = beds.filter(bed => bed.status === 'allocated').length;
+
+      const needsPersist =
+        JSON.stringify(room.beds ?? []) !== JSON.stringify(beds) ||
+        (room.allocatedBeds || 0) !== allocatedBedsCount;
+
+      if (needsPersist) {
+        roomsNeedingUpdate.push({
+          _id: room._id,
+          beds,
+          allocatedBeds: allocatedBedsCount
+        });
       }
-      return sum;
-    }, 0);
-    
-    // Calculate vacant beds
-    const vacantBeds = rooms.reduce((sum, room) => {
-      let total = 0;
-      if (room.bedCount) {
-        total = room.bedCount;
-      } else if (room.beds && Array.isArray(room.beds)) {
-        total = room.beds.length;
+
+      return {
+        ...room,
+        beds,
+        allocatedBeds: allocatedBedsCount
+      };
+    });
+
+    if (roomsNeedingUpdate.length) {
+      await Promise.all(
+        roomsNeedingUpdate.map((roomUpdate) =>
+          Room.updateOne(
+            { _id: roomUpdate._id },
+            { beds: roomUpdate.beds, allocatedBeds: roomUpdate.allocatedBeds }
+          )
+        )
+      );
+    }
+
+    // ✅ Calculate REAL-TIME stats from actual Room documents
+    let totalBeds = 0;
+    let vacantBeds = 0;
+
+    rooms.forEach(room => {
+      const roomTotal = room.beds?.length || room.bedCount || 0;
+      let roomVacant = 0;
+      
+      if (room.beds && Array.isArray(room.beds)) {
+        roomVacant = room.beds.filter(b => b.status === 'vacant').length;
+      } else {
+        roomVacant = roomTotal - (room.allocatedBeds || 0);
       }
       
-      let allocated = 0;
-      if (room.allocatedBeds !== undefined && room.allocatedBeds !== null) {
-        allocated = room.allocatedBeds;
-      } else if (room.beds && Array.isArray(room.beds)) {
-        allocated = room.beds.filter(bed => bed.status === 'allocated').length;
-      }
+      totalBeds += roomTotal;
+      vacantBeds += roomVacant;
       
-      return sum + (total - allocated);
-    }, 0);
+      console.log(`  Room ${room.roomName}: ${roomTotal} total, ${roomVacant} vacant, ${roomTotal - roomVacant} allocated`);
+    });
 
     const roomTypeCounts = rooms.reduce((acc, room) => {
       const type = room.roomType || 'Unknown';
@@ -166,21 +223,21 @@ router.get('/name/:blockName', async (req, res) => {
       return acc;
     }, {});
 
-    const totalRooms = roomTypeCounts['Room'] || 0;
+    const totalRooms = rooms.length;
     const dormitories = roomTypeCounts['Dormitory'] || 0;
 
     // Debug logging
     console.log(`[BLOCK STATS] Block: "${block.blockName}"`);
     console.log(`[BLOCK STATS] Rooms found: ${rooms.length}`);
-    console.log(`[BLOCK STATS] Total Beds: ${totalBeds}, Vacant: ${vacantBeds}`);
+    console.log(`[BLOCK STATS] Total Beds: ${totalBeds}, Vacant: ${vacantBeds}, Occupied: ${totalBeds - vacantBeds}`);
     console.log(`[BLOCK STATS] Room Types:`, roomTypeCounts);
-    console.log(`[BLOCK STATS] First room sample:`, rooms[0] ? {
-      blockName: rooms[0].blockName,
-      roomName: rooms[0].roomName,
-      bedCount: rooms[0].bedCount,
-      allocatedBeds: rooms[0].allocatedBeds
-    } : 'No rooms found');
 
+    // ✅ Update Block document with fresh stats
+    block.totalBeds = totalBeds;
+    block.vacantBeds = vacantBeds;
+    await block.save();
+
+    // ✅ CRITICAL FIX: Return fresh rooms data, NOT block.createdRooms
     res.status(200).json({
       _id: block._id,
       blockName: block.blockName,
@@ -191,24 +248,13 @@ router.get('/name/:blockName', async (req, res) => {
       roomTypeCounts,
       blockTypes: block.blockTypes,
       blockTypeDetails: block.blockTypeDetails,
-      createdRooms: rooms
+      createdRooms: rooms  // ✅ Return fresh room data from Room collection, NOT block.createdRooms
     });
   } catch (err) {
     console.error('Error fetching block by name:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -264,7 +264,8 @@ const AllocateForm = () => {
   };
 
   return (
-    <div className="allocate-room-container form-wrapper">
+  <div className="allocate-room-container">
+    <div className="form-wrapper">
       <h2>Room Allocation Form</h2>
       <form onSubmit={handleSubmit} className="allocation-form">
         <div className="form-group">
@@ -323,7 +324,8 @@ const AllocateForm = () => {
         </div>
       </form>
     </div>
-  );
+  </div>
+);
 };
 
 export default AllocateForm;

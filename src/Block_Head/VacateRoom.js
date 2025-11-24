@@ -14,38 +14,65 @@ const VacateRoom = () => {
   const navigate = useNavigate();
 
   const handleViewDetails = async () => {
-    if (!idValue) return alert('Please enter an ID value.');
+    if (!idValue) {
+      alert('Please enter an ID value.');
+      return;
+    }
 
     try {
       const res = await axios.post('http://localhost:5000/api/roomallocations/fetch-person',
         idType === 'pen' ? { pen: idValue } : { recruitmentNumber: idValue });
 
       setPersonDetails(res.data);
-      setName(res.data.name); // Autofill name from backend if present
+      setName(res.data.name);
     } catch (error) {
       alert(error.response?.data?.error || 'Error fetching details');
     }
   };
 
   const handleConfirmVacate = async () => {
-    if (!personDetails || !vacatingDate || !paid) {
-      alert('Please complete all fields.');
+    if (!personDetails) {
+      alert('Please click "View Details" first to fetch personnel information.');
+      return;
+    }
+
+    if (!vacatingDate || !paid) {
+      alert('Please complete Vacating Date and Paid fields.');
       return;
     }
 
     if (paid === 'No') {
       try {
+        console.log('🔴 Starting vacation for:', personDetails.name);
+        
+        // Delete the allocation
         await axios.delete(`http://localhost:5000/api/roomallocations/${personDetails._id}`);
-alert('Room vacated successfully.');
+        
+        console.log('✅ Vacation API call successful');
+        
+        // Clear any existing triggers
+        localStorage.removeItem('triggerViewBlockRefresh');
+        
+        // Wait for backend to complete
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Set trigger with unique timestamp
+        localStorage.setItem('triggerViewBlockRefresh', Date.now().toString());
+        
+        alert('Room vacated successfully.');
 
-// ✅ Trigger ViewBlock auto-refresh
-localStorage.setItem('triggerViewBlockRefresh', 'true');
-
-// Optional: redirect back to the block overview
-navigate(`/blockhead/ViewBlock/${encodeURIComponent(personDetails.block)}`);
+        // Navigate with force refresh state
+        navigate(`/blockhead/ViewBlock/${encodeURIComponent(personDetails.block)}`, {
+          replace: true,
+          state: { 
+            forceRefresh: true,
+            timestamp: Date.now()
+          }
+        });
 
       } catch (error) {
-        alert('Error vacating.');
+        console.error('Vacation error:', error);
+        alert(error.response?.data?.error || 'Error vacating room.');
       }
     } else {
       navigate('/payment', {
@@ -66,6 +93,7 @@ navigate(`/blockhead/ViewBlock/${encodeURIComponent(personDetails.block)}`);
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Enter name or wait for autofill"
+          disabled={!!personDetails}
         />
 
         <label>ID Type</label>
@@ -75,13 +103,22 @@ navigate(`/blockhead/ViewBlock/${encodeURIComponent(personDetails.block)}`);
         </select>
 
         <label>{idType === 'pen' ? 'PEN Number' : 'Recruitment Number'}</label>
-        <input value={idValue} onChange={(e) => setIdValue(e.target.value)} />
+        <input 
+          value={idValue} 
+          onChange={(e) => setIdValue(e.target.value)}
+          placeholder={`Enter ${idType === 'pen' ? 'PEN' : 'Recruitment'} Number`}
+        />
 
-        <label>Vacating Date</label>
-        <input type="date" value={vacatingDate} onChange={(e) => setVacatingDate(e.target.value)} />
+        <label>Vacating Date <span style={{color: 'red'}}>*</span></label>
+        <input 
+          type="date" 
+          value={vacatingDate} 
+          onChange={(e) => setVacatingDate(e.target.value)}
+          required
+        />
 
-        <label>Paid</label>
-        <select value={paid} onChange={(e) => setPaid(e.target.value)}>
+        <label>Paid <span style={{color: 'red'}}>*</span></label>
+        <select value={paid} onChange={(e) => setPaid(e.target.value)} required>
           <option value="">--Select--</option>
           <option value="Yes">Yes</option>
           <option value="No">No</option>
@@ -91,7 +128,16 @@ navigate(`/blockhead/ViewBlock/${encodeURIComponent(personDetails.block)}`);
       <div className="vacate-buttons">
         <button onClick={handleViewDetails}>View Details</button>
         <button onClick={() => window.location.reload()}>Cancel</button>
-        <button onClick={handleConfirmVacate}>Confirm Vacate</button>
+        <button 
+          onClick={handleConfirmVacate}
+          disabled={!personDetails}
+          style={{
+            opacity: !personDetails ? 0.5 : 1,
+            cursor: !personDetails ? 'not-allowed' : 'pointer'
+          }}
+        >
+          Confirm Vacate
+        </button>
       </div>
 
       {personDetails && (

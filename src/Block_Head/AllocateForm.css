@@ -1,138 +1,315 @@
-/* Container wrapper */
+/* ============================================
+   BLOCKHEAD ALLOCATION FORM - ATTRACTIVE UI
+   Matching Admin Allocation Order Design
+   ============================================ */
+
+/* Main Container */
 .form-wrapper {
-  max-width: 900px;
-  margin: 40px auto;
-  padding: 30px;
-  background-color: white;
+  max-width: 1000px;
+  width: 90%;
+  margin: 20px auto 100px auto;
+  padding: 0 0 50px 0; /* Increased bottom padding more */
+  background-color: #ffffff;
   border-radius: 16px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
-  font-family: 'Segoe UI', sans-serif;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow: visible;
+  position: relative;
+  min-height: 850px; /* Increased minimum height */
 }
 
-/* Title */
+.allocate-room-container {
+  background: transparent;
+  box-shadow: none;
+  padding: 20px 20px 200px 20px; /* Increased bottom padding significantly */
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 80px;
+}
+
+/* Title Section - Matching Admin Style */
 .form-wrapper h2 {
-  text-align: center;
-  margin-bottom: 30px;
-  color: #000080;
-  font-weight: bold;
+  color: #14008a;
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0;
+  padding: 28px 40px 20px 40px; /* Reduced top padding */
+  text-align: left;
+  border-bottom: 2px solid #f0f0f0;
+  background: linear-gradient(to right, #ffffff, #fafafa);
+  border-radius: 16px 16px 0 0;
 }
 
-/* Grid layout */
+/* Form Container */
 .allocation-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px 30px;
+  gap: 18px 28px;
+  padding: 24px 40px 850px 40px; /* Increased bottom padding even more */
+  align-items: start;
+  min-height: 750px; /* Increased minimum height */
 }
 
-/* Each field */
+/* Form Group - Consistent Styling */
 .form-group {
   display: flex;
   flex-direction: column;
+  margin: 0;
+  width: 100%;
+  min-height: 70px;
+  align-items: stretch;
 }
 
-/* Label */
+/* Labels - Clean and Consistent */
 .form-group label {
-  margin-bottom: 6px;
   font-weight: 600;
+  margin-bottom: 8px;
+  color: #2c3e50;
+  font-size: 14px;
+  line-height: 1.5;
+  display: block;
+  width: 100%;
+  letter-spacing: 0.2px;
 }
 
-/* Input & Textarea */
+/* Input Fields - All Same Height */
 .form-group input,
 .form-group textarea,
 .form-group select {
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 16px;
   width: 100%;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1.5px solid #e0e0e0;
   box-sizing: border-box;
-  transition: border-color 0.2s;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  background-color: #ffffff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333333;
+  height: 44px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.form-group input:hover,
+.form-group textarea:hover,
+.form-group select:hover {
+  border-color: #b0b0b0;
 }
 
 .form-group input:focus,
-.form-group textarea:focus {
+.form-group textarea:focus,
+.form-group select:focus {
   outline: none;
-  border-color: #000080;
+  border-color: #14008a;
+  box-shadow: 0 0 0 4px rgba(20, 0, 138, 0.08);
+  background-color: #ffffff;
 }
 
-/* Make elements span both columns */
+.form-group input[readonly] {
+  background-color: #f5f5f5;
+  cursor: default;
+  color: #666;
+  border-color: #d0d0d0;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: #999999;
+  font-size: 14px;
+}
+
+/* Textarea */
+.form-group textarea {
+  height: auto;
+  min-height: 80px;
+  resize: vertical;
+  line-height: 1.6;
+  padding: 12px 16px;
+  font-family: inherit;
+}
+
+/* Select Dropdown - Custom Arrow */
+.form-group select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2314008a' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 40px;
+}
+
+/* Full Width Elements */
 .full-width {
   grid-column: 1 / -1;
 }
 
-/* Room check button row */
+/* Room Check Section - Special Styling */
 .room-check {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
+  gap: 20px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  border: 1.5px solid #e0e0e0;
+  margin-top: 20px;
+  margin-bottom: 50px; /* Increased margin significantly */
+  min-height: 120px;
 }
 
-/* Adjust room input inside the row */
 .room-input {
   flex: 1;
-  margin-right: 10px;
+  margin-right: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.room-input label {
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
 }
 
 .room-input input {
   width: 100%;
 }
 
-/* Check vacancy button */
+/* Check Vacancy Button */
 .check-vacancy-btn {
-  padding: 10px 16px;
-  background-color: #000080;
+  padding: 12px 24px;
+  background-color: #14008a;
   color: white;
   border: none;
   border-radius: 8px;
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  height: 44px;
+  box-shadow: 0 2px 8px rgba(20, 0, 138, 0.2);
+  flex-shrink: 0;
+  min-width: 160px; /* Ensure button is wide enough */
+  align-self: flex-end; /* Align to bottom */
 }
 
 .check-vacancy-btn:hover {
-  background-color: #000066;
+  background-color: #0d0066;
+  box-shadow: 0 4px 12px rgba(20, 0, 138, 0.3);
+  transform: translateY(-1px);
 }
 
-/* Submit button */
+.check-vacancy-btn:active {
+  transform: translateY(0);
+}
+
+/* Submit Button - Matching Admin Style */
 .submit-btn {
-  padding: 12px 20px;
-  background-color: #007bff;
+  padding: 14px 32px;
+  background-color: #14008a;
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   width: 100%;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+  margin-top: 30px; /* Increased top margin */
+  margin-bottom: 60px; /* Increased bottom margin significantly */
+  height: 48px;
+  box-shadow: 0 4px 12px rgba(20, 0, 138, 0.25);
+  letter-spacing: 0.3px;
 }
 
 .submit-btn:hover {
-  background-color: #0056b3;
+  background-color: #0d0066;
+  box-shadow: 0 6px 16px rgba(20, 0, 138, 0.35);
+  transform: translateY(-1px);
 }
 
-/* Responsive layout for small screens */
+.submit-btn:active {
+  transform: translateY(0);
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
+  .form-wrapper {
+    width: 95%;
+    margin: 20px auto 60px auto;
+    border-radius: 12px;
+    padding-bottom: 40px;
+  }
+
+  .allocate-room-container {
+    padding: 10px;
+  }
+
+  .form-wrapper h2 {
+    font-size: 22px;
+    padding: 24px 25px 20px 25px;
+  }
+
   .allocation-form {
     grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 20px 25px 30px 25px;
+  }
+
+  .form-group {
+    min-height: auto;
   }
 
   .room-check {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    min-height: auto;
   }
 
   .room-input {
     width: 100%;
     margin-right: 0;
-    margin-bottom: 10px;
+    margin-bottom: 0;
   }
 
   .check-vacancy-btn {
     width: 100%;
+    min-width: unset;
   }
 
   .submit-btn {
     width: 100%;
+    height: 46px;
+    margin-bottom: 40px;
   }
+}
+
+/* Additional spacing fix for better field visibility */
+@media (min-width: 769px) and (max-height: 900px) {
+  .allocation-form {
+    gap: 16px 28px;
+  }
+  
+  .form-group {
+    min-height: 65px;
+  }
+  
+  .form-group textarea {
+    min-height: 70px;
+  }
+}
+
+/* Ensure proper spacing at the bottom of the page */
+body {
+  padding-bottom: 150px; /* Increased significantly */
+  overflow-x: hidden;
 }

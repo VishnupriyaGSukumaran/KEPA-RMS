@@ -1,53 +1,95 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import './ViewBlock.css';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 
 const ViewBlock = () => {
   const { blockName } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [blockData, setBlockData] = useState(null);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [fromAllocate, setFromAllocate] = useState(false);
-  const [allocationData, setAllocationData] = useState([]);
-
+  const [refreshKey, setRefreshKey] = useState(0);
+  
   const decodedBlockName = decodeURIComponent(blockName);
 
+  // ✅ Use useCallback to memoize the function
+  const fetchBlockData = useCallback(async (forceRefresh = false) => {
+    console.log('🔵 Fetching block data for:', decodedBlockName, 'Force:', forceRefresh);
+    try {
+      const timestamp = Date.now();
+      const random = Math.random();
+      const url = `http://localhost:5000/api/block/name/${encodeURIComponent(decodedBlockName)}?t=${timestamp}&r=${random}`;
+      
+      const response = await fetch(url, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      
+      if (!response.ok) throw new Error('Block not found');
+      const data = await response.json();
+      
+      console.log('📊 Block data received:', {
+        blockName: data.blockName,
+        totalBeds: data.totalBeds,
+        vacantBeds: data.vacantBeds,
+        occupiedBeds: data.totalBeds - data.vacantBeds,
+        roomsCount: data.createdRooms?.length
+      });
+      
+      data.createdRooms?.forEach(room => {
+        const allocated = room.beds?.filter(b => b.status === 'allocated').length || room.allocatedBeds || 0;
+        const vacant = (room.beds?.length || room.bedCount || 0) - allocated;
+        console.log(`  Room ${room.roomName}: ${allocated} allocated, ${vacant} vacant`);
+        console.log(`    Beds:`, room.beds?.map((b, i) => `${i}:${b.status}`).join(', '));
+      });
+      
+      setBlockData(data);
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      console.error('❌ Error fetching block data:', error);
+    }
+  }, [decodedBlockName]); // ✅ Add dependency
+
+  const fetchAllocations = useCallback(async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/allocations/block/${encodeURIComponent(decodedBlockName)}`);
+      const data = await response.json();
+      // If you need this data, add state: setAllocationData(data);
+      console.log('Allocations fetched:', data);
+    } catch (err) {
+      console.error('Failed to fetch allocation data:', err);
+    }
+  }, [decodedBlockName]); // ✅ Add dependency
+
   useEffect(() => {
-    const fetchBlockData = async () => {
-      try {
-        const response = await fetch(`http://localhost:5000/api/block/name/${encodeURIComponent(decodedBlockName)}`);
-        if (!response.ok) throw new Error('Block not found');
-        const data = await response.json();
-        setBlockData(data);
-      } catch (error) {
-        console.error('Error fetching block data:', error);
-      }
-    };
+    console.log('🚀 ViewBlock mounted/updated');
+    
+    fetchBlockData(true);
+    fetchAllocations();
 
-    localStorage.setItem('triggerViewBlockRefresh', 'true');
+    if (location.state?.forceRefresh) {
+      console.log('🔄 Force refresh from navigation state');
+      setTimeout(() => {
+        fetchBlockData(true);
+        fetchAllocations();
+      }, 200);
+    }
 
-    const fetchAllocations = async () => {
-      try {
-        const response = await fetch(`http://localhost:5000/api/allocations/block/${encodeURIComponent(decodedBlockName)}`);
-        const data = await response.json();
-        setAllocationData(data);
-      } catch (err) {
-        console.error('Failed to fetch allocation data:', err);
-      }
-    };
-
-    // ✅ Auto-refresh after vacate
     const refreshListener = setInterval(() => {
-      if (localStorage.getItem('triggerViewBlockRefresh') === 'true') {
-        fetchBlockData();
+      const trigger = localStorage.getItem('triggerViewBlockRefresh');
+      if (trigger) {
+        console.log('🔄 REFRESH TRIGGERED from localStorage');
+        fetchBlockData(true);
         fetchAllocations();
         localStorage.removeItem('triggerViewBlockRefresh');
       }
-    }, 1500);
-
-    fetchBlockData();
-    fetchAllocations();
+    }, 100);
 
     const isFromAllocate = localStorage.getItem('fromAllocateForm') === 'true';
     if (isFromAllocate) {
@@ -55,8 +97,11 @@ const ViewBlock = () => {
       localStorage.removeItem('fromAllocateForm');
     }
 
-    return () => clearInterval(refreshListener);
-  }, [decodedBlockName]);
+    return () => {
+      console.log('🛑 Cleanup');
+      clearInterval(refreshListener);
+    };
+  }, [decodedBlockName, location.state, fetchBlockData, fetchAllocations]); // ✅ Add all dependencies
 
   const getDotClass = (status) => {
     if (status === 'allocated') return 'dot red';
@@ -93,7 +138,7 @@ const ViewBlock = () => {
   }, {});
 
   return (
-    <div className="view-block-container">
+    <div className="view-block-container" key={refreshKey}>
       <h2>Block Overview - {blockData?.blockName || 'Loading...'}</h2>
 
       <div className="summary-boxes">
@@ -124,7 +169,7 @@ const ViewBlock = () => {
               </thead>
               <tbody>
                 {rooms.map(room => (
-                  <tr key={room._id}>
+                  <tr key={`${room._id}-${refreshKey}`}>
                     <td>{room.roomName}</td>
                     <td>{room.bedCount}</td>
                     <td>{room.allocatedBeds || 0}</td>
@@ -153,13 +198,13 @@ const ViewBlock = () => {
                 </thead>
                 <tbody>
                   {rooms.map((room) => (
-                    <tr key={room._id}>
+                    <tr key={`${room._id}-${refreshKey}`}>
                       <td><span className={getDotClass(computeRoomStatus(room.beds))}></span></td>
                       <td>{room.roomName}</td>
                       <td>
                         {room.beds?.map((bed, i) => (
                           <span
-                            key={i}
+                            key={`${room._id}-bed-${i}-${refreshKey}`}
                             className={getDotClass(bed.status)}
                             title={`Bed ${bed.bedNumber}: ${bed.status}${bed.occupantName ? ` - ${bed.occupantName}` : ''}`}
                             onClick={() => {

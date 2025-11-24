@@ -3,6 +3,98 @@ const express = require('express');
 const router = express.Router();
 const RoomAllocation = require('../models/RoomAllocation');
 const Room = require('../models/Room'); // ✅ import Room model
+const Block = require('../models/Block');
+
+// ---------------------------------------------
+// Helper utilities to keep Room + Block in sync
+// ---------------------------------------------
+async function syncRoomBeds(blockName, roomNumber) {
+  const room = await Room.findOne({
+    blockName: { $regex: `^${blockName}$`, $options: 'i' },
+    roomName: roomNumber
+  });
+
+  if (!room) {
+    console.log('⚠️ syncRoomBeds: Room not found for', blockName, roomNumber);
+    return null;
+  }
+
+  const bedCount = room.bedCount || room.beds?.length || 0;
+  if (bedCount === 0) {
+    return room;
+  }
+
+  // Ensure bed array exists and matches bedCount
+  if (!room.beds || room.beds.length !== bedCount) {
+    room.beds = Array.from({ length: bedCount }, (_, i) => ({
+      bedNumber: i + 1,
+      status: 'vacant',
+      occupantName: null
+    }));
+  } else {
+    room.beds = room.beds.map((bed, idx) => ({
+      bedNumber: bed?.bedNumber || idx + 1,
+      status: 'vacant',
+      occupantName: null
+    }));
+  }
+
+  // Fetch active allocations for this room
+  const allocations = await RoomAllocation.find({
+    blockName: { $regex: `^${blockName}$`, $options: 'i' },
+    roomNumber
+  });
+
+  allocations.forEach(allocation => {
+    const idx = Number(allocation.bedIndex);
+    if (!Number.isNaN(idx) && room.beds[idx]) {
+      room.beds[idx].status = 'allocated';
+      room.beds[idx].occupantName = allocation.name || null;
+    } else {
+      const vacantBed = room.beds.find(b => b.status === 'vacant');
+      if (vacantBed) {
+        vacantBed.status = 'allocated';
+        vacantBed.occupantName = allocation.name || null;
+      }
+    }
+  });
+
+  room.allocatedBeds = room.beds.filter(b => b.status === 'allocated').length;
+  room.markModified('beds');
+  await room.save();
+  return room;
+}
+
+async function syncBlockStats(blockName) {
+  const block = await Block.findOne({
+    blockName: { $regex: `^${blockName}$`, $options: 'i' }
+  });
+
+  if (!block) {
+    console.log('⚠️ syncBlockStats: Block not found for', blockName);
+    return;
+  }
+
+  const rooms = await Room.find({
+    blockName: { $regex: `^${blockName}$`, $options: 'i' }
+  });
+
+  let totalBeds = 0;
+  let vacantBeds = 0;
+
+  rooms.forEach(room => {
+    const roomTotal = room.beds?.length || room.bedCount || 0;
+    const roomVacant = room.beds?.filter(b => b.status === 'vacant').length
+      ?? (roomTotal - (room.allocatedBeds || 0));
+
+    totalBeds += roomTotal;
+    vacantBeds += roomVacant;
+  });
+
+  block.totalBeds = totalBeds;
+  block.vacantBeds = vacantBeds;
+  await block.save();
+}
 
 // ✅ Allocate Room / Bed
 router.post('/', async (req, res) => {
@@ -32,37 +124,20 @@ router.post('/', async (req, res) => {
       }
     }
 
-    // ✅ Create allocation record
+    // ✅ Create allocation record - EXPLICITLY include bedIndex and blockName
     const newAllocation = new RoomAllocation({
       ...data,
-      block: data.blockName
+      block: data.blockName,
+      blockName: data.blockName, // ✅ Ensure blockName is saved
+      bedIndex: data.bedIndex    // ✅ Explicitly save bedIndex
     });
+    
+    console.log('💾 Saving allocation with bedIndex:', data.bedIndex); // Debug log
     await newAllocation.save();
 
-    // ✅ Update Room document — handle individual bed status
-    const room = await Room.findOne({ blockName: data.blockName, roomName: data.roomNumber });
-
-    if (room) {
-      // Ensure bed array exists
-      if (!room.beds) {
-        room.beds = Array.from({ length: room.bedCount || 0 }, (_, i) => ({
-          bedNumber: i + 1,
-          status: 'vacant',
-          occupantName: null,
-        }));
-      }
-
-      const bedIndex = data.bedIndex;
-      if (room.beds[bedIndex]) {
-        room.beds[bedIndex].status = 'allocated';
-        room.beds[bedIndex].occupantName = data.name || null;
-      }
-
-      // Update allocatedBeds count safely
-      room.allocatedBeds = room.beds.filter(b => b.status === 'allocated').length;
-
-      await room.save();
-    }
+    // ✅ Re-sync room beds + block statistics to ensure UI accuracy
+    await syncRoomBeds(data.blockName, data.roomNumber);
+    await syncBlockStats(data.blockName);
 
     res.status(201).json({
       success: true,
@@ -95,58 +170,58 @@ router.post('/fetch-person', async (req, res) => {
   }
 });
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /// ✅ Vacate allocation — free bed & update status and block counts
 router.delete('/:id', async (req, res) => {
   try {
-    const allocation = await RoomAllocation.findByIdAndDelete(req.params.id);
-
-    if (allocation) {
-      const room = await Room.findOne({
-        blockName: allocation.blockName,
-        roomName: allocation.roomNumber,
-      });
-
-      if (room && Array.isArray(room.beds)) {
-        // Find bed occupied by this person
-        const bed = room.beds.find(
-          (b) => b.occupantName === allocation.name && b.status === 'allocated'
-        );
-
-        if (bed) {
-          bed.status = 'vacant';
-          bed.occupantName = null;
-        }
-
-        // Recalculate allocated count
-        room.allocatedBeds = room.beds.filter((b) => b.status === 'allocated').length;
-
-        await room.save();
-      }
-
-      // ✅ Update block vacant beds count (to reflect on top cards)
-      const Block = require('../models/Block');
-      const block = await Block.findOne({ blockName: allocation.blockName });
-      if (block) {
-        // recalculate from all rooms
-        const allRooms = await Room.find({ blockName: block.blockName });
-        const totalBeds = allRooms.reduce(
-          (sum, r) => sum + (r.bedCount || 0),
-          0
-        );
-        const vacantBeds = allRooms.reduce(
-          (sum, r) => sum + (r.beds?.filter((b) => b.status === 'vacant').length || 0),
-          0
-        );
-
-        block.totalBeds = totalBeds;
-        block.vacantBeds = vacantBeds;
-        await block.save();
-      }
+    console.log('🔴 VACATE REQUEST RECEIVED - ID:', req.params.id);
+    
+    const allocation = await RoomAllocation.findById(req.params.id);
+    
+    if (!allocation) {
+      console.log('❌ Allocation not found');
+      return res.status(404).json({ error: 'Allocation not found.' });
     }
 
-    res.status(200).json({ success: true, message: 'Room vacated successfully.' });
+    console.log('📋 Found allocation:', {
+      name: allocation.name,
+      block: allocation.blockName,
+      room: allocation.roomNumber,
+      bedIndex: allocation.bedIndex
+    });
+
+    const { blockName, roomNumber, bedIndex } = allocation;
+
+    // Delete allocation first
+    await RoomAllocation.findByIdAndDelete(req.params.id);
+    console.log('✅ Allocation deleted from RoomAllocation collection');
+
+    // Re-sync room beds + block stats to ensure UI reflects new state
+    await syncRoomBeds(blockName, roomNumber);
+    await syncBlockStats(blockName);
+
+    console.log('✅✅✅ VACATE COMPLETED SUCCESSFULLY');
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Room vacated successfully.'
+    });
   } catch (err) {
-    console.error('Vacate error:', err);
+    console.error('❌❌❌ VACATE ERROR:', err);
     res.status(500).json({ error: 'Failed to vacate room.' });
   }
 });
