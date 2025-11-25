@@ -197,27 +197,61 @@ router.post("/vacancy", async (req, res) => {
 });
 
 // ✅ BLOCK REPORT
+// ✅ BLOCK REPORT
 router.post("/block", async (req, res) => {
   try {
     console.log('🟢 BLOCK REPORT ROUTE HIT');
-    const blocks = await Block.find().lean();
+    console.log('Request body:', req.body);
+
+    const { blockName } = req.body;
+    const blockQuery = blockName ? { blockName } : {};
+
+    const blocks = await Block.find(blockQuery).lean();
+    console.log(`Found ${blocks.length} blocks`);
+
+    const detailedData = await Promise.all(blocks.map(async (block) => {
+      const rooms = await Room.find({ blockName: block.blockName }).lean();
+
+      const totalRooms = rooms.length;
+      const totalBeds = rooms.reduce((sum, room) => sum + (room.bedCount || 0), 0);
+      const allocatedBeds = rooms.reduce((sum, room) => sum + (room.allocatedBeds || 0), 0);
+      const vacantBeds = totalBeds - allocatedBeds;
+      const occupancyRate = totalBeds > 0 ? `${((allocatedBeds / totalBeds) * 100).toFixed(1)}%` : '0%';
+
+      return {
+        blockName: block.blockName,
+        totalRooms,
+        totalBeds,
+        allocatedBeds,
+        vacantBeds,
+        occupancyRate,
+        status: allocatedBeds === 0 ? 'Empty' : allocatedBeds === totalBeds ? 'Full' : 'Partial'
+      };
+    }));
+
     const summary = {
       totalBlocks: blocks.length,
+      filteredBy: blockName || 'All Blocks',
+      totalRooms: detailedData.reduce((sum, b) => sum + b.totalRooms, 0),
+      totalBeds: detailedData.reduce((sum, b) => sum + b.totalBeds, 0),
+      totalAllocated: detailedData.reduce((sum, b) => sum + b.allocatedBeds, 0),
+      totalVacant: detailedData.reduce((sum, b) => sum + b.vacantBeds, 0)
     };
 
     res.status(200).json({
       success: true,
       report: { summary, reportTitle: "Block Report" },
-      data: blocks,
+      data: detailedData,
     });
   } catch (error) {
     console.error("❌ Block report error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: "Failed to generate block report" 
+      error: "Failed to generate block report: " + error.message
     });
   }
 });
+
 
 // ✅ ADMIN REPORT
 router.post("/admin", async (req, res) => {
@@ -242,15 +276,64 @@ router.post("/admin", async (req, res) => {
 });
 
 // ✅ BLOCKHEAD REPORT
+// ✅ BLOCKHEAD REPORT - FIXED VERSION
 router.post("/blockhead", async (req, res) => {
   try {
     console.log('🟢 BLOCKHEAD REPORT ROUTE HIT');
-    const blockheads = await Account.find({ role: "BlockHead" }).lean();
+    console.log('Request body:', req.body);
+    
+    const { blockName } = req.body;
+    
+    // Build base query for blockheads - check multiple possible field values
+    let query = { 
+      $or: [
+        { role: "BlockHead" },
+        { role: "blockhead" },
+        { userType: "blockhead" }
+      ]
+    };
+    
+    // If specific block is selected, add to query
+    if (blockName && blockName !== '' && blockName !== 'All Blocks') {
+      // Add block filter to each OR condition
+      query = {
+        $and: [
+          { $or: [
+            { role: "BlockHead" },
+            { role: "blockhead" },
+            { userType: "blockhead" }
+          ]},
+          { assignedBlock: blockName }
+        ]
+      };
+    }
+    
+    console.log('Mongoose Query:', JSON.stringify(query, null, 2));
+    
+    const blockheads = await Account.find(query).lean();
+    console.log(`Found ${blockheads.length} block heads`);
+    
+    if (blockheads.length > 0) {
+      console.log('Sample data:', blockheads[0]);
+    } else {
+      console.log('No blockheads found. Checking all users with role/userType fields...');
+      const allUsers = await Account.find({}).select('role userType assignedBlock pen firstName lastName').limit(5).lean();
+      console.log('Sample users in database:', allUsers);
+    }
+    
+    const summary = {
+      totalBlockHeads: blockheads.length,
+      filteredBy: blockName || 'All Blocks',
+      generatedAt: new Date().toISOString()
+    };
+    
     res.status(200).json({
       success: true,
       report: {
-        summary: { totalBlockHeads: blockheads.length },
-        reportTitle: "Block Head Report",
+        summary,
+        reportTitle: blockName && blockName !== 'All Blocks'
+          ? `Block Head Report - ${blockName}` 
+          : "Block Head Report - All Blocks",
       },
       data: blockheads,
     });
@@ -258,7 +341,7 @@ router.post("/blockhead", async (req, res) => {
     console.error("❌ Blockhead report error:", error);
     res.status(500).json({ 
       success: false,
-      error: "Failed to generate blockhead report" 
+      error: "Failed to generate blockhead report: " + error.message 
     });
   }
 });

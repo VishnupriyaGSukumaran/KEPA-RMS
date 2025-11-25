@@ -184,7 +184,7 @@ const GenerateReport = () => {
       case 'admin':
         return selectedYear !== '' || (selectedMonth !== '' && selectedYear !== '');
       case 'blockhead':
-        return selectedBlock !== '';
+        return true;
       default:
         return false;
     }
@@ -297,6 +297,22 @@ const GenerateReport = () => {
             item.status || '-'
           ]);
           break;
+
+                    case 'block':
+          headers = ['Block Name', 'Total Rooms', 'Total Beds', 'Allocated', 'Vacant', 'Occupancy', 'Status'];
+          tableData = reportData.data.map(item => [
+            item.blockName || '-',
+            item.totalRooms || '0',
+            item.totalBeds || '0',
+            item.allocatedBeds || '0',
+            item.vacantBeds || '0',
+            item.occupancyRate || '0%',
+            item.status || '-'
+          ]);
+          break;
+
+
+
         case 'admin':
           headers = ['Name', 'Email', 'PEN Number', 'Phone Number'];
           tableData = reportData.data.map(item => [
@@ -385,6 +401,27 @@ const GenerateReport = () => {
           item.status
         ]);
         break;
+
+
+
+      case 'block':
+        headers = ['Block Name', 'Total Rooms', 'Total Beds', 'Allocated Beds', 'Vacant Beds', 'Occupancy Rate', 'Status'];
+        rows = reportData.data.map(item => [
+          item.blockName,
+          item.totalRooms || '0',
+          item.totalBeds || '0',
+          item.allocatedBeds || '0',
+          item.vacantBeds || '0',
+          item.occupancyRate || '0%',
+          item.status
+        ]);
+        break;
+
+
+
+
+
+
       
       case 'admin':
         headers = ['Name', 'Email', 'PEN Number', 'Phone Number'];
@@ -779,7 +816,7 @@ const GenerateReport = () => {
               value={selectedBlock}
               onChange={(e) => setSelectedBlock(e.target.value)}
             >
-              <option value="">Select Block</option>
+              <option value="">All Blocks</option> 
               {blocks.map(block => (
                 <option key={block._id} value={block.blockName}>
                   {block.blockName}
@@ -789,23 +826,28 @@ const GenerateReport = () => {
           </div>
         );
 
-      case 'block':
-        return (
-          <div className="filter-group">
-            <label>Block (Optional)</label>
-            <select
-              value={selectedBlock}
-              onChange={(e) => setSelectedBlock(e.target.value)}
-            >
-              <option value="">All Blocks</option>
-              {blocks.map(block => (
-                <option key={block._id} value={block.blockName}>
-                  {block.blockName}
-                </option>
-              ))}
-            </select>
-          </div>
-        );
+      
+                 case 'block':
+      return (
+        <div className="filter-group">
+          <label>Select Block (Optional)</label>
+          <select
+            value={selectedBlock}
+            onChange={(e) => setSelectedBlock(e.target.value)}
+          >
+            <option value="">All Blocks</option>
+            {blocks.map(block => (
+              <option key={block._id} value={block.blockName}>
+                {block.blockName}
+              </option>
+            ))}
+          </select>
+        </div>
+      );
+
+
+
+
 
       default:
         return null;
@@ -880,6 +922,46 @@ const GenerateReport = () => {
             </div>
           </div>
         );
+
+
+
+case 'block':
+  return (
+    <div className="table-wrapper">
+      <div className="table-container">
+        <table className="report-table">
+          <thead>
+            <tr>
+              <th>Block Name</th>
+              <th>Total Rooms</th>
+              <th>Total Beds</th>
+              <th>Allocated Beds</th>
+              <th>Vacant Beds</th>
+              <th>Occupancy Rate</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reportData.data.map((item, idx) => (
+              <tr key={idx}>
+                <td>{item.blockName || '-'}</td>
+                <td>{item.totalRooms || 0}</td>
+                <td>{item.totalBeds || 0}</td>
+                <td>{item.allocatedBeds || 0}</td>
+                <td>{item.vacantBeds || 0}</td>
+                <td>{item.occupancyRate || '0%'}</td>
+                <td>{item.status || '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+
+
+
 
       case 'admin':
         return (
