@@ -4,19 +4,7 @@
    ============================================ */
 
 /* Main Container */
-.form-wrapper {
-  max-width: 1000px;
-  width: 90%;
-  margin: 20px auto 100px auto;
-  padding: 0 0 50px 0; /* Increased bottom padding more */
-  background-color: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  overflow: visible;
-  position: relative;
-  min-height: 850px; /* Increased minimum height */
-}
+
 
 .allocate-room-container {
   background: transparent;
@@ -45,12 +33,14 @@
 
 /* Form Container */
 .allocation-form {
+  margin: auto;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px 28px;
   padding: 24px 40px 850px 40px; /* Increased bottom padding even more */
   align-items: start;
-  min-height: 750px; /* Increased minimum height */
+  min-height: 1050px;
+   min-width: 750px; /* Increased minimum height */
 }
 
 /* Form Group - Consistent Styling */
@@ -153,11 +143,11 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 20px;
-  padding: 20px;
+  padding: 5px;
   background-color: #f8f9fa;
   border-radius: 10px;
   border: 1.5px solid #e0e0e0;
-  margin-top: 20px;
+  margin-top: 0px;
   margin-bottom: 50px; /* Increased margin significantly */
   min-height: 120px;
 }

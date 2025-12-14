@@ -12,6 +12,9 @@ const VacateRoom = () => {
   const [paid, setPaid] = useState('');
   const [personDetails, setPersonDetails] = useState(null);
   const navigate = useNavigate();
+   const handleBackClick = () => {
+    navigate(-1);
+    };
 
   const handleViewDetails = async () => {
     if (!idValue) {
@@ -85,7 +88,9 @@ const VacateRoom = () => {
   };
 
   return (
+    
     <div className="vacate-container">
+      <button className="back-button" onClick={handleBackClick}>← Back</button>
       <h2>Vacate Personnel</h2>
       <div className="vacate-form-group">
         <label>Name (Optional - will autofill on View)</label>

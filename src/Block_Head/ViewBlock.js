@@ -9,12 +9,12 @@ const ViewBlock = () => {
   const [blockData, setBlockData] = useState(null);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showBedModal, setShowBedModal] = useState(false);
   const [fromAllocate, setFromAllocate] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   
   const decodedBlockName = decodeURIComponent(blockName);
 
-  // ✅ Use useCallback to memoize the function
   const fetchBlockData = useCallback(async (forceRefresh = false) => {
     console.log('🔵 Fetching block data for:', decodedBlockName, 'Force:', forceRefresh);
     try {
@@ -54,18 +54,17 @@ const ViewBlock = () => {
     } catch (error) {
       console.error('❌ Error fetching block data:', error);
     }
-  }, [decodedBlockName]); // ✅ Add dependency
+  }, [decodedBlockName]);
 
   const fetchAllocations = useCallback(async () => {
     try {
       const response = await fetch(`http://localhost:5000/api/allocations/block/${encodeURIComponent(decodedBlockName)}`);
       const data = await response.json();
-      // If you need this data, add state: setAllocationData(data);
       console.log('Allocations fetched:', data);
     } catch (err) {
       console.error('Failed to fetch allocation data:', err);
     }
-  }, [decodedBlockName]); // ✅ Add dependency
+  }, [decodedBlockName]);
 
   useEffect(() => {
     console.log('🚀 ViewBlock mounted/updated');
@@ -101,7 +100,7 @@ const ViewBlock = () => {
       console.log('🛑 Cleanup');
       clearInterval(refreshListener);
     };
-  }, [decodedBlockName, location.state, fetchBlockData, fetchAllocations]); // ✅ Add all dependencies
+  }, [decodedBlockName, location.state, fetchBlockData, fetchAllocations]);
 
   const getDotClass = (status) => {
     if (status === 'allocated') return 'dot red';
@@ -122,6 +121,11 @@ const ViewBlock = () => {
     setShowModal(true);
   };
 
+  const openBedView = (room) => {
+    setSelectedRoom(room);
+    setShowBedModal(true);
+  };
+
   const goBackToForm = () => {
     const purpose = localStorage.getItem('purpose');
     if (purpose) {
@@ -129,6 +133,10 @@ const ViewBlock = () => {
     } else {
       navigate(-1);
     }
+  };
+    // ✅ NEW: Back button handler
+  const handleBackClick = () => {
+    navigate(-1);
   };
 
   const groupedRoomsByType = blockData?.createdRooms?.reduce((acc, room) => {
@@ -139,6 +147,7 @@ const ViewBlock = () => {
 
   return (
     <div className="view-block-container" key={refreshKey}>
+       <button className="back-button" onClick={handleBackClick}>← Back</button>
       <h2>Block Overview - {blockData?.blockName || 'Loading...'}</h2>
 
       <div className="summary-boxes">
@@ -156,30 +165,59 @@ const ViewBlock = () => {
       {groupedRoomsByType && Object.entries(groupedRoomsByType).map(([type, rooms]) => (
         <div key={type}>
           <h3>{type} Overview</h3>
+          
+          {/* ✅ UNIFIED TABLE STRUCTURE FOR ALL ROOM TYPES */}
           {['Dormitory', 'Barrack'].includes(type) ? (
-            <table className="overview-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Capacity</th>
-                  <th>Occupied Beds</th>
-                  <th>Available</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rooms.map(room => (
-                  <tr key={`${room._id}-${refreshKey}`}>
-                    <td>{room.roomName}</td>
-                    <td>{room.bedCount}</td>
-                    <td>{room.allocatedBeds || 0}</td>
-                    <td>{(room.bedCount || 0) - (room.allocatedBeds || 0)}</td>
-                    <td><button onClick={() => openDetail(room)}>👁️ View</button></td>
+            // Dormitory & Barrack - Simple table with View Beds button
+            <>
+              <div className="dot-legend">
+                <span className="dot green"></span> Vacant
+                <span className="dot red"></span> Allocated
+              </div>
+              <table className="overview-table">
+                <thead>
+                  <tr>
+                    <th>Status</th>
+                    <th>Name</th>
+                    <th>Capacity</th>
+                    <th>Occupied Beds</th>
+                    <th>Available</th>
+                    <th>Structure</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {rooms.map(room => {
+                    const totalBeds = room.beds?.length || room.bedCount || 0;
+                    const occupiedBeds = room.allocatedBeds || 0;
+                    const availableBeds = totalBeds - occupiedBeds;
+                    const roomStatus = occupiedBeds === 0 ? 'vacant' : 
+                                      occupiedBeds === totalBeds ? 'allocated' : 'partial';
+                    
+                    return (
+                      <tr key={`${room._id}-${refreshKey}`}>
+                        <td><span className={getDotClass(roomStatus)}></span></td>
+                        <td>{room.roomName}</td>
+                        <td>{totalBeds}</td>
+                        <td>{occupiedBeds}</td>
+                        <td>{availableBeds}</td>
+                        <td>
+                          <button 
+                            className="view-beds-btn"
+                            onClick={() => openBedView(room)}
+                          >
+                            View Beds ({totalBeds})
+                          </button>
+                        </td>
+                        <td><button onClick={() => openDetail(room)}>👁️ View Details</button></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </>
           ) : (
+            // Suite Room, Single Room, etc. - Detailed table with features
             <>
               <div className="dot-legend">
                 <span className="dot green"></span> Vacant
@@ -202,20 +240,12 @@ const ViewBlock = () => {
                       <td><span className={getDotClass(computeRoomStatus(room.beds))}></span></td>
                       <td>{room.roomName}</td>
                       <td>
-                        {room.beds?.map((bed, i) => (
-                          <span
-                            key={`${room._id}-bed-${i}-${refreshKey}`}
-                            className={getDotClass(bed.status)}
-                            title={`Bed ${bed.bedNumber}: ${bed.status}${bed.occupantName ? ` - ${bed.occupantName}` : ''}`}
-                            onClick={() => {
-                              if (fromAllocate && bed.status === 'vacant') {
-                                localStorage.setItem('selectedRoom', room.roomName);
-                                localStorage.setItem('selectedBedNumber', bed.bedNumber);
-                                navigate(`/blockhead/AllocateForm/${localStorage.getItem('purpose')}`);
-                              }
-                            }}
-                          ></span>
-                        ))}
+                        <button 
+                          className="view-beds-btn"
+                          onClick={() => openBedView(room)}
+                        >
+                          View Beds ({room.beds?.length || 0})
+                        </button>
                       </td>
                       <td>
                         {[room.isAC && 'AC', room.attachedBathroom && 'Attached Bathroom']
@@ -223,7 +253,7 @@ const ViewBlock = () => {
                           .concat(Object.keys(room.additionalFacilities || {}))
                           .join(', ') || '-'}
                       </td>
-                      <td><button onClick={() => openDetail(room)}>👁️ View</button></td>
+                      <td><button onClick={() => openDetail(room)}>👁️ View Details</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -233,21 +263,105 @@ const ViewBlock = () => {
         </div>
       ))}
 
-      {showModal && (
-        <div className="modal">
-          <div className="modal-content">
-            <h3>{selectedRoom?.roomName} - Details</h3>
-            {selectedRoom?.beds?.length ? (
-              <ul>
-                {selectedRoom.beds.map((bed, idx) => (
-                  <li key={idx}>
-                    Bed {bed.bedNumber}: {bed.status}{bed.occupantName ? ` - ${bed.occupantName}` : ''}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>Occupied: {selectedRoom.allocatedBeds || 0}</p>
+      {/* ✅ BED VIEW MODAL - WORKS FOR ALL ROOM TYPES */}
+      {showBedModal && selectedRoom && (
+        <div className="modal" onClick={() => setShowBedModal(false)}>
+          <div className="modal-content bed-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>{selectedRoom.roomName} - Bed Allocation</h3>
+            <div className="bed-modal-legend">
+              <span className="dot green"></span> Vacant
+              <span className="dot red"></span> Allocated
+            </div>
+            
+            <div className="bed-stats">
+              <div className="stat-item">
+                <strong>Total Beds:</strong> <span>{selectedRoom.beds?.length || selectedRoom.bedCount || 0}</span>
+              </div>
+              <div className="stat-item">
+                <strong>Occupied:</strong> <span>{selectedRoom.allocatedBeds || 0}</span>
+              </div>
+              <div className="stat-item">
+                <strong>Available:</strong> <span>{(selectedRoom.beds?.length || selectedRoom.bedCount || 0) - (selectedRoom.allocatedBeds || 0)}</span>
+              </div>
+            </div>
+
+            <div className="bed-grid">
+              {selectedRoom.beds?.map((bed, idx) => (
+                <div
+                  key={`${selectedRoom._id}-bed-${idx}-${refreshKey}`}
+                  className={`bed-item ${bed.status}`}
+                  onClick={() => {
+                    if (fromAllocate && bed.status === 'vacant') {
+                      localStorage.setItem('selectedRoom', selectedRoom.roomName);
+                      localStorage.setItem('selectedBedNumber', bed.bedNumber);
+                      navigate(`/blockhead/AllocateForm/${localStorage.getItem('purpose')}`);
+                    }
+                  }}
+                  style={{ cursor: fromAllocate && bed.status === 'vacant' ? 'pointer' : 'default' }}
+                >
+                  <span className={getDotClass(bed.status)}></span>
+                  <div className="bed-info">
+                    <strong>Bed {bed.bedNumber}</strong>
+                    <small className={bed.status === 'allocated' ? 'status-allocated' : 'status-vacant'}>
+                      {bed.status}
+                    </small>
+                    {bed.occupantName && <small className="occupant">👤 {bed.occupantName}</small>}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {fromAllocate && (
+              <p className="allocation-hint">💡 Click on a vacant bed to select it for allocation</p>
             )}
+            
+            <button className="modal-close-btn" onClick={() => setShowBedModal(false)}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ DETAILS MODAL */}
+      {showModal && selectedRoom && (
+        <div className="modal" onClick={() => setShowModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>{selectedRoom.roomName} - Full Details</h3>
+            
+            <div className="detail-section">
+              <h4>Room Information</h4>
+              <p><strong>Type:</strong> {selectedRoom.roomType}</p>
+              <p><strong>Total Capacity:</strong> {selectedRoom.beds?.length || selectedRoom.bedCount || 0} beds</p>
+              <p><strong>Occupied:</strong> {selectedRoom.allocatedBeds || 0} beds</p>
+              <p><strong>Available:</strong> {(selectedRoom.beds?.length || selectedRoom.bedCount || 0) - (selectedRoom.allocatedBeds || 0)} beds</p>
+            </div>
+
+            {selectedRoom.beds?.length > 0 && (
+              <div className="detail-section">
+                <h4>Bed Details</h4>
+                <ul className="bed-detail-list">
+                  {selectedRoom.beds.map((bed, idx) => (
+                    <li key={idx} className={bed.status}>
+                      <span className={getDotClass(bed.status)}></span>
+                      <strong>Bed {bed.bedNumber}:</strong> {bed.status}
+                      {bed.occupantName && ` - ${bed.occupantName}`}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {(selectedRoom.isAC || selectedRoom.attachedBathroom || Object.keys(selectedRoom.additionalFacilities || {}).length > 0) && (
+              <div className="detail-section">
+                <h4>Features</h4>
+                <ul className="features-list">
+                  {selectedRoom.isAC && <li>✓ Air Conditioned</li>}
+                  {selectedRoom.attachedBathroom && <li>✓ Attached Bathroom</li>}
+                  {Object.keys(selectedRoom.additionalFacilities || {}).map(feature => (
+                    <li key={feature}>✓ {feature}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <button onClick={() => setShowModal(false)}>Close</button>
           </div>
         </div>
