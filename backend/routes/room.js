@@ -325,7 +325,156 @@ router.put('/:roomId', async (req, res) => {
 });
 
 
+// ✅ ADD THESE TO routes/room.js
 
+// At the TOP of room.js file, make sure you have:
+const RoomAllocation = require('../models/RoomAllocation');
+
+// PASTE THESE ROUTES BEFORE module.exports = router;
+
+// ===== GET Room Allocation Status =====
+router.get('/allocation-info/:roomId', async (req, res) => {
+  try {
+    const roomId = req.params.roomId;
+    console.log(`\n✅ ALLOCATION-INFO REQUEST for room ID: ${roomId}`);
+    
+    // Find the room
+    const room = await Room.findById(roomId);
+    
+    if (!room) {
+      console.log(`❌ Room not found: ${roomId}`);
+      return res.status(404).json({ 
+        message: 'Room not found',
+        allocatedBeds: 0,
+        bedCount: 0,
+        status: 'Vacant'
+      });
+    }
+
+    console.log(`📌 Found room: ${room.roomName} in block: ${room.blockName}`);
+    console.log(`📊 Room has ${room.bedCount} beds`);
+
+    // Query RoomAllocation collection
+    const allocations = await RoomAllocation.find({
+      blockName: room.blockName,
+      roomNumber: room.roomName
+    });
+
+    console.log(`🔍 Found ${allocations.length} allocations in RoomAllocation`);
+    
+    if (allocations.length > 0) {
+      allocations.forEach((alloc, idx) => {
+        console.log(`   ${idx + 1}. ${alloc.name || 'Unknown'} - Bed ${alloc.bedIndex || 'N/A'}`);
+      });
+    }
+
+    // Calculate stats
+    const bedCount = room.bedCount || 0;
+    const allocatedBeds = allocations.length;
+    const vacantBeds = bedCount - allocatedBeds;
+
+    // Determine status
+    let status = 'Vacant';
+    if (allocatedBeds > 0 && allocatedBeds < bedCount) {
+      status = 'Partially Allocated';
+    } else if (allocatedBeds >= bedCount && bedCount > 0) {
+      status = 'Fully Allocated';
+    }
+
+    console.log(`✅ Status: ${status} (${allocatedBeds}/${bedCount} beds)`);
+
+    const response = {
+      roomId: room._id,
+      roomName: room.roomName,
+      blockName: room.blockName,
+      bedCount: bedCount,
+      allocatedBeds: allocatedBeds,
+      vacantBeds: vacantBeds,
+      status: status,
+      isFullyOccupied: allocatedBeds >= bedCount,
+      canEdit: allocatedBeds === 0,
+      canDelete: allocatedBeds === 0
+    };
+
+    res.status(200).json(response);
+    
+  } catch (error) {
+    console.error('❌ Error in allocation-info:', error);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: error.message,
+      allocatedBeds: 0,
+      bedCount: 0,
+      status: 'Vacant'
+    });
+  }
+});
+
+// ===== ALTERNATIVE: GET Room Info (exact same logic) =====
+router.get('/info/:roomId', async (req, res) => {
+  try {
+    const roomId = req.params.roomId;
+    console.log(`\n✅ INFO REQUEST for room ID: ${roomId}`);
+    
+    const room = await Room.findById(roomId);
+    
+    if (!room) {
+      console.log(`❌ Room not found: ${roomId}`);
+      return res.status(404).json({ 
+        message: 'Room not found',
+        allocatedBeds: 0,
+        bedCount: 0,
+        status: 'Vacant'
+      });
+    }
+
+    console.log(`📌 Found room: ${room.roomName}`);
+
+    const allocations = await RoomAllocation.find({
+      blockName: room.blockName,
+      roomNumber: room.roomName
+    });
+
+    console.log(`🔍 Allocations: ${allocations.length}`);
+
+    const bedCount = room.bedCount || 0;
+    const allocatedBeds = allocations.length;
+    const vacantBeds = bedCount - allocatedBeds;
+
+    let status = 'Vacant';
+    if (allocatedBeds > 0 && allocatedBeds < bedCount) {
+      status = 'Partially Allocated';
+    } else if (allocatedBeds >= bedCount && bedCount > 0) {
+      status = 'Fully Allocated';
+    }
+
+    const response = {
+      roomId: room._id,
+      roomName: room.roomName,
+      bedCount: bedCount,
+      allocatedBeds: allocatedBeds,
+      vacantBeds: vacantBeds,
+      status: status,
+      isFullyOccupied: allocatedBeds >= bedCount,
+      canEdit: allocatedBeds === 0,
+      canDelete: allocatedBeds === 0
+    };
+
+    res.status(200).json(response);
+    
+  } catch (error) {
+    console.error('❌ Error in info route:', error);
+    res.status(500).json({ 
+      message: 'Server error',
+      allocatedBeds: 0,
+      bedCount: 0,
+      status: 'Vacant'
+    });
+  }
+});
+
+// Make sure module.exports is at the END:
+// module.exports = router;
 
 
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Modify.css';
-
+import BlockManagementTabs from './BlockManagementTabs';
 const Modify = () => {
   const navigate = useNavigate();
   const [blocks, setBlocks] = useState([]);
@@ -13,7 +13,8 @@ const Modify = () => {
   const [error, setError] = useState('');
   const [editingBlockType, setEditingBlockType] = useState(null);
   const [newBlockTypeName, setNewBlockTypeName] = useState('');
-   // Add new state for room editing
+  
+  // Room editing state
   const [editingRoom, setEditingRoom] = useState(null);
   const [roomEditForm, setRoomEditForm] = useState({
     roomName: '',
@@ -23,8 +24,9 @@ const Modify = () => {
     attachedBathroom: false,
     additionalFacilities: {}
   });
+  const [roomAllocationInfo, setRoomAllocationInfo] = useState({});
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
-  // Normalize type names for consistent comparison
   const normalizeType = (type) => type.trim().replace(/\s+/g, '').toLowerCase();
 
   // Fetch all blocks
@@ -36,8 +38,7 @@ const Modify = () => {
         
         const contentType = res.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
-          const text = await res.text();
-          throw new Error(`Expected JSON but got: ${text.substring(0, 100)}...`);
+          throw new Error('Invalid response format');
         }
         
         if (!res.ok) {
@@ -70,6 +71,7 @@ const Modify = () => {
           setBlockTypes(data.blockTypeDetails || []);
           setSelectedBlockType(null);
           setRooms([]);
+          setRoomAllocationInfo({});
           setError('');
         } catch (err) {
           console.error('Error fetching block details:', err);
@@ -82,27 +84,68 @@ const Modify = () => {
     }
   }, [selectedBlock]);
 
-  // Fetch rooms when type selected
+  // ✅ FIXED: Fetch rooms with complete allocation data
   useEffect(() => {
     if (selectedBlock && selectedBlockType) {
-      const fetchRooms = async () => {
+      const fetchRoomsWithData = async () => {
         try {
           setLoading(true);
+          console.log('🔄 Fetching rooms for type:', selectedBlockType.type);
+          
           const res = await fetch(
             `http://localhost:5000/api/room?blockId=${selectedBlock._id}&roomType=${encodeURIComponent(selectedBlockType.type)}`
           );
           if (!res.ok) throw new Error('Failed to fetch rooms');
-          const data = await res.json();
-          setRooms(data);
+          const roomData = await res.json();
+          console.log('📦 Rooms fetched:', roomData.length);
+          setRooms(roomData);
+          
+          // Build allocation info from room data
+          const allocationMap = {};
+          
+          roomData.forEach(room => {
+            // Get allocated beds from room.beds array or allocatedBeds field
+            const beds = room.beds || [];
+            const allocatedCount = beds.filter(b => b.status === 'allocated').length || room.allocatedBeds || 0;
+            const bedCount = room.bedCount || 0;
+            const vacantCount = bedCount - allocatedCount;
+            
+            // Determine status
+            let status = 'Vacant';
+            if (allocatedCount > 0 && allocatedCount < bedCount) {
+              status = 'Partially Allocated';
+            } else if (allocatedCount >= bedCount && bedCount > 0) {
+              status = 'Fully Allocated';
+            }
+            
+            allocationMap[room._id] = {
+              roomId: room._id,
+              roomName: room.roomName,
+              bedCount: bedCount,
+              allocatedBeds: allocatedCount,
+              vacantBeds: vacantCount,
+              status: status,
+              canEdit: allocatedCount === 0,
+              canDelete: allocatedCount === 0,
+              beds: beds
+            };
+            
+            console.log(`✓ ${room.roomName}: Status=${status}, Allocated=${allocatedCount}/${bedCount}, Vacant=${vacantCount}`);
+          });
+          
+          console.log('✅ All allocation info built:', allocationMap);
+          setRoomAllocationInfo(allocationMap);
           setError('');
+          
         } catch (err) {
-          console.error('Error fetching rooms:', err);
+          console.error('Error in fetchRoomsWithData:', err);
           setError('Failed to load rooms');
         } finally {
           setLoading(false);
         }
       };
-      fetchRooms();
+      
+      fetchRoomsWithData();
     }
   }, [selectedBlock, selectedBlockType]);
 
@@ -124,12 +167,12 @@ const Modify = () => {
         throw new Error(errorData.message || 'Failed to delete block type');
       }
 
-      // Refresh all data
       const refreshedBlock = await fetch(`http://localhost:5000/api/block/${selectedBlock._id}`);
       const blockData = await refreshedBlock.json();
       setBlockTypes(blockData.blockTypeDetails || []);
       setSelectedBlockType(null);
       setRooms([]);
+      setRoomAllocationInfo({});
       alert(`"${roomType}" deleted successfully`);
     } catch (err) {
       console.error('Error deleting block type:', err);
@@ -146,11 +189,9 @@ const Modify = () => {
     if (!selectedBlock || !editingBlockType || !newBlockTypeName.trim()) return;
     
     try {
-      // Format the type name according to backend expectations
       let formattedType = newBlockTypeName.trim();
       const normalizedNewType = normalizeType(newBlockTypeName);
       
-      // Map to enum values if needed
       if (normalizedNewType === 'suiteroom') formattedType = 'Suite Room';
       if (normalizedNewType === 'barrack') formattedType = 'Barrack';
       if (normalizedNewType === 'dormitory') formattedType = 'Dormitory';
@@ -160,9 +201,7 @@ const Modify = () => {
         `http://localhost:5000/api/block/${selectedBlock._id}/type/${encodeURIComponent(editingBlockType.type)}`,
         {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             newType: formattedType,
             count: editingBlockType.count 
@@ -175,12 +214,10 @@ const Modify = () => {
         throw new Error(errorData.message || 'Failed to update block type');
       }
 
-      // Refresh all data - block types and rooms
       const refreshedBlock = await fetch(`http://localhost:5000/api/block/${selectedBlock._id}`);
       const blockData = await refreshedBlock.json();
       setBlockTypes(blockData.blockTypeDetails || []);
 
-      // If we were viewing the renamed type, refresh its rooms
       if (selectedBlockType && normalizeType(selectedBlockType.type) === normalizeType(editingBlockType.type)) {
         const roomsRes = await fetch(
           `http://localhost:5000/api/room?blockId=${selectedBlock._id}&roomType=${encodeURIComponent(formattedType)}`
@@ -188,7 +225,6 @@ const Modify = () => {
         const roomsData = await roomsRes.json();
         setRooms(roomsData);
         
-        // Update selected type if it was the one being edited
         const updatedType = blockData.blockTypeDetails.find(
           t => normalizeType(t.type) === normalizeType(formattedType)
         );
@@ -203,8 +239,24 @@ const Modify = () => {
       alert(err.message || 'Failed to update block type');
     }
   };
-   // Handle edit room click
+
   const handleEditRoom = (room) => {
+    const allocInfo = roomAllocationInfo[room._id];
+    console.log('🎯 Edit clicked for room:', room.roomName);
+    console.log('📊 Allocation info:', allocInfo);
+    
+    if (!allocInfo) {
+      alert('Room data not loaded. Please try again.');
+      return;
+    }
+    
+    const allocatedCount = allocInfo.allocatedBeds || 0;
+    
+    if (allocatedCount > 0) {
+      alert(`Cannot edit this room.\n\nStatus: ${allocInfo.status}\nAllocated: ${allocatedCount}/${allocInfo.bedCount} beds\n\nPlease vacate all beds first.`);
+      return;
+    }
+    
     setEditingRoom(room._id);
     setRoomEditForm({
       roomName: room.roomName,
@@ -214,9 +266,9 @@ const Modify = () => {
       attachedBathroom: room.attachedBathroom,
       additionalFacilities: room.additionalFacilities || {}
     });
+    setEditModalOpen(true);
   };
     
-  // Handle room edit form changes
   const handleRoomEditChange = (e) => {
     const { name, value, type, checked } = e.target;
     setRoomEditForm(prev => ({
@@ -225,7 +277,6 @@ const Modify = () => {
     }));
   };
 
-  // Handle facility edit changes
   const handleFacilityChange = (facilityKey, value) => {
     setRoomEditForm(prev => ({
       ...prev,
@@ -235,16 +286,14 @@ const Modify = () => {
       }
     }));
   };
-   // Save edited room
+
   const handleSaveRoom = async () => {
     if (!selectedBlock || !selectedBlockType || !editingRoom) return;
 
     try {
       const res = await fetch(`http://localhost:5000/api/room/${editingRoom}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           blockId: selectedBlock._id,
           roomType: selectedBlockType.type,
@@ -257,19 +306,18 @@ const Modify = () => {
         throw new Error(errorData.message || 'Failed to update room');
       }
       
-      // Refresh rooms data
       const roomsRes = await fetch(
         `http://localhost:5000/api/room?blockId=${selectedBlock._id}&roomType=${encodeURIComponent(selectedBlockType.type)}`
       );
       const roomsData = await roomsRes.json();
       setRooms(roomsData);
 
-      // Refresh block data to ensure consistency
       const blockRes = await fetch(`http://localhost:5000/api/block/${selectedBlock._id}`);
       const blockData = await blockRes.json();
       setBlockTypes(blockData.blockTypeDetails || []);
 
       setEditingRoom(null);
+      setEditModalOpen(false);
       alert('Room updated successfully');
     } catch (err) {
       console.error('Error updating room:', err);
@@ -277,19 +325,31 @@ const Modify = () => {
     }
   };
 
-  
-  // Delete a room
   const handleDeleteRoom = async (roomId) => {
-    if (!selectedBlock || !selectedBlockType || !window.confirm('Are you sure you want to delete this room?')) {
+    if (!selectedBlock || !selectedBlockType) return;
+    
+    if (!window.confirm('Are you sure you want to delete this room?')) {
+      return;
+    }
+
+    const allocInfo = roomAllocationInfo[roomId];
+    
+    if (!allocInfo) {
+      alert('Room data not loaded. Please try again.');
+      return;
+    }
+    
+    const allocatedCount = allocInfo.allocatedBeds || 0;
+    
+    if (allocatedCount > 0) {
+      alert(`Cannot delete this room.\n\nStatus: ${allocInfo.status}\nAllocated: ${allocatedCount}/${allocInfo.bedCount} beds\n\nPlease vacate all beds first.`);
       return;
     }
 
     try {
       const res = await fetch(`http://localhost:5000/api/room/${roomId}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           blockId: selectedBlock._id,
           roomType: selectedBlockType.type
@@ -301,14 +361,12 @@ const Modify = () => {
         throw new Error(errorData.message || 'Failed to delete room');
       }
       
-      // Refresh rooms data
       const roomsRes = await fetch(
         `http://localhost:5000/api/room?blockId=${selectedBlock._id}&roomType=${encodeURIComponent(selectedBlockType.type)}`
       );
       const roomsData = await roomsRes.json();
       setRooms(roomsData);
 
-      // Refresh block data to ensure consistency
       const blockRes = await fetch(`http://localhost:5000/api/block/${selectedBlock._id}`);
       const blockData = await blockRes.json();
       setBlockTypes(blockData.blockTypeDetails || []);
@@ -319,16 +377,69 @@ const Modify = () => {
       alert(err.message || 'Failed to delete room');
     }
   };
+
+  const getAllocationStatus = (roomId) => {
+    const allocInfo = roomAllocationInfo[roomId];
+    
+    if (!allocInfo) {
+      return { 
+        text: 'Loading...', 
+        color: '#6c757d', 
+        icon: '⏳', 
+        canEdit: false,
+        occupied: 0,
+        available: 0
+      };
+    }
+
+    const status = allocInfo.status || 'Vacant';
+    const allocated = allocInfo.allocatedBeds || 0;
+    const vacant = allocInfo.vacantBeds || 0;
+    const bedCount = allocInfo.bedCount || 0;
+
+    switch (status) {
+      case 'Vacant':
+        return { 
+          text: 'Vacant', 
+          color: '#28a745', 
+          icon: '✓', 
+          canEdit: true,
+          occupied: 0,
+          available: bedCount
+        };
+      case 'Partially Allocated':
+        return { 
+          text: `Partially Allocated`, 
+          color: '#ffc107', 
+          icon: '⚠', 
+          canEdit: false,
+          occupied: allocated,
+          available: vacant
+        };
+      case 'Fully Allocated':
+        return { 
+          text: `Fully Allocated`, 
+          color: '#dc3545', 
+          icon: '✕', 
+          canEdit: false,
+          occupied: allocated,
+          available: 0
+        };
+      default:
+        return { 
+          text: 'Unknown', 
+          color: '#6c757d', 
+          icon: '?', 
+          canEdit: false,
+          occupied: 0,
+          available: bedCount
+        };
+    }
+  };
+
   return (
     <div className="block-page">
-      <div className="tabs-container">
-        <h2 className="tabs-title">Block Management</h2>
-        <div className="tabs-row">
-          <button className="tab-button" onClick={() => navigate('/superadmin/Add-block')}>➕ Add New Block</button>
-          <button className="tab-button active">✏️ Modify Block</button>
-          <button className="tab-button" onClick={() => navigate('/superadmin/remove-block')}>🗑️ Remove Block</button>
-        </div>
-      </div>
+      <BlockManagementTabs activeTab="modify" />
 
       <div className="form-container">
         <h3 className="form-title">📝 Modify Block</h3>
@@ -336,7 +447,6 @@ const Modify = () => {
         {error && <div className="error-message">{error}</div>}
         {loading && <div className="loading-message">Loading...</div>}
 
-        {/* Block Selection */}
         <div className="selection-section">
           <h4>Select Block</h4>
           <select
@@ -354,216 +464,236 @@ const Modify = () => {
           </select>
         </div>
 
-        {/* Block Types Section */}
         {selectedBlock && blockTypes.length > 0 && (
           <div className="selection-section">
             <h4>Room Types in {selectedBlock.blockName}</h4>
             <div className="block-types-list">
-                   {blockTypes.map(type => (
-  <div key={type.type} className="block-type-item">
-    {editingBlockType?.type === type.type ? (
-      <div className="edit-type-container">
-        <input
-          type="text"
-          value={newBlockTypeName}
-          onChange={(e) => setNewBlockTypeName(e.target.value)}
-          className="edit-type-input"
-        />
-        <span className="room-count-display">Count: {type.count}</span>
-        <button 
-          onClick={handleUpdateBlockType}
-          className="save-type-btn"
-        >
-          Save
-        </button>
-        <button 
-          onClick={() => setEditingBlockType(null)}
-          className="cancel-type-btn"
-        >
-          Cancel
-        </button>
-      </div>
-    ) : (
-      <>
-        <span
-          className={`block-type-name ${selectedBlockType?.type === type.type ? 'active' : ''}`}
-          onClick={() => setSelectedBlockType(type)}
-        >
-          {type.type} ({type.count})
-        </span>
-        <div className="block-type-actions">
-          <button
-            className="edit-type-btn"
-            onClick={() => handleEditBlockType(type)}
-          >
-            Edit
-          </button>
-          <button
-            className="delete-type-btn"
-            onClick={() => handleDeleteBlockType(type.type)}
-          >
-            Remove
-          </button>
-        </div>
-      </>
-    )}
-  </div>
-))}
+              {blockTypes.map(type => (
+                <div key={type.type} className="block-type-item">
+                  {editingBlockType?.type === type.type ? (
+                    <div className="edit-type-container">
+                      <input
+                        type="text"
+                        value={newBlockTypeName}
+                        onChange={(e) => setNewBlockTypeName(e.target.value)}
+                        className="edit-type-input"
+                      />
+                      <span className="room-count-display">Count: {type.count}</span>
+                      <button onClick={handleUpdateBlockType} className="save-type-btn">Save</button>
+                      <button onClick={() => setEditingBlockType(null)} className="cancel-type-btn">Cancel</button>
+                    </div>
+                  ) : (
+                    <>
+                      <span
+                        className={`block-type-name ${selectedBlockType?.type === type.type ? 'active' : ''}`}
+                        onClick={() => setSelectedBlockType(type)}
+                      >
+                        {type.type} ({type.count})
+                      </span>
+                      <div className="block-type-actions">
+                        <button className="edit-type-btn" onClick={() => handleEditBlockType(type)}>Edit</button>
+                        <button className="delete-type-btn" onClick={() => handleDeleteBlockType(type.type)}>Remove</button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
-            {/* Block Type Selection Dropdown */}
-<div className="type-select-wrapper">
-  <label htmlFor="blockTypeSelect" className="dropdown-label">Select Room Type</label>
-  <select
-    id="blockTypeSelect"
-    className="dropdown-select"
-    value={selectedBlockType?.type || ''}
-    onChange={(e) => {
-      const selected = blockTypes.find(type => type.type === e.target.value);
-      setSelectedBlockType(selected || null);
-    }}
-  >
-    <option value="">-- Choose Room Type --</option>
-    {blockTypes.map(type => (
-      <option key={type.type} value={type.type}>{type.type}</option>
-    ))}
-  </select>
-</div>
+
+        <div className="type-select-wrapper">
+          <label htmlFor="blockTypeSelect" className="dropdown-label">Select Room Type</label>
+          <select
+            id="blockTypeSelect"
+            className="dropdown-select"
+            value={selectedBlockType?.type || ''}
+            onChange={(e) => {
+              const selected = blockTypes.find(type => type.type === e.target.value);
+              setSelectedBlockType(selected || null);
+            }}
+          >
+            <option value="">-- Choose Room Type --</option>
+            {blockTypes.map(type => (
+              <option key={type.type} value={type.type}>{type.type}</option>
+            ))}
+          </select>
+        </div>
  
-        {/* Rooms Table */}
-                      
-  {selectedBlockType && (
-    <div className="rooms-section">
-      <h4>Rooms under {selectedBlockType.type}</h4>
-      <table className="rooms-table">
-        <thead>
-          <tr>
-            <th>Room Name</th>
-            <th>Floor</th>
-            <th>Beds</th>
-            <th>AC</th>
-            <th>Bathroom</th>
-            <th>Facilities</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rooms.map(room => (
-            <tr key={room._id}>
-              {editingRoom === room._id ? (
-                <>
-                  <td>
-                    <input
-                      type="text"
-                      name="roomName"
-                      value={roomEditForm.roomName}
-                      onChange={handleRoomEditChange}
-                      className="edit-input"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      name="floorNumber"
-                      value={roomEditForm.floorNumber}
-                      onChange={handleRoomEditChange}
-                      className="edit-input"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      name="bedCount"
-                      value={roomEditForm.bedCount}
-                      onChange={handleRoomEditChange}
-                      className="edit-input"
-                    />
-                  </td>
-                  <td>
+        {selectedBlockType && (
+          <div className="rooms-section">
+            <h4>Rooms under {selectedBlockType.type}</h4>
+            {rooms.length === 0 ? (
+              <p className="no-rooms-message">No rooms found for this room type.</p>
+            ) : (
+              <table className="rooms-table">
+                <thead>
+                  <tr>
+                    <th>Room Name</th>
+                    <th>Floor</th>
+                    <th>Capacity</th>
+                    <th>Occupied</th>
+                    <th>Available</th>
+                    <th>AC</th>
+                    <th>Bathroom</th>
+                    <th>Facilities</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rooms.map(room => {
+                    const status = getAllocationStatus(room._id);
+                    const isDisabled = !status.canEdit;
+                    
+                    return (
+                      <tr key={room._id} style={isDisabled && status.text !== 'Loading...' ? { backgroundColor: '#fff5f5' } : {}}>
+                        <td><strong>{room.roomName}</strong></td>
+                        <td>{room.floorNumber}</td>
+                        <td>{room.bedCount}</td>
+                        <td style={{ color: '#dc3545', fontWeight: 'bold' }}>{status.occupied}</td>
+                        <td style={{ color: '#28a745', fontWeight: 'bold' }}>{status.available}</td>
+                        <td>{room.isAC ? '✓' : '-'}</td>
+                        <td>{room.attachedBathroom ? '✓' : '-'}</td>
+                        <td>
+                          {room.additionalFacilities && Object.keys(room.additionalFacilities).length > 0 ? (
+                            <ul className="facilities-list">
+                              {Object.entries(room.additionalFacilities).map(([key, value]) => (
+                                <li key={key}>{key}: {value.toString()}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                        <td>
+                          <span className="status-badge" style={{ backgroundColor: status.color }} title={status.text}>
+                            {status.icon} {status.text}
+                          </span>
+                        </td>
+                        <td style={{ minWidth: '140px' }}>
+                          <button
+                            onClick={() => handleEditRoom(room)}
+                            className={`edit-btn ${isDisabled ? 'disabled' : ''}`}
+                            disabled={isDisabled}
+                            title={isDisabled ? `Cannot edit - ${status.text}` : 'Edit room details'}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteRoom(room._id)}
+                            className={`delete-btn ${isDisabled ? 'disabled' : ''}`}
+                            disabled={isDisabled}
+                            title={isDisabled ? `Cannot delete - ${status.text}` : 'Delete room'}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      </div>
+
+      {editModalOpen && editingRoom && (
+        <div className="modal-overlay" onClick={() => setEditModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Edit Room</h3>
+              <button className="modal-close" onClick={() => setEditModalOpen(false)}>✕</button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Room Name</label>
+                <input
+                  type="text"
+                  name="roomName"
+                  value={roomEditForm.roomName}
+                  onChange={handleRoomEditChange}
+                  className="form-input"
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Floor Number</label>
+                  <input
+                    type="number"
+                    name="floorNumber"
+                    value={roomEditForm.floorNumber}
+                    onChange={handleRoomEditChange}
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Bed Count</label>
+                  <input
+                    type="number"
+                    name="bedCount"
+                    value={roomEditForm.bedCount}
+                    onChange={handleRoomEditChange}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group checkbox">
+                  <label>
                     <input
                       type="checkbox"
                       name="isAC"
                       checked={roomEditForm.isAC}
                       onChange={handleRoomEditChange}
                     />
-                  </td>
-                  <td>
+                    AC Available
+                  </label>
+                </div>
+                <div className="form-group checkbox">
+                  <label>
                     <input
                       type="checkbox"
                       name="attachedBathroom"
                       checked={roomEditForm.attachedBathroom}
                       onChange={handleRoomEditChange}
                     />
-                  </td>
-                  <td>
-                    {Object.entries(roomEditForm.additionalFacilities).map(([key, value]) => (
-                      <div key={key} className="facility-edit">
-                        <span>{key}:</span>
-                        <input
-                          type="text"
-                          value={value}
-                          onChange={(e) => handleFacilityChange(key, e.target.value)}
-                          className="facility-input"
-                        />
-                      </div>
-                    ))}
-                  </td>
-                  <td>
-                    <button onClick={handleSaveRoom} className="save-btn">
-                      Save
-                    </button>
-                    <button 
-                      onClick={() => setEditingRoom(null)} 
-                      className="cancel-btn"
-                    >
-                      Cancel
-                    </button>
-                  </td>
-                </>
-              ) : (
-                <>
-                  <td>{room.roomName}</td>
-                  <td>{room.floorNumber}</td>
-                  <td>{room.bedCount}</td>
-                  <td>{room.isAC ? 'Yes' : 'No'}</td>
-                  <td>{room.attachedBathroom ? 'Yes' : 'No'}</td>
-                  <td>
-                    {room.additionalFacilities ? (
-                      <ul className="facilities-list">
-                        {Object.entries(room.additionalFacilities).map(([key, value]) => (
-                          <li key={key}>
-                            {key}: {value.toString()}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                  <td>
-                    <button
-                      onClick={() => handleEditRoom(room)}
-                      className="edit-btn"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteRoom(room._id)}
-                      className="delete-btn"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )}
-      </div>
+                    Attached Bathroom
+                  </label>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Additional Facilities</label>
+                {Object.keys(roomEditForm.additionalFacilities).length > 0 ? (
+                  Object.entries(roomEditForm.additionalFacilities).map(([key, value]) => (
+                    <div key={key} className="facility-edit">
+                      <span className="facility-key">{key}:</span>
+                      <input
+                        type="text"
+                        value={value}
+                        onChange={(e) => handleFacilityChange(key, e.target.value)}
+                        className="facility-input"
+                      />
+                    </div>
+                  ))
+                ) : (
+                  <p className="no-facilities">No additional facilities</p>
+                )}
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button onClick={handleSaveRoom} className="save-btn">Save Changes</button>
+              <button onClick={() => setEditModalOpen(false)} className="cancel-btn">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

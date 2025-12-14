@@ -34,9 +34,12 @@ const DisplayBlocks = () => {
   const handleViewBlock = (blockName) => {
     navigate(`/view/${encodeURIComponent(blockName)}`); // navigate to details page
   };
-
+ const handleBackClick = () => {
+    navigate(-1);
+  };
   return (
     <div className="display-block-container">
+       <button className="back-button" onClick={handleBackClick}>← Back</button>
       <h2 className="page-title">
         {userType === 'blockhead' ? 'My Block' : 'All Blocks'}
       </h2>

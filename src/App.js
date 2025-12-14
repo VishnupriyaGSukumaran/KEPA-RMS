@@ -1,6 +1,6 @@
 import React from 'react';
 import TopBar from './components/TopBar';
-import ProtectedRoute from './components/ProtectedRoute'; // import this
+import ProtectedRoute from './components/ProtectedRoute';
 import View from './components/view';
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import WelcomePage from './WelcomePage';
 import Login from './LoginPage';
 import SuperAdminDashboard from './system_adm/SuperAdminDashboard';
+import NotificationsPage from './system_adm/Notification'; // ✅ NEW IMPORT
 import CreateUser from './system_adm/CreateUser';
 import DesignBlock from './system_adm/DesignBlock';
 import CreateCourse from './system_adm/CreateCourse';
@@ -24,6 +25,7 @@ import ViewBlock from './Block_Head/ViewBlock';
 import VacateRoom from './Block_Head/VacateRoom';
 import AllocateForm from './Block_Head/AllocateForm';
 import PaymentPage from './Block_Head/PaymentPage';
+
 const App = () => {
   return (
     <Router>
@@ -42,6 +44,17 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+        
+        {/* ✅ NEW: Notifications Page Route */}
+        <Route
+          path="/superadmin/notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationsPage />
+            </ProtectedRoute>
+          }
+        />
+        
         <Route
           path="/superadmin/create-user"
           element={
@@ -66,14 +79,6 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-        {/* <Route
-          path="/superadmin/display-block"
-          element={
-            <ProtectedRoute>
-              <DisplayBlock />
-            </ProtectedRoute>
-          }
-        /> */}
         <Route
           path="/superadmin/generate-report"
           element={
@@ -138,17 +143,23 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-       <Route path="/payment" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
-
+        <Route 
+          path="/payment" 
+          element={
+            <ProtectedRoute>
+              <PaymentPage />
+            </ProtectedRoute>
+          } 
+        />
         <Route
-  path="/blockhead/ViewBlock/:blockName"
-  element={
-    <ProtectedRoute>
-      <ViewBlock />
-    </ProtectedRoute>
-  }
-/>
- <Route
+          path="/blockhead/ViewBlock/:blockName"
+          element={
+            <ProtectedRoute>
+              <ViewBlock />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/blockhead/VacateRoom"
           element={
             <ProtectedRoute>
@@ -165,42 +176,29 @@ const App = () => {
           }
         />
         <Route
-  path="/admin/display-block"
-  element={
-    <ProtectedRoute>
-      <DisplayBlocks />
-    </ProtectedRoute>
-  }
-/>
-
-<Route
-  path="/superadmin/display-block"
-  element={
-    <ProtectedRoute>
-      <DisplayBlocks />
-    </ProtectedRoute>
-  }
-/>
-
-
-
-
-
-                  <Route
-  path="/view/:blockName"
-  element={
-    <ProtectedRoute>
-      <View />
-    </ProtectedRoute>
-  }
-/>
-
-
-
-
-
-
-
+          path="/admin/display-block"
+          element={
+            <ProtectedRoute>
+              <DisplayBlocks />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/superadmin/display-block"
+          element={
+            <ProtectedRoute>
+              <DisplayBlocks />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/view/:blockName"
+          element={
+            <ProtectedRoute>
+              <View />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Router>
   );

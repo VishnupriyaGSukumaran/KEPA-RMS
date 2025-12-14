@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './AddBlock.css';
-
+import BlockManagementTabs from './BlockManagementTabs'; 
 const DesignBlock = () => {
   const navigate = useNavigate();
   const [blockName, setBlockName] = useState('');
@@ -158,14 +158,7 @@ const DesignBlock = () => {
 
   return (
     <div className="block-container">
-      <div className="tabs-container">
-        <h2 className="tabs-title">Block Management</h2>
-        <div className="tabs-row">
-          <button className="tab-button active">➕ Add New Block</button>
-          <button className="tab-button" onClick={() => navigate('/superadmin/modify-block')}>✏️ Modify Block</button>
-          <button className="tab-button" onClick={() => navigate('/superadmin/remove-block')}>🗑️ Remove Block</button>
-        </div>
-      </div>
+      <BlockManagementTabs activeTab="add" />
 
       <div className="form-area">
         <h3>➕ Add New Block</h3>

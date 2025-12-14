@@ -7,6 +7,7 @@ const SuperAdminDashboard = () => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [hoveredNotification, setHoveredNotification] = useState(null);
 
   const fetchNotifications = async () => {
     try {
@@ -37,6 +38,29 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  // ✅ Navigate to notifications page
+  const handleViewAllNotifications = () => {
+    navigate('/superadmin/notifications');
+  };
+
+  // ✅ Handle clicking on a single notification - navigate to notifications page
+  const handleNotificationClick = () => {
+    navigate('/superadmin/notifications');
+  };
+
+  // ✅ Mark all as read (NOT delete)
+  const handleMarkAllAsRead = async () => {
+    try {
+      await axios.put('http://localhost:5000/api/notifications/mark-all-read');
+      await fetchNotifications();
+      setShowNotifications(false);
+      alert('✅ All notifications marked as read');
+    } catch (err) {
+      console.error('Failed to mark as read:', err);
+      alert('❌ Failed to mark notifications as read');
+    }
+  };
+
   const cardData = [
     { title: "Create User", desc: "Create Admin and Block Heads", path: "/superadmin/create-user" },
     { title: "Design Block", desc: "Maintain and Allocate Rooms for Blocks", path: "/superadmin/add-block" },
@@ -45,9 +69,11 @@ const SuperAdminDashboard = () => {
     { title: "Generate Report", desc: "View, Download, and Print usage and allocation", path: "/superadmin/generate-report" },
   ];
 
+  // Get the latest notification for hover preview
+  const latestNotification = notifications.length > 0 ? notifications[0] : null;
+
   return (
     <div className="dashboard-container">
-      {/* Main cards */}
       <main className="dashboard-main">
         <div className="card-grid">
           {cardData.map(({ title, desc, path }) => (
@@ -59,37 +85,59 @@ const SuperAdminDashboard = () => {
             </div>
           ))}
 
-          {/* 🔔 Notifications Card */}
-          <div className="custom-card">
-            <button className="card-button" onClick={handleToggleNotifications}>
-              Notifications {unreadCount > 0 && <span style={{ color: 'red' }}>({unreadCount})</span>}
+          {/* 🔔 Notifications Card - Click navigates to notifications page */}
+          <div 
+            className="custom-card notification-card"
+            onMouseEnter={() => setHoveredNotification(latestNotification)}
+            onMouseLeave={() => setHoveredNotification(null)}
+          >
+            <button 
+              className="card-button" 
+              onClick={handleViewAllNotifications} // ✅ Navigate to notifications page
+            >
+              Notifications 
+              {unreadCount > 0 && (
+                <span style={{ 
+                  background: '#dc3545', 
+                  color: 'white', 
+                  borderRadius: '12px', 
+                  padding: '2px 8px', 
+                  fontSize: '12px', 
+                  marginLeft: '8px',
+                  fontWeight: 'bold'
+                }}>
+                  {unreadCount}
+                </span>
+              )}
             </button>
             <p className="card-desc">Notification from Admin</p>
 
-            {showNotifications && (
-              <div className="notification-dropdown">
-                <ul>
-                  {notifications.length === 0 ? (
-                    <li className="empty-msg">No notifications</li>
-                  ) : (
-                    notifications.map((note, index) => (
-                      <li key={index}>🔔 {note.message}</li>
-                    ))
-                  )}
-                </ul>
-
-                {notifications.length > 0 && (
-                  <button className="clear-btn" onClick={async () => {
-                    try {
-                      await axios.delete('http://localhost:5000/api/notifications/clear-all');
-                      await fetchNotifications();
-                    } catch (err) {
-                      console.error('Failed to clear notifications:', err);
-                    }
-                  }}>
-                    Clear All
-                  </button>
-                )}
+            {/* ✅ Hover Preview - Shows Latest Notification */}
+            {hoveredNotification && (
+              <div 
+                className="notification-preview" 
+                onClick={handleViewAllNotifications} // ✅ Navigate on click
+              >
+                <div className="preview-header">
+                  <span className="preview-badge">Latest</span>
+                  <span className="preview-time">
+                    {new Date(hoveredNotification.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="preview-title">
+                  {hoveredNotification.message}
+                </div>
+                <div className="preview-content">
+                  <div><strong>Title:</strong> {hoveredNotification.data?.title || 'N/A'}</div>
+                  <div className="preview-description">
+                    <strong>Description:</strong> 
+                    {hoveredNotification.data?.description?.substring(0, 80) || 'N/A'}
+                    {hoveredNotification.data?.description?.length > 80 ? '...' : ''}
+                  </div>
+                </div>
+                <div className="preview-footer">
+                  Click to view all notifications →
+                </div>
               </div>
             )}
           </div>

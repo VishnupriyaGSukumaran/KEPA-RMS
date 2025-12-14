@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './RemoveBlock.css';
+import BlockManagementTabs from './BlockManagementTabs'; // Add this import
+
 
 const RemoveBlock = () => {
   const navigate = useNavigate();
@@ -82,15 +84,8 @@ const RemoveBlock = () => {
       </div> */}
 
       {/* Tabs */}
-      <div className="tabs-container">
-        <h2 className="tabs-title">Block Management</h2>
-        <div className="tabs-row">
-          <button className="tab-button" onClick={() => navigate('/superadmin/add-block')}>➕ Add New Block</button>
-          <button className="tab-button" onClick={() => navigate('/superadmin/modify-block')}>✏️ Modify Block</button>
-          <button className="tab-button active">🗑️ Remove Block</button>
-        </div>
-      </div>
-
+      
+       <BlockManagementTabs activeTab="remove" />
       {/* Form */}
       <div className="form-area">
         <h3>🗑️ Remove Block</h3>

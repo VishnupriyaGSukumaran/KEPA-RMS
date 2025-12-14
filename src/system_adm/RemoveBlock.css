@@ -1,19 +1,7 @@
 /* ========== RemoveBlock.css ========== */
 
 /* Remove negative margin from tab-bar */
-.tab-bar {
-  display: flex;
-  justify-content: center;
-  margin-top: 0px;         /* Changed */
-  margin-bottom: 40px;
-  gap: 0;
-  border: 1px solid #999;
-  border-radius: 10px;
-  overflow: hidden;
-  width: fit-content;
-  margin-left: auto;
-  margin-right: auto;
-}
+
 
 /* Add top margin to form-area */
 .form-area {
@@ -25,11 +13,7 @@
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   border: 1px solid #ddd;
 }
-/* TABS CONTAINER FIX (just in case) */
-.tabs-container {
-  margin-bottom: 50px;
-  margin-top: 50px;
-}
+
 
 .remove-header {
   background-color: #800000;
@@ -42,46 +26,6 @@
   margin-bottom: 30px;
 }
 
-
-.tab-bar {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 40px;
-  margin-top: -20px;
-  gap: 0;
-  border: 1px solid #999;
-  border-radius: 10px;
-  overflow: hidden;
-  width: fit-content;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.tab {
-  padding: 12px 30px;
-  font-size: 16px;
-  font-weight: bold;
-  border: none;
-  background-color: #e6e6e6;
-  color: black;
-  cursor: pointer;
-  outline: none;
-  transition: background 0.3s ease;
-}
-
-.tab.inactive {
-  background-color: #e6e6e6;
-}
-
-.tab.active {
-  background-color: white;
-  color: #007bff;
-  border-bottom: 4px solid #007bff;
-}
-
-.tab:hover {
-  background-color: #ddd;
-}
 
 
 .block-list {
@@ -191,8 +135,4 @@
 
 .confirm-delete-btn:hover {
   background-color: #c82333;
-}
-
-.tabs-title{
-  margin-top: 2px;
 }
