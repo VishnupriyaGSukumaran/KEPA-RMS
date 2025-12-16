@@ -1,280 +1,206 @@
-.top-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 60px;
-  background-color: #14008a;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  z-index: 999;
-  color: white;
-  box-sizing: border-box;
-}
-
-.top-left {
-  display: flex;
-  align-items: center;
-}
-
-
-.top-logo {
-  height: 45px;
-  margin-right: 10px;
-}
-
-.top-heading {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  color:  white;;
-  line-height: 1.2;
-}
-
-.main-title {
-  font-size: 22px;
-  font-weight: bold;
-  letter-spacing: 1px;
-}
-
-.sub-title {
-  font-size: 14px;
-  color: white;
-  margin-top: 2px;
-}
-.top-center {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 20px;
-  
-  font-weight: bold;
-  color: white;
-}
-.top-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.top-button {
-  display: flex;
-  align-items: center;
-  background-color: #0055aa;
-  padding: 6px 12px;
-  border-radius: 4px;
-  color: white;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.top-button:hover {
-  background-color: #007bff;
-}
-.page-content {
-  padding-top: 70px; /* push below topbar */
-}
-
-
-.home-icon {
-  display: flex;
-  align-items: center;
-  color: white;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.home-icon svg {
-  margin-right: 6px;
-}
-
-
+/* ===== BLOCKHEADS PAGE WRAPPER ===== */
 .blockheads-wrapper {
   padding: 30px;
+  padding-top: 90px; /* Account for fixed top bar */
   font-family: 'Segoe UI', sans-serif;
   background-color: #f4f6f8;
   min-height: 100vh;
-}
-
-.blockheads-page {
-  padding-top: 50px; /* Pushes content down below fixed topbar */
-  padding-left: 20px;
-  padding-right: 20px;
   box-sizing: border-box;
 }
 
+/* ===== TOP SECTION WITH BACK BUTTON, HEADING, AND ADD BUTTON ===== */
+.blockheads-page {
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Container for Back Button + Heading + Add Button in one row */
 .blockheads-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
+  gap: 20px;
 }
 
+/* Left side - Back Button */
+.back-buttonS {
+  background-color: #1a237e;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: background-color 0.3s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.back-buttonS:hover {
+  background-color: #0d47a1;
+}
+
+/* Center - Heading */
 .blockheads-header h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: 26px;
   color: #2c3e50;
-  margin-left: 5px;
+  font-weight: 600;
+  text-align: center;
+  flex: 1;
 }
 
+/* Right side - Add Button */
 .add-btn {
   background-color: #007bff;
   color: #fff;
-  padding: 10px 16px;
-  font-size: 14px;
+  padding: 10px 20px;
+  font-size: 15px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-weight: bold;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.blockheads-card {
-  background-color: #fff;
-  padding: 0;
-  border-radius: 8px;
-  border: 1px solid #ddd;
+.add-btn:hover {
+  background-color: #0056b3;
 }
 
-.blockheads-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 15px;
+.add-btn:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
-.blockheads-table thead {
-  background-color: #f0f0f0;
-}
-
-.blockheads-table th,
-.blockheads-table td {
-  padding: 14px 18px;
-  text-align: left;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.blockheads-table td {
-  color: #333;
-}
-
-.edit,
-.delete {
-  padding: 6px 12px;
-  font-size: 13px;
-  border: none;
-  border-radius: 4px;
-  margin-right: 8px;
-  cursor: pointer;
-}
-
-.edit {
-  background-color: #ffc107;
-  color: #000;
-}
-
-.delete {
-  background-color: #dc3545;
-  color: #fff;
-}
-.grid-container {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 10px;
-}
-
-
-.grid-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr 2fr 1fr 1fr;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  border: 1px solid #ccc;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-}
-
-.grid-header {
-  font-weight: bold;
-  background-color: #f0f0f0;
-}
-
-
-.grid-row:hover {
-  background-color: #fafafa;
-}
-
-.edit-link,
-.remove-link {
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.edit-link {
-  color: #007bff;
-}
-
-.remove-link {
-  color: #dc3545;
-}
+/* ===== MODAL OVERLAY ===== */
 .modal {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 10;
+  z-index: 1001;
 }
 
+/* ===== FORM CONTAINER ===== */
 .blockhead-form {
   background: #fff;
-  padding: 24px;
+  padding: 28px;
   border-radius: 10px;
-  width: 400px;
+  width: 450px;
+  max-width: 90%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
+.blockhead-form h3 {
+  margin: 0 0 12px 0;
+  font-size: 22px;
+  color: #2c3e50;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ===== FORM INPUTS ===== */
 .blockhead-form input {
-  padding: 8px;
+  padding: 12px;
   font-size: 14px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.blockhead-form input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.blockhead-form input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+/* ===== FORM ACTIONS ===== */
 .form-actions {
   display: flex;
   justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
 }
 
 .form-actions button {
-  padding: 8px 12px;
-  font-weight: bold;
+  flex: 1;
+  padding: 12px 16px;
+  font-weight: 600;
   cursor: pointer;
-}
-.main-content {
-  padding-top: 60px; /* height of your topbar */
-  box-sizing: border-box;
-}
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* 2 columns equal width */
-  gap: 20px;
+  border: none;
+  border-radius: 5px;
+  font-size: 15px;
+  transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-}
-/* Make remarks field take full width */
-.form-group.remarks {
-  grid-column: span 2;
+.form-actions button:active {
+  transform: scale(0.98);
 }
 
+.form-actions button[type="submit"] {
+  background-color: #28a745;
+  color: white;
+}
 
+.form-actions button[type="submit"]:hover {
+  background-color: #218838;
+}
+
+.form-actions button[type="button"] {
+  background-color: #6c757d;
+  color: white;
+}
+
+.form-actions button[type="button"]:hover {
+  background-color: #5a6268;
+}
+
+.form-actions button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 768px) {
+  .blockheads-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+  }
+
+  .blockheads-header h2 {
+    text-align: center;
+    font-size: 22px;
+    order: -1; /* Move heading to top */
+  }
+
+  .back-buttonS,
+  .add-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .blockhead-form {
+    width: 95%;
+    padding: 20px;
+  }
+}

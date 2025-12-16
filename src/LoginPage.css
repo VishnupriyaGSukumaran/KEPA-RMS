@@ -1,8 +1,8 @@
-* {
+/* * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-}
+} */
 
 .login-page {
   display: flex;
@@ -20,6 +20,7 @@
   padding: 60px;
   position: relative;
   overflow: hidden;
+  margin-top: 65px;
 }
 
 .login-left::before {

@@ -4,7 +4,7 @@ const router = express.Router();
 const RoomAllocation = require('../models/RoomAllocation');
 const Room = require('../models/Room'); // ✅ import Room model
 const Block = require('../models/Block');
-
+const VacatingRecord = require('../models/VacatingRecord'); // ✅ IMPORT THIS
 // ---------------------------------------------
 // Helper utilities to keep Room + Block in sync
 // ---------------------------------------------
@@ -185,10 +185,25 @@ router.post('/fetch-person', async (req, res) => {
 
 
 
-/// ✅ Vacate allocation — free bed & update status and block counts
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ✅✅✅ VACATE ALLOCATION - AUTOMATICALLY SAVE TO VACATING RECORDS FIRST
 router.delete('/:id', async (req, res) => {
   try {
+    console.log('='.repeat(60));
     console.log('🔴 VACATE REQUEST RECEIVED - ID:', req.params.id);
+    console.log('='.repeat(60));
     
     const allocation = await RoomAllocation.findById(req.params.id);
     
@@ -199,33 +214,98 @@ router.delete('/:id', async (req, res) => {
 
     console.log('📋 Found allocation:', {
       name: allocation.name,
+      pen: allocation.pen,
+      recruitmentNumber: allocation.recruitmentNumber,
       block: allocation.blockName,
       room: allocation.roomNumber,
       bedIndex: allocation.bedIndex
     });
 
-    const { blockName, roomNumber, bedIndex } = allocation;
+    // ✅ STEP 1: CREATE VACATING RECORD BEFORE DELETING
+    console.log('💾 Step 1: Creating vacating record...');
+    
+    const { vacatingDate, paid, vacatedBy } = req.body || {};
+    
+    const vacatingData = {
+      // Person Details
+      name: allocation.name,
+      pen: allocation.pen || null,
+      recruitmentNumber: allocation.recruitmentNumber || null,
+      mobileNumber: allocation.mobileNumber,
+      emergencyContact: allocation.emergencyContact,
+      designation: allocation.designation,
+      unit: allocation.unit,
+      district: allocation.district,
+      address: allocation.address,
+      
+      // Room Details
+      roomNumber: allocation.roomNumber,
+      block: allocation.blockName || allocation.block,
+      blockName: allocation.blockName || allocation.block,
+      bedIndex: allocation.bedIndex,
+      trainingCompany: allocation.trainingCompany,
+      
+      // Allocation Details
+      allocationDate: allocation.allocationDate,
+      purpose: allocation.purpose,
+      courseDetails: allocation.courseDetails,
+      remark: allocation.remark,
+      
+      // Vacating Details
+      vacatingDate: vacatingDate ? new Date(vacatingDate) : new Date(),
+      paid: paid || 'No',
+      vacatedBy: vacatedBy || 'System',
+      originalAllocationId: allocation._id
+    };
 
-    // Delete allocation first
+    console.log('📝 Vacating data to save:', JSON.stringify(vacatingData, null, 2));
+
+    const vacatingRecord = new VacatingRecord(vacatingData);
+    const savedVacatingRecord = await vacatingRecord.save();
+    
+    console.log('✅✅✅ VACATING RECORD SAVED SUCCESSFULLY!');
+    console.log('📄 Saved Record ID:', savedVacatingRecord._id);
+    console.log('📄 Record Details:', {
+      name: savedVacatingRecord.name,
+      pen: savedVacatingRecord.pen,
+      recruitmentNumber: savedVacatingRecord.recruitmentNumber,
+      room: savedVacatingRecord.roomNumber,
+      block: savedVacatingRecord.blockName,
+      vacatingDate: savedVacatingRecord.vacatingDate
+    });
+
+    // ✅ STEP 2: NOW DELETE THE ALLOCATION
+    console.log('🗑️ Step 2: Deleting allocation from RoomAllocation...');
+    const { blockName, roomNumber } = allocation;
+    
     await RoomAllocation.findByIdAndDelete(req.params.id);
     console.log('✅ Allocation deleted from RoomAllocation collection');
 
-    // Re-sync room beds + block stats to ensure UI reflects new state
+    // ✅ STEP 3: SYNC ROOM AND BLOCK STATS
     await syncRoomBeds(blockName, roomNumber);
     await syncBlockStats(blockName);
 
-    console.log('✅✅✅ VACATE COMPLETED SUCCESSFULLY');
+    console.log('✅✅✅ VACATE PROCESS COMPLETED SUCCESSFULLY');
+    console.log('='.repeat(60));
 
     res.status(200).json({ 
       success: true, 
-      message: 'Room vacated successfully.'
+      message: 'Room vacated successfully and saved to vacating records.',
+      vacatingRecordId: savedVacatingRecord._id
     });
+    
   } catch (err) {
+    console.log('='.repeat(60));
     console.error('❌❌❌ VACATE ERROR:', err);
-    res.status(500).json({ error: 'Failed to vacate room.' });
+    console.error('Error details:', err.message);
+    console.error('Stack:', err.stack);
+    console.log('='.repeat(60));
+    res.status(500).json({ 
+      error: 'Failed to vacate room.',
+      details: err.message 
+    });
   }
 });
-
 
 // ✅ Get all allocations for a specific block
 router.get('/block/:blockName', async (req, res) => {

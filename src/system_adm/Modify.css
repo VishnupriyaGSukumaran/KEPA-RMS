@@ -570,16 +570,6 @@
   letter-spacing: 0.5px;
 }
 
-.form-input {
-  width: 100%;
-  padding: 11px 14px;
-  border: 2px solid #d4e3f7;
-  border-radius: 6px;
-  font-size: 14px;
-  transition: all 0.3s ease;
-  background-color: #ffffff;
-  font-weight: 500;
-}
 
 .form-input:focus {
   outline: none;

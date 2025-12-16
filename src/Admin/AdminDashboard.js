@@ -1,12 +1,10 @@
-// No change to imports
+// AdminDashboard.js - FIXED: Fetch Admin User Details
 import React, { useState, useEffect } from 'react';
 import './AdminDashboard.css';
 import {
-  FaHome,
   FaTh,
   FaUsers,
   FaBell,
-  FaSignOutAlt,
   FaChartBar,
   FaCubes,
   FaBook,
@@ -38,6 +36,14 @@ function AdminDashboard() {
   const [officerFile, setOfficerFile] = useState(null);
   const [courseFile, setCourseFile] = useState(null);
 
+  // ✅ NEW: Admin User Details State
+  const [adminUser, setAdminUser] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    username: ''
+  });
+
   // Blocks state for allocation order dropdown
   const [blocks, setBlocks] = useState([]);
   const [loadingBlocks, setLoadingBlocks] = useState(false);
@@ -59,12 +65,46 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // ✅ NEW: Fetch Admin User Details
+  useEffect(() => {
+    const fetchAdminDetails = async () => {
+      try {
+        const pen = localStorage.getItem('pen');
+        if (!pen) {
+          console.error('No PEN found in localStorage');
+          return;
+        }
+
+        const response = await axios.get(`http://localhost:5000/api/auth/blockheadnew/${pen}`);
+        console.log('Admin Details:', response.data);
+        
+        setAdminUser({
+          firstName: response.data.firstName || '',
+          lastName: response.data.lastName || '',
+          email: response.data.email || '',
+          username: response.data.username || ''
+        });
+      } catch (error) {
+        console.error('Failed to fetch admin details:', error);
+        // Set default values if fetch fails
+        setAdminUser({
+          firstName: 'Admin',
+          lastName: 'User',
+          email: 'admin@policeacademy.edu',
+          username: 'admin'
+        });
+      }
+    };
+
+    fetchAdminDetails();
+  }, []);
+
   // Fetch dashboard statistics
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
         const response = await axios.get('http://localhost:5000/api/dashboard/stats');
-        console.log('Dashboard API Response:', response.data); // Debug log
+        console.log('Dashboard API Response:', response.data);
         if (response.data.success) {
           setDashboardStats(response.data.data);
           setError(null);
@@ -75,7 +115,6 @@ function AdminDashboard() {
         console.error('Failed to fetch dashboard stats:', error);
         console.error('Error details:', error.response?.data || error.message);
         setError(`Failed to load dashboard statistics: ${error.response?.data?.error || error.message}`);
-        // Set default values
         setDashboardStats({
           totalBlocks: 0,
           totalRooms: 0,
@@ -106,7 +145,6 @@ function AdminDashboard() {
           const response = await axios.get('http://localhost:5000/api/block');
           console.log('Blocks fetched:', response.data);
           
-          // Extract block names from the response
           if (Array.isArray(response.data) && response.data.length > 0) {
             const blockNames = response.data.map(block => block.blockName).filter(Boolean);
             setBlocks(blockNames);
@@ -187,7 +225,7 @@ function AdminDashboard() {
     }
   };
 
-  // Chart data for donut chart - ensure it always has data
+  // Chart data for donut chart
   const totalChartData = dashboardStats.occupied + dashboardStats.unoccupied + dashboardStats.partiallyOccupied;
   
   const chartData = {
@@ -201,9 +239,9 @@ function AdminDashboard() {
           dashboardStats.partiallyOccupied
         ],
         backgroundColor: [
-          '#dc3545', // Red for Occupied
-          '#28a745', // Green for Unoccupied
-          '#ffc107'  // Orange for Partially Occupied
+          '#dc3545',
+          '#28a745',
+          '#ffc107'
         ],
         borderColor: [
           '#dc3545',
@@ -221,7 +259,7 @@ function AdminDashboard() {
     aspectRatio: 1.5,
     plugins: {
       legend: {
-        display: false, // Hide default legend since we have custom one
+        display: false,
         position: 'bottom',
         labels: {
           padding: 15,
@@ -255,8 +293,14 @@ function AdminDashboard() {
           <div className="user-info">
             <img className="avatar" src="/avatar.png" alt="user" />
             <div>
-              <div className="username">Admin User</div>
-              <div className="email">admin@policeacademy.edu</div>
+              <div className="username">
+                {adminUser.firstName && adminUser.lastName 
+                  ? `${adminUser.firstName} ${adminUser.lastName}`
+                  : 'Admin User'}
+              </div>
+              <div className="email">
+                {adminUser.email || 'admin@policeacademy.edu'}
+              </div>
             </div>
           </div>
           <div className="nav-section">
@@ -264,34 +308,16 @@ function AdminDashboard() {
             <div className="nav-heading">MANAGEMENT</div>
             <button className="nav-item" onClick={() => navigate('/admin/blockheads')}><FaUsers /> Assign Block Heads</button>
             <button className="nav-item" onClick={() => setShowAllocForm(true)}><FaPlus /> Create Allocation Order</button>
-            <button className="nav-item"onClick={() => navigate('/admin/display-block')}><FaCubes /> Display Block Structure</button>
-           <button className="nav-item" onClick={() => setShowModal(true)}><FaBook /> Forward Course Order</button>
-            <button className="nav-item"><FaChartBar />Generate Reports</button>
+            <button className="nav-item" onClick={() => navigate('/admin/display-block')}><FaCubes /> Display Block Structure</button>
+            <button className="nav-item" onClick={() => setShowModal(true)}><FaBook /> Forward Course Order</button>
+            <button className="nav-item"><FaChartBar /> Generate Reports</button>
             <button className="nav-item"><FaBell /> Notifications</button>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main Content - REMOVED DUPLICATE TOPBAR */}
       <div className="main-content">
-        {/* ✅ Conditionally show Topbar */}
-        {!showModal && !showAllocForm && (
-          <div className="admin-topbar">
-            <div className="topbar-left">
-              <img src="/logo.png" alt="logo" className="topbar-logo" />
-              <div className="topbar-title">
-                <div className="rms-title">RMS</div>
-                <div className="rms-subtitle">Kerala Police Academy</div>
-              </div>
-            </div>
-            <div className="topbar-center"><h2>ADMIN</h2></div>
-            <div className="topbar-right">
-              <button className="topbar-btn" onClick={() => navigate('/')}><FaHome /> Home</button>
-              <button className="topbar-btn" onClick={() => navigate('/login')}><FaSignOutAlt /> Logout</button>
-            </div>
-          </div>
-        )}
-
         {/* Dashboard Cards */}
         <div className="stats-grid">
           <div className="card card-blue">
@@ -387,47 +413,47 @@ function AdminDashboard() {
 
       {/* Suggest Course Modal */}
       {showModal && (
-  <div className="modal-backdrop">
-    <div className="modal">
-      <h3>Forward Course Order</h3>
-      <form onSubmit={handleCourseSubmit}>
-        <div className="form-group">
-          <label>Course Title</label>
-          <input
-            type="text"
-            value={courseTitle}
-            onChange={(e) => setCourseTitle(e.target.value)}
-            required
-          />
-        </div>
+        <div className="modal-backdrop">
+          <div className="modal">
+            <h3>Forward Course Order</h3>
+            <form onSubmit={handleCourseSubmit}>
+              <div className="form-group">
+                <label>Course Title</label>
+                <input
+                  type="text"
+                  value={courseTitle}
+                  onChange={(e) => setCourseTitle(e.target.value)}
+                  required
+                />
+              </div>
 
-        <div className="form-group">
-          <label>Course Description</label>
-          <textarea
-            value={courseDesc}
-            onChange={(e) => setCourseDesc(e.target.value)}
-            rows={4}
-            required
-          />
-        </div>
+              <div className="form-group">
+                <label>Course Description</label>
+                <textarea
+                  value={courseDesc}
+                  onChange={(e) => setCourseDesc(e.target.value)}
+                  rows={4}
+                  required
+                />
+              </div>
 
-        <div className="form-group">
-          <label>Upload Course Order (PDF)</label>
-          <input
-            type="file"
-            accept="application/pdf"
-            onChange={(e) => setCourseFile(e.target.files[0])}
-          />
-        </div>
+              <div className="form-group">
+                <label>Upload Course Order (PDF)</label>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setCourseFile(e.target.files[0])}
+                />
+              </div>
 
-        <div className="form-buttons">
-          <button type="button" onClick={() => setShowModal(false)}>Cancel</button>
-          <button type="submit">Send</button>
+              <div className="form-buttons">
+                <button type="button" onClick={() => setShowModal(false)}>Cancel</button>
+                <button type="submit">Send</button>
+              </div>
+            </form>
+          </div>
         </div>
-      </form>
-    </div>
-  </div>
-)}
+      )}
 
       {/* Allocation Modal */}
       {showAllocForm && (
