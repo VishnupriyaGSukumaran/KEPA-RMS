@@ -1,3 +1,4 @@
+// AllocateRoom.js - UPDATED with Notifications & Reports
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
@@ -5,11 +6,11 @@ import {
   FaDoorOpen,
   FaDoorClosed,
   FaList,
-  FaHome,
-  FaSignOutAlt
+  FaBell,
+  FaFileAlt
 } from 'react-icons/fa';
 
-import './AllocateRoom.css'; // Or AllocationRoom.css if that's the real filename
+import './AllocateRoom.css';
 
 const purposes = [
   { title: 'Basic Training', description: 'For participants attending basic training programs' },
@@ -27,8 +28,8 @@ const AllocateRoom = () => {
   const blockNameFromStorage = localStorage.getItem('assignedBlock');
   const [userData, setUserData] = useState(null);
   const [blockName, setBlockName] = useState(blockNameFromStorage || '');
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  // Fetch user data
   useEffect(() => {
     if (!pen) return;
 
@@ -49,6 +50,15 @@ const AllocateRoom = () => {
         
         if (blockToFetch) {
           setBlockName(blockToFetch);
+          
+          // Fetch unread notifications count
+          fetch(`http://localhost:5000/api/allocations/block/${encodeURIComponent(blockToFetch)}`)
+            .then(res => res.json())
+            .then(notifications => {
+              const unread = notifications.filter(n => !n.isRead).length;
+              setUnreadCount(unread);
+            })
+            .catch(err => console.error('Error fetching notifications:', err));
         }
       })
       .catch(err => {
@@ -56,7 +66,6 @@ const AllocateRoom = () => {
       });
   }, [pen, blockNameFromStorage]);
 
-  // Card animation effect
   useEffect(() => {
     let timeout;
     purposes.forEach((_, idx) => {
@@ -72,10 +81,6 @@ const AllocateRoom = () => {
     navigate(`/blockhead/AllocateForm/${encodedPurpose}`);
   };
 
-  const handleLogout = () => {
-    navigate('/login');
-  };
-
   return (
     <>
       <div className="dashboard-containeer">
@@ -89,6 +94,27 @@ const AllocateRoom = () => {
             <Link to="/blockhead/AllocateRoom" className="active"><FaDoorOpen /> Allocate Room</Link>
             <Link to="/blockhead/VacateRoom"><FaDoorClosed /> Vacate Room</Link>
             <Link to={`/blockhead/ViewBlock/${blockName}`}><FaList /> Display Block</Link>
+            <Link to="/blockhead/notifications" style={{ position: 'relative' }}>
+              <FaBell /> Notifications
+              {unreadCount > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '8px',
+                  right: '12px',
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  borderRadius: '50%',
+                  padding: '2px 6px',
+                  fontSize: '0.7rem',
+                  fontWeight: 'bold',
+                  minWidth: '18px',
+                  textAlign: 'center'
+                }}>
+                  {unreadCount}
+                </span>
+              )}
+            </Link>
+            <Link to="/blockhead/reports"><FaFileAlt /> Reports</Link>
           </nav>
         </aside>
 

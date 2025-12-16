@@ -1,9 +1,9 @@
-// BlockHeadDashboard.js
+// BlockHeadDashboard.js - UPDATED with Notifications & Reports
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   FaBed, FaUsers, FaDoorOpen,
-  FaTachometerAlt, FaDoorClosed, FaList
+  FaTachometerAlt, FaDoorClosed, FaList, FaBell, FaFileAlt
 } from 'react-icons/fa';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import './BlockHeadDashboard.css';
@@ -14,6 +14,7 @@ const BlockHeadDashboard = () => {
   const [blockData, setBlockData] = useState(null);
   const [userData, setUserData] = useState(null);
   const [blockName, setBlockName] = useState(blockNameFromStorage || '');
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (!pen) return;
@@ -42,6 +43,7 @@ const BlockHeadDashboard = () => {
 
         setBlockName(blockToFetch);
 
+        // Fetch block data
         fetch(`http://localhost:5000/api/block/name/${encodeURIComponent(blockToFetch)}`)
           .then(res => {
             if (!res.ok) {
@@ -51,10 +53,6 @@ const BlockHeadDashboard = () => {
           })
           .then(data => {
             console.log('📊 Block data received:', data);
-            console.log('📊 Total Beds:', data.totalBeds);
-            console.log('📊 Vacant Beds:', data.vacantBeds);
-            console.log('📊 Room Type Counts:', data.roomTypeCounts);
-            
             if (data.message && !data.totalBeds) {
               console.error('Backend error:', data.message);
               return;
@@ -72,6 +70,15 @@ const BlockHeadDashboard = () => {
               window.location.href = '/login';
             }
           });
+
+        // Fetch unread notifications count
+        fetch(`http://localhost:5000/api/allocations/block/${encodeURIComponent(blockToFetch)}`)
+          .then(res => res.json())
+          .then(notifications => {
+            const unread = notifications.filter(n => !n.isRead).length;
+            setUnreadCount(unread);
+          })
+          .catch(err => console.error('Error fetching notifications:', err));
       })
       .catch(err => {
         console.error('Error fetching user data:', err);
@@ -83,7 +90,6 @@ const BlockHeadDashboard = () => {
   const allocatedBeds = totalBeds - vacantBeds;
   const roomTypeCounts = blockData?.roomTypeCounts || {};
 
-  // Calculate statistics for each room type
   const calculateRoomTypeStats = () => {
     if (!blockData?.createdRooms) return {};
 
@@ -127,7 +133,6 @@ const BlockHeadDashboard = () => {
 
   const roomTypeStats = calculateRoomTypeStats();
 
-  // Custom tooltip
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       return (
@@ -163,6 +168,27 @@ const BlockHeadDashboard = () => {
             <Link to={`/blockhead/AllocateRoom`}><FaDoorOpen /> Allocate Room</Link>
             <Link to={`/blockhead/VacateRoom`}><FaDoorClosed /> Vacate Room</Link>
             <Link to={`/blockhead/ViewBlock/${blockName}`}><FaList /> Display Block</Link>
+            <Link to="/blockhead/notifications" style={{ position: 'relative' }}>
+              <FaBell /> Notifications
+              {unreadCount > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '8px',
+                  right: '12px',
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  borderRadius: '50%',
+                  padding: '2px 6px',
+                  fontSize: '0.7rem',
+                  fontWeight: 'bold',
+                  minWidth: '18px',
+                  textAlign: 'center'
+                }}>
+                  {unreadCount}
+                </span>
+              )}
+            </Link>
+            <Link to="/blockhead/reports"><FaFileAlt /> Reports</Link>
           </nav>
         </aside>
         
@@ -192,11 +218,9 @@ const BlockHeadDashboard = () => {
             </div>
           </div>
 
-          {/* Room Type Allocation Charts */}
           <div style={{ marginTop: '3rem' }}>
             <h4 style={{ marginBottom: '1.5rem' }}>Room Type Allocation Status</h4>
             
-            {/* Legend */}
             <div style={{
               display: 'flex',
               gap: '2rem',
@@ -237,7 +261,6 @@ const BlockHeadDashboard = () => {
               </div>
             </div>
 
-            {/* Individual Charts for Each Room Type */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',

@@ -8,7 +8,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import WelcomePage from './WelcomePage';
 import Login from './LoginPage';
 import SuperAdminDashboard from './system_adm/SuperAdminDashboard';
-import NotificationsPage from './system_adm/Notification'; // ✅ NEW IMPORT
+import NotificationsPage from './system_adm/Notification';
 import CreateUser from './system_adm/CreateUser';
 import DesignBlock from './system_adm/DesignBlock';
 import CreateCourse from './system_adm/CreateCourse';
@@ -25,6 +25,7 @@ import ViewBlock from './Block_Head/ViewBlock';
 import VacateRoom from './Block_Head/VacateRoom';
 import AllocateForm from './Block_Head/AllocateForm';
 import PaymentPage from './Block_Head/PaymentPage';
+import BlockHeadNotifications from './Block_Head/BlockHeadNotificationsPage'; // ✅ IMPORT THIS
 
 const App = () => {
   return (
@@ -45,7 +46,6 @@ const App = () => {
           }
         />
         
-        {/* ✅ NEW: Notifications Page Route */}
         <Route
           path="/superadmin/notifications"
           element={
@@ -143,6 +143,17 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+        
+        {/* ✅✅✅ ADD THIS ROUTE - THIS WAS MISSING! */}
+        <Route
+          path="/blockhead/notifications"
+          element={
+            <ProtectedRoute>
+              <BlockHeadNotifications />
+            </ProtectedRoute>
+          }
+        />
+        
         <Route 
           path="/payment" 
           element={
