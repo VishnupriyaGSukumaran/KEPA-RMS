@@ -25,7 +25,8 @@ import ViewBlock from './Block_Head/ViewBlock';
 import VacateRoom from './Block_Head/VacateRoom';
 import AllocateForm from './Block_Head/AllocateForm';
 import PaymentPage from './Block_Head/PaymentPage';
-import BlockHeadNotifications from './Block_Head/BlockHeadNotificationsPage'; // ✅ IMPORT THIS
+import BlockHeadNotifications from './Block_Head/BlockHeadNotificationsPage';
+import BlockHeadReports from './Block_Head/BlockHeadReportsPage';
 
 const App = () => {
   return (
@@ -143,8 +144,6 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-        
-        {/* ✅✅✅ ADD THIS ROUTE - THIS WAS MISSING! */}
         <Route
           path="/blockhead/notifications"
           element={
@@ -153,7 +152,17 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-        
+
+        {/* ✅✅✅ ADD THIS ROUTE FOR REPORTS */}
+        <Route
+          path="/blockhead/reports"
+          element={
+            <ProtectedRoute>
+              <BlockHeadReports />
+            </ProtectedRoute>
+          }
+        />
+
         <Route 
           path="/payment" 
           element={
@@ -210,6 +219,7 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+
       </Routes>
     </Router>
   );

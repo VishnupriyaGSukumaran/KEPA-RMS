@@ -32,7 +32,7 @@ const roomAllocationRoutes = require('./routes/roomAllocationRoutes');
 const reportRoutes = require('./routes/report');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const vacatingRoutes = require('./routes/vacatingRoutes'); // ✅ IMPORT
-
+const blockheadReportsRoutes = require('./routes/blockheadReports');
 // ✅✅✅ REGISTER ALL ROUTES (BEFORE 404 HANDLER)
 app.use('/api/createauth', createUserRoutes);
 app.use('/api/auth', authRoutes);
@@ -48,7 +48,7 @@ app.use('/api/roomallocations', roomAllocationRoutes);
 app.use('/api/vacating', vacatingRoutes); // ✅✅✅ REGISTER VACATING ROUTES
 app.use('/api/reports', reportRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-
+app.use('/api/blockheadReports', blockheadReportsRoutes);
 // Test endpoint
 app.get('/api/test', (req, res) => {
   res.json({ 
