@@ -33,6 +33,7 @@ const reportRoutes = require('./routes/report');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const vacatingRoutes = require('./routes/vacatingRoutes'); // ✅ IMPORT
 const blockheadReportsRoutes = require('./routes/blockheadReports');
+const adminReportsRoutes = require('./routes/adminReportRoutes');
 // ✅✅✅ REGISTER ALL ROUTES (BEFORE 404 HANDLER)
 app.use('/api/createauth', createUserRoutes);
 app.use('/api/auth', authRoutes);
@@ -49,6 +50,7 @@ app.use('/api/vacating', vacatingRoutes); // ✅✅✅ REGISTER VACATING ROUTES
 app.use('/api/reports', reportRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/blockheadReports', blockheadReportsRoutes);
+app.use('/api/adminReports', adminReportsRoutes);
 // Test endpoint
 app.get('/api/test', (req, res) => {
   res.json({ 

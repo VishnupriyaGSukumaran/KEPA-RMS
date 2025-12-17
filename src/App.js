@@ -27,7 +27,7 @@ import AllocateForm from './Block_Head/AllocateForm';
 import PaymentPage from './Block_Head/PaymentPage';
 import BlockHeadNotifications from './Block_Head/BlockHeadNotificationsPage';
 import BlockHeadReports from './Block_Head/BlockHeadReportsPage';
-
+import AdminReports from './Admin/AdminReports';
 const App = () => {
   return (
     <Router>
@@ -219,6 +219,14 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+  path="/admin/reports"
+  element={
+    <ProtectedRoute>
+      <AdminReports />
+    </ProtectedRoute>
+  }
+/>
 
       </Routes>
     </Router>
