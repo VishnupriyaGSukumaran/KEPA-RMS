@@ -10,12 +10,73 @@ const Block = require('../models/Block');
 router.get('/allocated/:blockName', async (req, res) => {
   try {
     const { blockName } = req.params;
+    const { filterType, date, month, year, startDate, endDate } = req.query;
+    
     console.log(`📊 Fetching allocated persons report for block: ${blockName}`);
+    console.log(`📅 Filter params:`, { filterType, date, month, year, startDate, endDate });
 
-    // Fetch all allocations for this block
-    const allocations = await RoomAllocation.find({
+    // Build query
+    let query = {
       blockName: { $regex: `^${blockName}$`, $options: 'i' }
-    }).sort({ allocationDate: -1 }).lean();
+    };
+
+    // Apply date filters
+    if (filterType && filterType !== 'all') {
+      switch (filterType) {
+        case 'date':
+          if (date) {
+            const startOfDay = new Date(date);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(date);
+            endOfDay.setHours(23, 59, 59, 999);
+            query.allocationDate = { $gte: startOfDay, $lte: endOfDay };
+          }
+          break;
+        
+        case 'month':
+          if (month && year) {
+            const monthNum = parseInt(month) - 1; // JS months are 0-indexed
+            const startOfMonth = new Date(year, monthNum, 1);
+            const endOfMonth = new Date(year, monthNum + 1, 0, 23, 59, 59, 999);
+            query.allocationDate = { $gte: startOfMonth, $lte: endOfMonth };
+          }
+          break;
+        
+        case 'year':
+          if (year) {
+            const startOfYear = new Date(year, 0, 1);
+            const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
+            query.allocationDate = { $gte: startOfYear, $lte: endOfYear };
+          }
+          break;
+        
+        case 'monthYear':
+          if (month && year) {
+            const monthNum = parseInt(month) - 1;
+            const startOfMonth = new Date(year, monthNum, 1);
+            const endOfMonth = new Date(year, monthNum + 1, 0, 23, 59, 59, 999);
+            query.allocationDate = { $gte: startOfMonth, $lte: endOfMonth };
+          }
+          break;
+        
+        case 'dateRange':
+          if (startDate && endDate) {
+            const start = new Date(startDate);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            query.allocationDate = { $gte: start, $lte: end };
+          }
+          break;
+      }
+    }
+
+    console.log(`🔍 Query:`, JSON.stringify(query, null, 2));
+
+    // Fetch allocations with filters
+    const allocations = await RoomAllocation.find(query)
+      .sort({ allocationDate: -1 })
+      .lean();
 
     console.log(`✅ Found ${allocations.length} allocations for ${blockName}`);
 
@@ -28,7 +89,7 @@ router.get('/allocated/:blockName', async (req, res) => {
       unit: allocation.unit || '-',
       district: allocation.district || '-',
       roomNumber: allocation.roomNumber,
-      bedIndex: allocation.bedIndex + 1, // Convert 0-based to 1-based
+      bedIndex: allocation.bedIndex + 1,
       allocationDate: new Date(allocation.allocationDate).toLocaleDateString(),
       purpose: allocation.purpose,
       courseDetails: allocation.courseDetails || '-',
@@ -43,6 +104,7 @@ router.get('/allocated/:blockName', async (req, res) => {
       success: true,
       blockName,
       totalAllocated: report.length,
+      filterApplied: filterType || 'all',
       data: report
     });
   } catch (error) {
@@ -58,12 +120,73 @@ router.get('/allocated/:blockName', async (req, res) => {
 router.get('/vacated/:blockName', async (req, res) => {
   try {
     const { blockName } = req.params;
+    const { filterType, date, month, year, startDate, endDate } = req.query;
+    
     console.log(`📊 Fetching vacated persons report for block: ${blockName}`);
+    console.log(`📅 Filter params:`, { filterType, date, month, year, startDate, endDate });
 
-    // Fetch all vacating records for this block
-    const vacatedRecords = await VacatingRecord.find({
+    // Build query
+    let query = {
       blockName: { $regex: `^${blockName}$`, $options: 'i' }
-    }).sort({ vacatingDate: -1 }).lean();
+    };
+
+    // Apply date filters
+    if (filterType && filterType !== 'all') {
+      switch (filterType) {
+        case 'date':
+          if (date) {
+            const startOfDay = new Date(date);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(date);
+            endOfDay.setHours(23, 59, 59, 999);
+            query.vacatingDate = { $gte: startOfDay, $lte: endOfDay };
+          }
+          break;
+        
+        case 'month':
+          if (month && year) {
+            const monthNum = parseInt(month) - 1;
+            const startOfMonth = new Date(year, monthNum, 1);
+            const endOfMonth = new Date(year, monthNum + 1, 0, 23, 59, 59, 999);
+            query.vacatingDate = { $gte: startOfMonth, $lte: endOfMonth };
+          }
+          break;
+        
+        case 'year':
+          if (year) {
+            const startOfYear = new Date(year, 0, 1);
+            const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
+            query.vacatingDate = { $gte: startOfYear, $lte: endOfYear };
+          }
+          break;
+        
+        case 'monthYear':
+          if (month && year) {
+            const monthNum = parseInt(month) - 1;
+            const startOfMonth = new Date(year, monthNum, 1);
+            const endOfMonth = new Date(year, monthNum + 1, 0, 23, 59, 59, 999);
+            query.vacatingDate = { $gte: startOfMonth, $lte: endOfMonth };
+          }
+          break;
+        
+        case 'dateRange':
+          if (startDate && endDate) {
+            const start = new Date(startDate);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            query.vacatingDate = { $gte: start, $lte: end };
+          }
+          break;
+      }
+    }
+
+    console.log(`🔍 Query:`, JSON.stringify(query, null, 2));
+
+    // Fetch vacating records with filters
+    const vacatedRecords = await VacatingRecord.find(query)
+      .sort({ vacatingDate: -1 })
+      .lean();
 
     console.log(`✅ Found ${vacatedRecords.length} vacated records for ${blockName}`);
 
@@ -95,6 +218,7 @@ router.get('/vacated/:blockName', async (req, res) => {
       success: true,
       blockName,
       totalVacated: report.length,
+      filterApplied: filterType || 'all',
       data: report
     });
   } catch (error) {

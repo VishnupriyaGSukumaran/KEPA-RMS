@@ -30,6 +30,21 @@ const BlockHeadReports = () => {
   const [summaryData, setSummaryData] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Date filter states
+  const [allocatedFilterType, setAllocatedFilterType] = useState('all');
+  const [allocatedDate, setAllocatedDate] = useState('');
+  const [allocatedMonth, setAllocatedMonth] = useState('');
+  const [allocatedYear, setAllocatedYear] = useState(new Date().getFullYear().toString());
+  const [allocatedStartDate, setAllocatedStartDate] = useState('');
+  const [allocatedEndDate, setAllocatedEndDate] = useState('');
+
+  const [vacatedFilterType, setVacatedFilterType] = useState('all');
+  const [vacatedDate, setVacatedDate] = useState('');
+  const [vacatedMonth, setVacatedMonth] = useState('');
+  const [vacatedYear, setVacatedYear] = useState(new Date().getFullYear().toString());
+  const [vacatedStartDate, setVacatedStartDate] = useState('');
+  const [vacatedEndDate, setVacatedEndDate] = useState('');
+
   useEffect(() => {
     if (!pen) return;
 
@@ -236,6 +251,156 @@ const BlockHeadReports = () => {
           <FaDownload /> Download CSV
         </button>
       </div>
+
+      {/* Date Filter Section */}
+      <div className="date-filter-section">
+        <div className="filter-row">
+          <label>Filter By:</label>
+          <select 
+            value={allocatedFilterType} 
+            onChange={(e) => setAllocatedFilterType(e.target.value)}
+            className="filter-select"
+          >
+            <option value="all">All Records</option>
+            <option value="date">Specific Date</option>
+            <option value="month">Month Only</option>
+            <option value="year">Year Only</option>
+            <option value="monthYear">Month & Year</option>
+            <option value="dateRange">Date Range</option>
+          </select>
+
+          {allocatedFilterType === 'date' && (
+            <input
+              type="date"
+              value={allocatedDate}
+              onChange={(e) => setAllocatedDate(e.target.value)}
+              className="filter-input"
+            />
+          )}
+
+          {allocatedFilterType === 'month' && (
+            <>
+              <select
+                value={allocatedMonth}
+                onChange={(e) => setAllocatedMonth(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">Select Month</option>
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+              <input
+                type="number"
+                placeholder="Year"
+                value={allocatedYear}
+                onChange={(e) => setAllocatedYear(e.target.value)}
+                className="filter-input"
+                min="2000"
+                max="2100"
+              />
+            </>
+          )}
+
+          {allocatedFilterType === 'year' && (
+            <input
+              type="number"
+              placeholder="Year"
+              value={allocatedYear}
+              onChange={(e) => setAllocatedYear(e.target.value)}
+              className="filter-input"
+              min="2000"
+              max="2100"
+            />
+          )}
+
+          {allocatedFilterType === 'monthYear' && (
+            <>
+              <select
+                value={allocatedMonth}
+                onChange={(e) => setAllocatedMonth(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">Select Month</option>
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+              <input
+                type="number"
+                placeholder="Year"
+                value={allocatedYear}
+                onChange={(e) => setAllocatedYear(e.target.value)}
+                className="filter-input"
+                min="2000"
+                max="2100"
+              />
+            </>
+          )}
+
+          {allocatedFilterType === 'dateRange' && (
+            <>
+              <input
+                type="date"
+                value={allocatedStartDate}
+                onChange={(e) => setAllocatedStartDate(e.target.value)}
+                className="filter-input"
+                placeholder="Start Date"
+              />
+              <span style={{ margin: '0 0.5rem' }}>to</span>
+              <input
+                type="date"
+                value={allocatedEndDate}
+                onChange={(e) => setAllocatedEndDate(e.target.value)}
+                className="filter-input"
+                placeholder="End Date"
+              />
+            </>
+          )}
+
+          <button 
+            className="apply-filter-btn"
+            onClick={fetchAllocatedReport}
+          >
+            Apply Filter
+          </button>
+
+          {allocatedFilterType !== 'all' && (
+            <button 
+              className="clear-filter-btn"
+              onClick={() => {
+                setAllocatedFilterType('all');
+                setAllocatedDate('');
+                setAllocatedMonth('');
+                setAllocatedYear(new Date().getFullYear().toString());
+                setAllocatedStartDate('');
+                setAllocatedEndDate('');
+                fetchAllocatedReport();
+              }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
       
       {allocatedData.length === 0 ? (
         <p className="no-data">No allocated persons found</p>
@@ -289,6 +454,156 @@ const BlockHeadReports = () => {
         >
           <FaDownload /> Download CSV
         </button>
+      </div>
+
+      {/* Date Filter Section */}
+      <div className="date-filter-section">
+        <div className="filter-row">
+          <label>Filter By:</label>
+          <select 
+            value={vacatedFilterType} 
+            onChange={(e) => setVacatedFilterType(e.target.value)}
+            className="filter-select"
+          >
+            <option value="all">All Records</option>
+            <option value="date">Specific Date</option>
+            <option value="month">Month Only</option>
+            <option value="year">Year Only</option>
+            <option value="monthYear">Month & Year</option>
+            <option value="dateRange">Date Range</option>
+          </select>
+
+          {vacatedFilterType === 'date' && (
+            <input
+              type="date"
+              value={vacatedDate}
+              onChange={(e) => setVacatedDate(e.target.value)}
+              className="filter-input"
+            />
+          )}
+
+          {vacatedFilterType === 'month' && (
+            <>
+              <select
+                value={vacatedMonth}
+                onChange={(e) => setVacatedMonth(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">Select Month</option>
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+              <input
+                type="number"
+                placeholder="Year"
+                value={vacatedYear}
+                onChange={(e) => setVacatedYear(e.target.value)}
+                className="filter-input"
+                min="2000"
+                max="2100"
+              />
+            </>
+          )}
+
+          {vacatedFilterType === 'year' && (
+            <input
+              type="number"
+              placeholder="Year"
+              value={vacatedYear}
+              onChange={(e) => setVacatedYear(e.target.value)}
+              className="filter-input"
+              min="2000"
+              max="2100"
+            />
+          )}
+
+          {vacatedFilterType === 'monthYear' && (
+            <>
+              <select
+                value={vacatedMonth}
+                onChange={(e) => setVacatedMonth(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">Select Month</option>
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+              <input
+                type="number"
+                placeholder="Year"
+                value={vacatedYear}
+                onChange={(e) => setVacatedYear(e.target.value)}
+                className="filter-input"
+                min="2000"
+                max="2100"
+              />
+            </>
+          )}
+
+          {vacatedFilterType === 'dateRange' && (
+            <>
+              <input
+                type="date"
+                value={vacatedStartDate}
+                onChange={(e) => setVacatedStartDate(e.target.value)}
+                className="filter-input"
+                placeholder="Start Date"
+              />
+              <span style={{ margin: '0 0.5rem' }}>to</span>
+              <input
+                type="date"
+                value={vacatedEndDate}
+                onChange={(e) => setVacatedEndDate(e.target.value)}
+                className="filter-input"
+                placeholder="End Date"
+              />
+            </>
+          )}
+
+          <button 
+            className="apply-filter-btn"
+            onClick={fetchVacatedReport}
+          >
+            Apply Filter
+          </button>
+
+          {vacatedFilterType !== 'all' && (
+            <button 
+              className="clear-filter-btn"
+              onClick={() => {
+                setVacatedFilterType('all');
+                setVacatedDate('');
+                setVacatedMonth('');
+                setVacatedYear(new Date().getFullYear().toString());
+                setVacatedStartDate('');
+                setVacatedEndDate('');
+                fetchVacatedReport();
+              }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
       </div>
       
       {vacatedData.length === 0 ? (
