@@ -12,7 +12,7 @@ const CreateRoomDashboard = () => {
 
   useEffect(() => {
     const data = JSON.parse(sessionStorage.getItem('blockData'));
-    if (!data) return navigate('/superadmin/design-block');
+    if (!data) return navigate('/superadmin/Add-block');
     setBlockData(data);
 
     const initial = {};
@@ -114,26 +114,34 @@ const CreateRoomDashboard = () => {
       const roomResult = await roomRes.json();
 
       if (blockRes.ok && roomRes.ok) {
-        sessionStorage.setItem('createdRooms', JSON.stringify(allRooms));
+        // ✅ Clear sessionStorage
         sessionStorage.removeItem('blockData');
+        sessionStorage.removeItem('createdRooms');
+        sessionStorage.setItem('roomsCreated', 'true');
+        
         setModalMessage('✅ Block and Room details saved successfully! Redirecting...');
         setShowModal(true);
+        
+        // ✅ Navigate back after modal shows
         setTimeout(() => {
           setShowModal(false);
-          navigate('/superadmin/Add-block');
-        }, 2000);
+          // Try lowercase path (most common convention)
+          navigate('/superadmin/Add-block', { replace: true });
+          
+          // If that doesn't work, you might need to use the exact route from your router:
+          // navigate('/superadmin/Add-block', { replace: true });
+        }, 1000);
       } else {
         const errorMsg = blockResult.message || roomResult.message || '❌ Failed to save data';
         setModalMessage(errorMsg);
         setShowModal(true);
       }
     } catch (err) {
-      console.error(err);
-      setModalMessage('❌ Server error');
+      console.error('Error saving rooms:', err);
+      setModalMessage('❌ Server error: ' + err.message);
       setShowModal(true);
     }
   };
-
   if (!blockData) return null;
 
   return (

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import './Modify.css';
 import BlockManagementTabs from './BlockManagementTabs';
+import { useNavigate, useLocation } from 'react-router-dom';
 const Modify = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [blocks, setBlocks] = useState([]);
   const [selectedBlock, setSelectedBlock] = useState(null);
   const [blockTypes, setBlockTypes] = useState([]);
@@ -13,7 +15,6 @@ const Modify = () => {
   const [error, setError] = useState('');
   const [editingBlockType, setEditingBlockType] = useState(null);
   const [newBlockTypeName, setNewBlockTypeName] = useState('');
-  
   // Room editing state
   const [editingRoom, setEditingRoom] = useState(null);
   const [roomEditForm, setRoomEditForm] = useState({
@@ -27,127 +28,266 @@ const Modify = () => {
   const [roomAllocationInfo, setRoomAllocationInfo] = useState({});
   const [editModalOpen, setEditModalOpen] = useState(false);
 
+  // NEW: Add block type modal state
+  const [addTypeModalOpen, setAddTypeModalOpen] = useState(false);
+  const [newBlockType, setNewBlockType] = useState('');
+  const [newTypeRoomCount, setNewTypeRoomCount] = useState('');
+  
+  // NEW: Change count modal state
+  const [changeCountModalOpen, setChangeCountModalOpen] = useState(false);
+  const [selectedTypeForCount, setSelectedTypeForCount] = useState(null);
+  const [newRoomCount, setNewRoomCount] = useState('');
+
   const normalizeType = (type) => type.trim().replace(/\s+/g, '').toLowerCase();
 
   // Fetch all blocks
   useEffect(() => {
-    const fetchBlocks = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch('http://localhost:5000/api/block');
-        
-        const contentType = res.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          throw new Error('Invalid response format');
-        }
-        
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.message || 'Failed to fetch blocks');
-        }
-        
-        const data = await res.json();
-        setBlocks(data);
-        setError('');
-      } catch (err) {
-        console.error('Error fetching blocks:', err);
-        setError(err.message || 'Failed to load blocks');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchBlocks();
   }, []);
 
-  // Fetch block details
-  useEffect(() => {
-    if (selectedBlock) {
-      const fetchBlockDetails = async () => {
-        try {
-          setLoading(true);
-          const res = await fetch(`http://localhost:5000/api/block/${selectedBlock._id}`);
-          if (!res.ok) throw new Error('Failed to fetch block details');
-          const data = await res.json();
-          setBlockTypes(data.blockTypeDetails || []);
-          setSelectedBlockType(null);
-          setRooms([]);
-          setRoomAllocationInfo({});
-          setError('');
-        } catch (err) {
-          console.error('Error fetching block details:', err);
-          setError('Failed to load block details');
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchBlockDetails();
+  const fetchBlocks = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('http://localhost:5000/api/block');
+      
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Invalid response format');
+      }
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to fetch blocks');
+      }
+      
+      const data = await res.json();
+      setBlocks(data);
+      setError('');
+    } catch (err) {
+      console.error('Error fetching blocks:', err);
+      setError(err.message || 'Failed to load blocks');
+    } finally {
+      setLoading(false);
     }
-  }, [selectedBlock]);
+  };
+
+ 
+// ========================================
+// OPTIMIZED useEffect for block selection
+// ========================================
+
+useEffect(() => {
+  if (selectedBlock) {
+    // Reset state immediately for better UX
+    setBlockTypes([]);
+    setSelectedBlockType(null);
+    setRooms([]);
+    setRoomAllocationInfo({});
+    
+    // Then fetch details
+    fetchBlockDetails();
+  } else {
+    // Clear everything when no block selected
+    setBlockTypes([]);
+    setSelectedBlockType(null);
+    setRooms([]);
+    setRoomAllocationInfo({});
+  }
+}, [selectedBlock]);
+
+// ========================================
+// OPTIMIZED visibility change handler
+// Remove the separate useEffect and merge into one
+// ========================================
+
+useEffect(() => {
+  // Only set up listeners if a block is selected
+  if (!selectedBlock) return;
+
+  let refreshTimeout;
+
+  const handleVisibilityChange = () => {
+    if (!document.hidden && selectedBlock) {
+      console.log('🔄 Page became visible, scheduling refresh...');
+      // Debounce refresh to avoid multiple calls
+      clearTimeout(refreshTimeout);
+      refreshTimeout = setTimeout(() => {
+        fetchBlockDetails();
+      }, 300);
+    }
+  };
+
+  const handleFocus = () => {
+    if (selectedBlock) {
+      console.log('🔄 Window focused, scheduling refresh...');
+      clearTimeout(refreshTimeout);
+      refreshTimeout = setTimeout(() => {
+        fetchBlockDetails();
+      }, 300);
+    }
+  };
+
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  window.addEventListener('focus', handleFocus);
+
+  return () => {
+    clearTimeout(refreshTimeout);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    window.removeEventListener('focus', handleFocus);
+  };
+}, [selectedBlock]); // Only re-attach when selectedBlock changes
+
+
+
+// Add this useEffect at the top of your Modify component, after the existing useEffects
+
+useEffect(() => {
+  // Check if we're returning from room creation
+  const navState = location.state;
+  
+  if (navState && navState.refreshBlock) {
+    console.log('🔄 Detected return from room creation, refreshing...');
+    
+    // Find the block that was just updated
+    const blockToSelect = blocks.find(b => 
+      b._id === navState.refreshBlock || 
+      b.blockName === navState.refreshBlockName
+    );
+    
+    if (blockToSelect) {
+      console.log(`📍 Auto-selecting block: ${blockToSelect.blockName}`);
+      setSelectedBlock(blockToSelect);
+      
+      // Clear the navigation state to prevent repeated refreshes
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }
+}, [location.state, blocks]);
+
+
+const fetchBlockDetails = async () => {
+  try {
+    setLoading(true);
+    setError(''); // Clear previous errors
+    
+    console.log(`🔄 Fetching block details for: ${selectedBlock.blockName} (ID: ${selectedBlock._id})`);
+    
+    // ✅ Use AbortController for request cancellation if user changes selection quickly
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    
+    const timestamp = Date.now();
+    const res = await fetch(
+      `http://localhost:5000/api/block/${selectedBlock._id}?t=${timestamp}`,
+      { signal: controller.signal }
+    );
+    
+    clearTimeout(timeoutId);
+    
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || 'Failed to fetch block details');
+    }
+    
+    const data = await res.json();
+    
+    console.log('📦 Block data received:', {
+      blockName: data.blockName,
+      blockTypes: data.blockTypes,
+      blockTypeDetailsCount: data.blockTypeDetails?.length || 0,
+      types: data.blockTypeDetails?.map(t => `${t.type}(${t.count})`) || []
+    });
+    
+    // ✅ Ensure blockTypeDetails exists and is an array
+    const blockTypes = Array.isArray(data.blockTypeDetails) ? data.blockTypeDetails : [];
+    
+    if (blockTypes.length === 0) {
+      console.warn('⚠️ No block types found in response');
+    } else {
+      console.log(`✅ Loaded ${blockTypes.length} block types:`);
+      blockTypes.forEach(type => {
+        console.log(`   - ${type.type}: ${type.count} rooms (${type.rooms?.length || 0} actual)`);
+      });
+    }
+    
+    // ✅ OPTIMIZATION: Only set state once at the end
+    setBlockTypes(blockTypes);
+    setSelectedBlockType(null);
+    setRooms([]);
+    setRoomAllocationInfo({});
+    
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      console.warn('⚠️ Request was aborted (timeout or cancelled)');
+      setError('Request timeout. Please try again.');
+    } else {
+      console.error('❌ Error fetching block details:', err);
+      setError('Failed to load block details: ' + err.message);
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ✅ FIXED: Fetch rooms with complete allocation data
   useEffect(() => {
     if (selectedBlock && selectedBlockType) {
-      const fetchRoomsWithData = async () => {
-        try {
-          setLoading(true);
-          console.log('🔄 Fetching rooms for type:', selectedBlockType.type);
-          
-          const res = await fetch(
-            `http://localhost:5000/api/room?blockId=${selectedBlock._id}&roomType=${encodeURIComponent(selectedBlockType.type)}`
-          );
-          if (!res.ok) throw new Error('Failed to fetch rooms');
-          const roomData = await res.json();
-          console.log('📦 Rooms fetched:', roomData.length);
-          setRooms(roomData);
-          
-          // Build allocation info from room data
-          const allocationMap = {};
-          
-          roomData.forEach(room => {
-            // Get allocated beds from room.beds array or allocatedBeds field
-            const beds = room.beds || [];
-            const allocatedCount = beds.filter(b => b.status === 'allocated').length || room.allocatedBeds || 0;
-            const bedCount = room.bedCount || 0;
-            const vacantCount = bedCount - allocatedCount;
-            
-            // Determine status
-            let status = 'Vacant';
-            if (allocatedCount > 0 && allocatedCount < bedCount) {
-              status = 'Partially Allocated';
-            } else if (allocatedCount >= bedCount && bedCount > 0) {
-              status = 'Fully Allocated';
-            }
-            
-            allocationMap[room._id] = {
-              roomId: room._id,
-              roomName: room.roomName,
-              bedCount: bedCount,
-              allocatedBeds: allocatedCount,
-              vacantBeds: vacantCount,
-              status: status,
-              canEdit: allocatedCount === 0,
-              canDelete: allocatedCount === 0,
-              beds: beds
-            };
-            
-            console.log(`✓ ${room.roomName}: Status=${status}, Allocated=${allocatedCount}/${bedCount}, Vacant=${vacantCount}`);
-          });
-          
-          console.log('✅ All allocation info built:', allocationMap);
-          setRoomAllocationInfo(allocationMap);
-          setError('');
-          
-        } catch (err) {
-          console.error('Error in fetchRoomsWithData:', err);
-          setError('Failed to load rooms');
-        } finally {
-          setLoading(false);
-        }
-      };
-      
       fetchRoomsWithData();
     }
   }, [selectedBlock, selectedBlockType]);
+
+  const fetchRoomsWithData = async () => {
+    try {
+      setLoading(true);
+      console.log('🔄 Fetching rooms for type:', selectedBlockType.type);
+      
+      const res = await fetch(
+        `http://localhost:5000/api/room?blockId=${selectedBlock._id}&roomType=${encodeURIComponent(selectedBlockType.type)}`
+      );
+      if (!res.ok) throw new Error('Failed to fetch rooms');
+      const roomData = await res.json();
+      console.log('📦 Rooms fetched:', roomData.length);
+      setRooms(roomData);
+      
+      // Build allocation info from room data
+      const allocationMap = {};
+      
+      roomData.forEach(room => {
+        const beds = room.beds || [];
+        const allocatedCount = beds.filter(b => b.status === 'allocated').length || room.allocatedBeds || 0;
+        const bedCount = room.bedCount || 0;
+        const vacantCount = bedCount - allocatedCount;
+        
+        let status = 'Vacant';
+        if (allocatedCount > 0 && allocatedCount < bedCount) {
+          status = 'Partially Allocated';
+        } else if (allocatedCount >= bedCount && bedCount > 0) {
+          status = 'Fully Allocated';
+        }
+        
+        allocationMap[room._id] = {
+          roomId: room._id,
+          roomName: room.roomName,
+          bedCount: bedCount,
+          allocatedBeds: allocatedCount,
+          vacantBeds: vacantCount,
+          status: status,
+          canEdit: allocatedCount === 0,
+          canDelete: allocatedCount === 0,
+          beds: beds
+        };
+      });
+      
+      setRoomAllocationInfo(allocationMap);
+      setError('');
+      
+    } catch (err) {
+      console.error('Error in fetchRoomsWithData:', err);
+      setError('Failed to load rooms');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleDeleteBlockType = async (roomType) => {
     if (!selectedBlock) return;
@@ -167,9 +307,7 @@ const Modify = () => {
         throw new Error(errorData.message || 'Failed to delete block type');
       }
 
-      const refreshedBlock = await fetch(`http://localhost:5000/api/block/${selectedBlock._id}`);
-      const blockData = await refreshedBlock.json();
-      setBlockTypes(blockData.blockTypeDetails || []);
+      await fetchBlockDetails();
       setSelectedBlockType(null);
       setRooms([]);
       setRoomAllocationInfo({});
@@ -214,21 +352,14 @@ const Modify = () => {
         throw new Error(errorData.message || 'Failed to update block type');
       }
 
-      const refreshedBlock = await fetch(`http://localhost:5000/api/block/${selectedBlock._id}`);
-      const blockData = await refreshedBlock.json();
-      setBlockTypes(blockData.blockTypeDetails || []);
+      await fetchBlockDetails();
 
       if (selectedBlockType && normalizeType(selectedBlockType.type) === normalizeType(editingBlockType.type)) {
-        const roomsRes = await fetch(
-          `http://localhost:5000/api/room?blockId=${selectedBlock._id}&roomType=${encodeURIComponent(formattedType)}`
-        );
-        const roomsData = await roomsRes.json();
-        setRooms(roomsData);
-        
-        const updatedType = blockData.blockTypeDetails.find(
+        const updatedType = blockTypes.find(
           t => normalizeType(t.type) === normalizeType(formattedType)
         );
         setSelectedBlockType(updatedType || null);
+        await fetchRoomsWithData();
       }
 
       setEditingBlockType(null);
@@ -242,8 +373,6 @@ const Modify = () => {
 
   const handleEditRoom = (room) => {
     const allocInfo = roomAllocationInfo[room._id];
-    console.log('🎯 Edit clicked for room:', room.roomName);
-    console.log('📊 Allocation info:', allocInfo);
     
     if (!allocInfo) {
       alert('Room data not loaded. Please try again.');
@@ -306,15 +435,9 @@ const Modify = () => {
         throw new Error(errorData.message || 'Failed to update room');
       }
       
-      const roomsRes = await fetch(
-        `http://localhost:5000/api/room?blockId=${selectedBlock._id}&roomType=${encodeURIComponent(selectedBlockType.type)}`
-      );
-      const roomsData = await roomsRes.json();
-      setRooms(roomsData);
-
-      const blockRes = await fetch(`http://localhost:5000/api/block/${selectedBlock._id}`);
-      const blockData = await blockRes.json();
-      setBlockTypes(blockData.blockTypeDetails || []);
+      // ✅ FIX: Refresh data immediately after save
+      await fetchBlockDetails();
+      await fetchRoomsWithData();
 
       setEditingRoom(null);
       setEditModalOpen(false);
@@ -361,20 +484,141 @@ const Modify = () => {
         throw new Error(errorData.message || 'Failed to delete room');
       }
       
-      const roomsRes = await fetch(
-        `http://localhost:5000/api/room?blockId=${selectedBlock._id}&roomType=${encodeURIComponent(selectedBlockType.type)}`
-      );
-      const roomsData = await roomsRes.json();
-      setRooms(roomsData);
-
-      const blockRes = await fetch(`http://localhost:5000/api/block/${selectedBlock._id}`);
-      const blockData = await blockRes.json();
-      setBlockTypes(blockData.blockTypeDetails || []);
+      // ✅ FIX: Refresh data immediately after delete
+      await fetchBlockDetails();
+      await fetchRoomsWithData();
 
       alert('Room deleted successfully');
     } catch (err) {
       console.error('Error deleting room:', err);
       alert(err.message || 'Failed to delete room');
+    }
+  };
+
+  // ✅ NEW: Add Block Type Handler
+  const handleAddBlockType = () => {
+    setNewBlockType('');
+    setNewTypeRoomCount('');
+    setAddTypeModalOpen(true);
+  };
+
+  const handleSaveNewBlockType = async () => {
+    if (!selectedBlock || !newBlockType.trim() || !newTypeRoomCount) {
+      alert('Please fill all fields');
+      return;
+    }
+
+    const count = parseInt(newTypeRoomCount);
+    if (isNaN(count) || count <= 0) {
+      alert('Please enter a valid positive number for room count');
+      return;
+    }
+
+    try {
+      let formattedType = newBlockType.trim();
+      const normalized = normalizeType(newBlockType);
+      
+      if (normalized === 'suiteroom') formattedType = 'Suite Room';
+      if (normalized === 'barrack') formattedType = 'Barrack';
+      if (normalized === 'dormitory') formattedType = 'Dormitory';
+      if (normalized === 'room') formattedType = 'Room';
+
+      const res = await fetch(`http://localhost:5000/api/block/${selectedBlock._id}/type`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: formattedType, count })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to add block type');
+      }
+
+      await fetchBlockDetails();
+      setAddTypeModalOpen(false);
+      alert(`Block type "${formattedType}" added successfully. You can now create ${count} rooms for this type.`);
+      
+      // Navigate to create rooms
+      navigate('/superadmin/createMODIFYrooms', {
+        state: {
+          blockId: selectedBlock._id,
+          blockName: selectedBlock.blockName,
+          roomType: formattedType,
+          roomCount: count
+        }
+      });
+    } catch (err) {
+      console.error('Error adding block type:', err);
+      alert(err.message || 'Failed to add block type');
+    }
+  };
+
+  // ✅ NEW: Change Count Handler
+  const handleChangeCount = (type) => {
+    setSelectedTypeForCount(type);
+    setNewRoomCount(type.count.toString());
+    setChangeCountModalOpen(true);
+  };
+
+  const handleSaveNewCount = async () => {
+    if (!selectedBlock || !selectedTypeForCount || !newRoomCount) {
+      alert('Please fill all fields');
+      return;
+    }
+
+    const count = parseInt(newRoomCount);
+    if (isNaN(count) || count < 0) {
+      alert('Please enter a valid non-negative number');
+      return;
+    }
+
+    const currentCount = selectedTypeForCount.count;
+    
+    if (count < currentCount) {
+      alert(`Cannot decrease room count. Current count: ${currentCount}. Please delete rooms manually first.`);
+      return;
+    }
+
+    if (count === currentCount) {
+      alert('New count is same as current count');
+      setChangeCountModalOpen(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/block/${selectedBlock._id}/type/${encodeURIComponent(selectedTypeForCount.type)}/count`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newCount: count })
+        }
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to update count');
+      }
+
+      await fetchBlockDetails();
+      setChangeCountModalOpen(false);
+      
+      const additionalRooms = count - currentCount;
+      alert(`Room count updated successfully. You need to create ${additionalRooms} more room(s).`);
+      
+      // Navigate to create additional rooms
+      navigate('/superadmin/createMODIFYrooms', {
+        state: {
+          blockId: selectedBlock._id,
+          blockName: selectedBlock.blockName,
+          roomType: selectedTypeForCount.type,
+          roomCount: additionalRooms,
+          isAdditional: true
+        }
+      });
+    } catch (err) {
+      console.error('Error updating count:', err);
+      alert(err.message || 'Failed to update room count');
     }
   };
 
@@ -466,7 +710,12 @@ const Modify = () => {
 
         {selectedBlock && blockTypes.length > 0 && (
           <div className="selection-section">
-            <h4>Room Types in {selectedBlock.blockName}</h4>
+            <div className="section-header">
+              <h4>Room Types in {selectedBlock.blockName}</h4>
+              <button onClick={handleAddBlockType} className="add-type-btn">
+                ➕ Add New Type
+              </button>
+            </div>
             <div className="block-types-list">
               {blockTypes.map(type => (
                 <div key={type.type} className="block-type-item">
@@ -491,8 +740,15 @@ const Modify = () => {
                         {type.type} ({type.count})
                       </span>
                       <div className="block-type-actions">
-                        <button className="edit-type-btn" onClick={() => handleEditBlockType(type)}>Edit</button>
-                        <button className="delete-type-btn" onClick={() => handleDeleteBlockType(type.type)}>Remove</button>
+                        <button className="change-count-btn" onClick={() => handleChangeCount(type)}>
+                          Change Count
+                        </button>
+                        <button className="edit-type-btn" onClick={() => handleEditBlockType(type)}>
+                          Edit
+                        </button>
+                        <button className="delete-type-btn" onClick={() => handleDeleteBlockType(type.type)}>
+                          Remove
+                        </button>
                       </div>
                     </>
                   )}
@@ -599,6 +855,7 @@ const Modify = () => {
         )}
       </div>
 
+      {/* Edit Room Modal */}
       {editModalOpen && editingRoom && (
         <div className="modal-overlay" onClick={() => setEditModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -690,6 +947,89 @@ const Modify = () => {
             <div className="modal-footer">
               <button onClick={handleSaveRoom} className="save-btn">Save Changes</button>
               <button onClick={() => setEditModalOpen(false)} className="cancel-btn">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Block Type Modal */}
+      {addTypeModalOpen && (
+        <div className="modal-overlay" onClick={() => setAddTypeModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Add New Block Type</h3>
+              <button className="modal-close" onClick={() => setAddTypeModalOpen(false)}>✕</button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Block Type</label>
+                <select
+                  className="form-inputS"
+                  value={newBlockType}
+                  onChange={(e) => setNewBlockType(e.target.value)}
+                >
+                  <option value="">-- Select Type --</option>
+                  <option value="Suite Room">Suite Room</option>
+                  <option value="Room">Room</option>
+                  <option value="Dormitory">Dormitory</option>
+                  <option value="Barrack">Barrack</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Number of Rooms</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={newTypeRoomCount}
+                  onChange={(e) => setNewTypeRoomCount(e.target.value)}
+                  className="form-input"
+                  placeholder="Enter number of rooms"
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button onClick={handleSaveNewBlockType} className="save-btn">Add Type</button>
+              <button onClick={() => setAddTypeModalOpen(false)} className="cancel-btn">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Count Modal */}
+      {changeCountModalOpen && selectedTypeForCount && (
+        <div className="modal-overlay" onClick={() => setChangeCountModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Change Room Count</h3>
+              <button className="modal-close" onClick={() => setChangeCountModalOpen(false)}>✕</button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Block Type: {selectedTypeForCount.type}</label>
+                <p className="info-text">Current Count: {selectedTypeForCount.count}</p>
+              </div>
+
+              <div className="form-group">
+                <label>New Room Count</label>
+                <input
+                  type="number"
+                  min={selectedTypeForCount.count}
+                  value={newRoomCount}
+                  onChange={(e) => setNewRoomCount(e.target.value)}
+                  className="form-input"
+                  placeholder="Enter new count"
+                />
+                <p className="info-text">Note: You can only increase the count, not decrease it.</p>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button onClick={handleSaveNewCount} className="save-btn">Update Count</button>
+              <button onClick={() => setChangeCountModalOpen(false)} className="cancel-btn">Cancel</button>
             </div>
           </div>
         </div>

@@ -2,85 +2,133 @@ const express = require('express');
 const router = express.Router();
 const Block = require('../models/Block'); // make sure it's imported
 const Room = require('../models/Room'); // ✅ Add this line
+// At the TOP of room.js file, make sure you have:
+const RoomAllocation = require('../models/RoomAllocation');
 
+// ✅ FIXED: routes/room.js - POST /superadmin/create-rooms
+// This handles the case where Block API already inserted rooms
+
+// ========================================
+// COMPLETE FIX FOR routes/room.js
+// POST /superadmin/create-rooms
+// ========================================
+// ========================================
+// FIXED: routes/room.js - POST /superadmin/create-rooms
+// This handles BOTH initial creation AND adding rooms to existing block types
+// ========================================
 
 router.post('/superadmin/create-rooms', async (req, res) => {
   const { blockName, rooms } = req.body;
 
-    // If using Block model only (nested rooms), insert into that model instead
   if (!blockName || !rooms || !Array.isArray(rooms)) {
     return res.status(400).json({ message: 'Incomplete room data received' });
   }
+
+  console.log(`\n🔄 Creating rooms for block: ${blockName}`);
+  console.log(`📦 Rooms to create: ${rooms.length}`);
 
   try {
     // ✅ Ensure all rooms include allocatedBeds = 0
     const roomsWithAllocation = rooms.map(room => ({
       ...room,
-      allocatedBeds: room.allocatedBeds ?? 0  // default to 0 if not present
+      allocatedBeds: room.allocatedBeds ?? 0
     }));
 
-    // ✅ Check for duplicates in DB before insert
-    const existingRooms = await Room.find({ blockName });
+    // ✅ Check if rooms already exist (to avoid duplicates)
+    const existingRooms = await Room.find({ 
+      blockName: { $regex: `^${blockName}$`, $options: 'i' }
+    });
+    
     const existingRoomNames = new Set(existingRooms.map(r => r.roomName));
 
-    const duplicates = roomsWithAllocation.filter(room => existingRoomNames.has(room.roomName));
-    if (duplicates.length > 0) {
-      return res.status(400).json({
-        message: `Duplicate room name(s) found in this block: ${duplicates.map(r => r.roomName).join(', ')}`
-      });
+    // ✅ Filter out rooms that already exist
+    const newRooms = roomsWithAllocation.filter(room => !existingRoomNames.has(room.roomName));
+
+    console.log(`📊 Existing rooms: ${existingRooms.length}, New rooms to insert: ${newRooms.length}`);
+
+    let insertedRooms = [];
+
+    // ✅ Only insert if there are new rooms
+    if (newRooms.length > 0) {
+      try {
+        insertedRooms = await Room.insertMany(newRooms);
+        console.log(`✅ Inserted ${insertedRooms.length} new rooms`);
+      } catch (insertError) {
+        console.error('Error inserting rooms:', insertError);
+        
+        // Handle duplicate key error
+        if (insertError.code === 11000) {
+          const duplicateField = Object.keys(insertError.keyValue || {}).join(', ');
+          return res.status(400).json({
+            message: `Duplicate room name in the same block: ${duplicateField}`
+          });
+        }
+        throw insertError;
+      }
+    } else {
+      console.log(`ℹ️ All rooms already exist, no new rooms to insert`);
     }
 
-   
-    // 1. Save rooms in Room collection
-    const insertedRooms = await Room.insertMany(rooms);
+    // ✅ CRITICAL FIX: Fetch ALL rooms for this block (existing + new)
+    const allRooms = await Room.find({ 
+      blockName: { $regex: `^${blockName}$`, $options: 'i' }
+    });
 
-    // 2. Group by roomType
-   const grouped = {};
-   insertedRooms.forEach(room => {
-   if (!grouped[room.roomType]) {
-    grouped[room.roomType] = [];
-   }
-   grouped[room.roomType].push(room);
-   });
-    // 3. Prepare block update object
-    const blockTypeDetails = Object.keys(grouped).map(type => ({
+    console.log(`📋 Total rooms in database: ${allRooms.length}`);
+
+    // ✅ Group ALL rooms by roomType
+    const roomsByType = {};
+    allRooms.forEach(room => {
+      const type = room.roomType || 'Unknown';
+      if (!roomsByType[type]) roomsByType[type] = [];
+      roomsByType[type].push(room);
+    });
+
+    console.log(`📊 Room types:`, Object.keys(roomsByType).map(type => `${type}(${roomsByType[type].length})`).join(', '));
+
+    // ✅ Build complete blockTypeDetails from ALL rooms
+    const blockTypeDetails = Object.keys(roomsByType).map(type => ({
       type,
-      count: grouped[type].length,
-      rooms: grouped[type].map(room => ({
-  _id: room._id,
-  roomName: room.roomName,
-  roomType: room.roomType,
-  isAC: room.isAC,
-  attachedBathroom: room.attachedBathroom,
-  floorNumber: room.floorNumber,
-  bedCount: room.bedCount,
-  additionalFacilities: room.additionalFacilities
-}))
-
+      count: roomsByType[type].length,
+      rooms: roomsByType[type].map(room => ({
+        _id: room._id,
+        roomName: room.roomName,
+        roomType: room.roomType,
+        isAC: room.isAC,
+        attachedBathroom: room.attachedBathroom,
+        floorNumber: room.floorNumber,
+        bedCount: room.bedCount,
+        allocatedBeds: room.allocatedBeds || 0,
+        additionalFacilities: room.additionalFacilities
+      }))
     }));
 
-  // 4. Update Block
-   // ✅ Save rooms to the Block document as well
+    // ✅ CRITICAL FIX: Find block and update with COMPLETE room data
+    const block = await Block.findOne({ 
+      blockName: { $regex: `^${blockName}$`, $options: 'i' } 
+    });
 
-     await Block.findOneAndUpdate(
-      { blockName },
-      {
-        $set: {
-          blockTypeDetails,
-          createdRooms: roomsWithAllocation
-        }
-      },
-      { new: true, upsert: true }
-    );
+    if (!block) {
+      console.error(`❌ Block not found: ${blockName}`);
+      return res.status(404).json({ message: 'Block not found' });
+    }
 
-    // 4. Update Block
-   //  await Block.findOneAndUpdate(
-    //   { blockName },
-    //    { $set: {   blockTypeDetails } },
-     // { new: true, upsert: true } // create if not exists
-   // );
+    // ✅ Update Block document with COMPLETE blockTypeDetails
+    // This REPLACES the old blockTypeDetails entirely
+    block.blockTypeDetails = blockTypeDetails;
+    block.blockTypes = blockTypeDetails.map(d => d.type);
+    block.roomCounts = blockTypeDetails.reduce((acc, detail) => {
+      acc[detail.type] = detail.count;
+      return acc;
+    }, {});
 
-    // 5. Prepare summary response
+    await block.save();
+
+    console.log(`✅ Block document updated successfully`);
+    console.log(`   Block types now: ${block.blockTypes.join(', ')}`);
+    console.log(`   Room counts: ${JSON.stringify(block.roomCounts)}`);
+
+    // ✅ Prepare summary response
     const summary = blockTypeDetails.map(typeGroup => {
       const facilitySet = new Set();
       typeGroup.rooms.forEach(room => {
@@ -96,10 +144,17 @@ router.post('/superadmin/create-rooms', async (req, res) => {
       };
     });
 
-    return res.status(200).json({ message: 'Rooms saved successfully', summary ,  blockTypeDetails });
+    return res.status(200).json({ 
+      message: 'Rooms saved successfully', 
+      summary, 
+      blockTypeDetails,
+      roomsInserted: newRooms.length,
+      roomsExisting: existingRooms.length,
+      totalRooms: allRooms.length
+    });
 
   } catch (error) {
-    console.error('Error saving rooms:', error);
+    console.error('❌ Error saving rooms:', error);
 
     // ✅ Catch MongoDB duplicate key error
     if (error.code === 11000) {
@@ -109,13 +164,13 @@ router.post('/superadmin/create-rooms', async (req, res) => {
       });
     }
 
-    return res.status(500).json({ message: 'Server error while saving room data' });
+    return res.status(500).json({ 
+      message: 'Server error while saving room data',
+      error: error.message 
+    });
   }
 });
-
-
-
-
+// Get rooms by block and type
 // Get rooms by block and type
 router.get('/', async (req, res) => {
   try {
@@ -129,20 +184,61 @@ router.get('/', async (req, res) => {
       return res.status(404).json({ message: 'Block not found' });
     }
 
+    // ✅ CRITICAL FIX: Fetch rooms first
     const rooms = await Room.find({
       blockName: block.blockName,
       roomType: roomType
+    }).lean();
+
+    // ✅ CRITICAL FIX: Fetch allocations
+    const allocations = await RoomAllocation.find({
+      blockName: { $regex: `^${block.blockName}$`, $options: 'i' }
+    }).lean();
+
+    // ✅ Group allocations by room
+    const allocationsByRoom = allocations.reduce((acc, allocation) => {
+      if (!allocation.roomNumber) return acc;
+      acc[allocation.roomNumber] = acc[allocation.roomNumber] || [];
+      acc[allocation.roomNumber].push(allocation);
+      return acc;
+    }, {});
+
+    // ✅ Update each room with real allocation data
+    const updatedRooms = rooms.map(room => {
+      const bedCount = room.beds?.length || room.bedCount || 0;
+      let beds = Array.from({ length: bedCount }, (_, idx) => ({
+        bedNumber: room.beds?.[idx]?.bedNumber || idx + 1,
+        status: 'vacant',
+        occupantName: null
+      }));
+
+      // Apply allocations
+      const roomAllocations = allocationsByRoom[room.roomName] || [];
+      roomAllocations.forEach((allocation) => {
+        const idx = Number(allocation.bedIndex);
+        if (!Number.isNaN(idx) && beds[idx]) {
+          beds[idx].status = 'allocated';
+          beds[idx].occupantName = allocation.name || null;
+        }
+      });
+
+      const allocatedBedsCount = beds.filter(bed => bed.status === 'allocated').length;
+
+      return {
+        ...room,
+        beds,
+        allocatedBeds: allocatedBedsCount
+      };
     });
 
-    res.status(200).json(rooms);
+    console.log(`✅ Returning ${updatedRooms.length} rooms with fresh allocation data`);
+
+    res.status(200).json(updatedRooms); // ✅ Return updatedRooms instead of rooms
   } catch (error) {
     console.error('Error fetching rooms:', error);
     res.status(500).json({ message: 'Server error while fetching rooms' });
   }
 });
-
-
-
 
 
 router.put('/:blockId/type/:type', async (req, res) => {
@@ -261,6 +357,8 @@ router.delete('/:id', async (req, res) => {
     if (blockTypeDetail) {
       blockTypeDetail.rooms = blockTypeDetail.rooms.filter(r => r._id.toString() !== req.params.id);
       blockTypeDetail.count = blockTypeDetail.rooms.length;
+       // ✅ Update room counts
+      block.roomCounts[roomType] = blockTypeDetail.count;
       await block.save();
     }
 
@@ -272,11 +370,12 @@ router.delete('/:id', async (req, res) => {
 });
 
 
-
-// PUT /api/room/:roomId
+// ✅ CRITICAL FIX: Update room with immediate refresh
 router.put('/:roomId', async (req, res) => {
   const roomId = req.params.roomId;
   const {
+    blockId,
+    roomType,
     roomName,
     floorNumber,
     bedCount,
@@ -286,38 +385,97 @@ router.put('/:roomId', async (req, res) => {
   } = req.body;
 
   try {
+    console.log(`🔄 Updating room ${roomId}...`);
+
+    // ✅ Fetch the room before update to compare bedCount
+    const existingRoom = await Room.findById(roomId);
+    if (!existingRoom) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
+
+    const oldBedCount = existingRoom.bedCount || 0;
+    const newBedCount = parseInt(bedCount) || 0;
+
+    // ✅ Prepare updated bed array if bedCount changed
+    let updatedBeds = existingRoom.beds || [];
+    
+    if (newBedCount !== oldBedCount) {
+      console.log(`📊 Bed count changing from ${oldBedCount} to ${newBedCount}`);
+      
+      // Get current allocations for this room
+      const allocations = await RoomAllocation.find({
+        blockName: existingRoom.blockName,
+        roomNumber: existingRoom.roomName
+      });
+
+      // Create new bed array
+      updatedBeds = Array.from({ length: newBedCount }, (_, idx) => ({
+        bedNumber: idx + 1,
+        status: 'vacant',
+        occupantName: null
+      }));
+
+      // Apply existing allocations
+      allocations.forEach(allocation => {
+        const idx = Number(allocation.bedIndex);
+        if (!Number.isNaN(idx) && updatedBeds[idx]) {
+          updatedBeds[idx].status = 'allocated';
+          updatedBeds[idx].occupantName = allocation.name || null;
+        }
+      });
+    }
+
+    const allocatedCount = updatedBeds.filter(b => b.status === 'allocated').length;
+
+    // ✅ Update room with new bed array
     const updatedRoom = await Room.findByIdAndUpdate(
       roomId,
       {
         roomName,
         floorNumber,
-        bedCount,
+        bedCount: newBedCount,
         isAC,
         attachedBathroom,
-        additionalFacilities
+        additionalFacilities,
+        beds: updatedBeds,
+        allocatedBeds: allocatedCount
       },
-      { new: true } // return updated doc
+      { new: true }
     );
 
-    if (!updatedRoom) {
-      return res.status(404).json({ message: 'Room not found' });
-    }
+    console.log(`✅ Room updated: ${updatedRoom.roomName}, Beds: ${newBedCount}, Allocated: ${allocatedCount}`);
 
-    // Optional: Also update it inside the Block model (embedded data)
-    const block = await Block.findOne({ blockName: updatedRoom.blockName });
-    if (block) {
-      const detail = block.blockTypeDetails.find(d => d.type === updatedRoom.roomType);
-      if (detail) {
-      const roomIndex = detail.rooms.findIndex(r => {return r._id && r._id.toString() === roomId;});
+    // ✅ Update block document if blockId provided
+    if (blockId) {
+      const block = await Block.findById(blockId);
+      if (block) {
+        const detail = block.blockTypeDetails.find(d => d.type === roomType);
+        if (detail) {
+          const roomIndex = detail.rooms.findIndex(r => {
+            return r._id && r._id.toString() === roomId;
+          });
 
-        if (roomIndex !== -1) {
-          detail.rooms[roomIndex] = { ...detail.rooms[roomIndex]._doc, ...req.body };
-          await block.save();
+          if (roomIndex !== -1) {
+            detail.rooms[roomIndex] = {
+              ...detail.rooms[roomIndex],
+              roomName,
+              floorNumber,
+              bedCount: newBedCount,
+              isAC,
+              attachedBathroom,
+              additionalFacilities
+            };
+            await block.save();
+            console.log(`✅ Block document updated`);
+          }
         }
       }
     }
 
-    res.status(200).json({ message: 'Room updated successfully' });
+    res.status(200).json({ 
+      message: 'Room updated successfully',
+      room: updatedRoom
+    });
   } catch (error) {
     console.error('Error updating room:', error);
     res.status(500).json({ message: 'Failed to update room' });
@@ -325,10 +483,9 @@ router.put('/:roomId', async (req, res) => {
 });
 
 
+// 
 // ✅ ADD THESE TO routes/room.js
 
-// At the TOP of room.js file, make sure you have:
-const RoomAllocation = require('../models/RoomAllocation');
 
 // PASTE THESE ROUTES BEFORE module.exports = router;
 

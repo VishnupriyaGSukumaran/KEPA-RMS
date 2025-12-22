@@ -50,10 +50,10 @@ router.post('/', async (req, res) => {
 
     // --- Fetch matching rooms from request body ---
     const createdRooms = req.body.createdRooms || [];
-
-    // ✅ Insert into DB and capture inserted rooms with `_id`
-    const insertedRooms = await Room.insertMany(createdRooms);
-
+let insertedRooms = [];  // ← Define it FIRST
+if (createdRooms.length > 0) {
+  insertedRooms = await Room.insertMany(createdRooms);  // ← Then use it
+}
     // ✅ Group by roomType using insertedRooms (not createdRooms)
     const groupedRooms = {};
     insertedRooms.forEach(room => {
@@ -263,21 +263,134 @@ router.get('/name/:blockName', async (req, res) => {
 
 
 // Get a specific block by ID
+// ========================================
+// OPTIMIZED routes/block.js - GET /:id
+// Faster fetching with selective field loading
+// ========================================
+
 router.get('/:id', async (req, res) => {
   try {
     const block = await Block.findById(req.params.id);
     if (!block) return res.status(404).json({ message: 'Block not found' });
+
+    console.log(`\n📊 Fetching block: ${block.blockName}`);
+
+    // ✅ OPTIMIZATION 1: Use lean() for faster queries (returns plain JS objects)
+    // ✅ OPTIMIZATION 2: Only select fields we need initially
+    const rooms = await Room.find({ 
+      blockName: { $regex: `^${block.blockName}$`, $options: 'i' }
+    })
+    .select('roomName roomType bedCount allocatedBeds isAC attachedBathroom floorNumber additionalFacilities')
+    .lean()
+    .exec();
+
+    console.log(`✅ Found ${rooms.length} rooms in Room collection`);
+
+    // ✅ OPTIMIZATION 3: Use Map for O(1) lookups instead of arrays
+    const roomsByType = new Map();
+    
+    rooms.forEach(room => {
+      const type = room.roomType || 'Unknown';
+      if (!roomsByType.has(type)) {
+        roomsByType.set(type, []);
+      }
+      roomsByType.get(type).push(room);
+    });
+
+    console.log(`📋 Room types found:`, Array.from(roomsByType.keys()));
+
+    // ✅ OPTIMIZATION 4: Build blockTypeDetails efficiently
+    const refreshedBlockTypeDetails = [];
+    const processedTypes = new Set();
+
+    // Process existing types from block
+    if (block.blockTypeDetails && block.blockTypeDetails.length > 0) {
+      block.blockTypeDetails.forEach(detail => {
+        const actualRooms = roomsByType.get(detail.type) || [];
+        const actualCount = actualRooms.length;
+        
+        refreshedBlockTypeDetails.push({
+          type: detail.type,
+          count: Math.max(detail.count, actualCount),
+          rooms: actualRooms.map(room => ({
+            _id: room._id,
+            roomName: room.roomName,
+            roomType: room.roomType,
+            isAC: room.isAC,
+            attachedBathroom: room.attachedBathroom,
+            floorNumber: room.floorNumber,
+            bedCount: room.bedCount,
+            allocatedBeds: room.allocatedBeds || 0,
+            additionalFacilities: room.additionalFacilities
+          }))
+        });
+        
+        processedTypes.add(detail.type);
+        console.log(`  ✓ Processed type: ${detail.type} - Declared: ${detail.count}, Actual: ${actualCount}`);
+      });
+    }
+
+    // Add new types found in rooms but not in block
+    roomsByType.forEach((actualRooms, type) => {
+      if (!processedTypes.has(type)) {
+        refreshedBlockTypeDetails.push({
+          type: type,
+          count: actualRooms.length,
+          rooms: actualRooms.map(room => ({
+            _id: room._id,
+            roomName: room.roomName,
+            roomType: room.roomType,
+            isAC: room.isAC,
+            attachedBathroom: room.attachedBathroom,
+            floorNumber: room.floorNumber,
+            bedCount: room.bedCount,
+            allocatedBeds: room.allocatedBeds || 0,
+            additionalFacilities: room.additionalFacilities
+          }))
+        });
+        console.log(`  🆕 Added NEW type: ${type} - Count: ${actualRooms.length}`);
+      }
+    });
+
+    // ✅ OPTIMIZATION 5: Use $set to update only what changed
+    block.blockTypeDetails = refreshedBlockTypeDetails;
+    block.blockTypes = refreshedBlockTypeDetails.map(d => d.type);
+    
+    // Rebuild roomCounts
+    const newRoomCounts = {};
+    refreshedBlockTypeDetails.forEach(detail => {
+      newRoomCounts[detail.type] = detail.count;
+    });
+    block.roomCounts = newRoomCounts;
+
+    // ✅ OPTIMIZATION 6: Save only if data actually changed
+    // Compare with existing data to avoid unnecessary writes
+    const hasChanges = 
+      JSON.stringify(block.blockTypes) !== JSON.stringify(block._doc.blockTypes) ||
+      JSON.stringify(block.roomCounts) !== JSON.stringify(block._doc.roomCounts);
+
+    if (hasChanges) {
+      await block.save();
+      console.log(`✅ Block updated with changes`);
+    } else {
+      console.log(`ℹ️ No changes detected, skipping save`);
+    }
+
+    console.log(`✅ Block data prepared with ${refreshedBlockTypeDetails.length} types:`, 
+      refreshedBlockTypeDetails.map(t => `${t.type}(${t.count})`).join(', '));
+
+    // ✅ Send response
     res.json(block);
+    
   } catch (error) {
+    console.error('Error fetching block:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
 
-
-
-
 // Delete a block and associated rooms
+// ===== Delete Block, Rooms, and Unassign BlockHeads =====
 // ===== Delete Block, Rooms, and Unassign BlockHeads =====
 router.delete('/:id', async (req, res) => {
   try {
@@ -287,11 +400,12 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Block not found' });
     }
 
+    const blockName = block.blockName; // ✅ FIX: Define blockName here
+
     // Step 2: Delete all associated rooms from the Room collection
-    await Room.deleteMany({ blockName: block.blockName });
+    await Room.deleteMany({ blockName: blockName });
 
-
-    // Unassign block from blockhead users instead of deleting them
+    // Step 3: Unassign block from blockhead users instead of deleting them
     const updatedUsers = await Account.updateMany(
       {
         userType: 'blockhead',
@@ -300,8 +414,7 @@ router.delete('/:id', async (req, res) => {
       { $unset: { assignedBlock: "" } }
     );     
 
-
-    // Step 3: Delete the block
+    // Step 4: Delete the block
     await Block.findByIdAndDelete(req.params.id);
 
     res.json({
@@ -313,7 +426,6 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-
 router.delete('/:blockId/type/:type', async (req, res) => {
   const { blockId, type } = req.params;
 
@@ -323,13 +435,11 @@ router.delete('/:blockId/type/:type', async (req, res) => {
 
     const blockName = block.blockName;
 
-    // Delete all rooms associated with the block
-
+    // Delete all rooms associated with the block and room type
     await Room.deleteMany({
       blockName: new RegExp(`^${blockName}$`, 'i'),
       roomType: new RegExp(`^${type}$`, 'i')
     });
-    // await Room.deleteMany({ blockName });
 
     // Remove from blockTypeDetails
     block.blockTypeDetails = block.blockTypeDetails.filter(
@@ -341,32 +451,29 @@ router.delete('/:blockId/type/:type', async (req, res) => {
       (bt) => bt.trim().toLowerCase() !== type.trim().toLowerCase()
     );
  
-   block.roomCounts = {}; // ← Plain JS object
-
-block.blockTypeDetails.forEach(detail => {
-  if (detail.type && typeof detail.count === 'number') {
-    block.roomCounts[detail.type.trim()] = detail.count;
-  }
-});
-
-
-// ✅ With the fixed version above
+    // Rebuild roomCounts
+    block.roomCounts = {};
+    block.blockTypeDetails.forEach(detail => {
+      if (detail.type && typeof detail.count === 'number') {
+        block.roomCounts[detail.type.trim()] = detail.count;
+      }
+    });
 
     await block.save();
 
+    // ✅ FIX: Correct response message without undefined variable
     res.json({
-      message: `Block and associated rooms deleted successfully. ${updatedUsers.modifiedCount} blockhead(s) unassigned.`
+      message: `Room type "${type}" and associated rooms deleted successfully from block "${blockName}".`
     });
   } catch (error) {
-    console.error('Error deleting block and related data:', error);
-    res.status(500).json({ message: 'Failed to delete block and associated data' });
+    console.error('Error deleting block type and related data:', error);
+    res.status(500).json({ message: 'Failed to delete block type and associated data' });
   }
 });
-   
 
 
 
-
+// Update block type name
 router.put('/:blockId/type/:type', async (req, res) => {
   const { blockId, type } = req.params;
   const { newType, count } = req.body;
@@ -379,33 +486,51 @@ router.put('/:blockId/type/:type', async (req, res) => {
     const block = await Block.findById(blockId);
     if (!block) return res.status(404).json({ message: 'Block not found' });
 
-    const normalizedNewType = newType.trim();
-    const normalizedOldType = type.trim().toLowerCase();
+    const normalizeType = (t) => t.trim().replace(/\s+/g, '').toLowerCase();
+    const currentNormalized = normalizeType(type);
+    const newNormalized = normalizeType(newType);
 
-    // Check for duplicate type names
-    if (block.blockTypes.some(bt => 
-      bt.trim().toLowerCase() !== normalizedOldType && 
-      bt.trim().toLowerCase() === normalizedNewType.toLowerCase()
-    )) {
+    const hasDuplicate = block.blockTypes.some(bt => 
+      normalizeType(bt) !== currentNormalized && 
+      normalizeType(bt) === newNormalized
+    );
+
+    if (hasDuplicate) {
       return res.status(400).json({ message: 'Room type already exists' });
     }
 
-    // Update rooms
-    await Room.updateMany(
-      { blockName: block.blockName, roomType: type },
-      { $set: { roomType: normalizedNewType } }
+    const currentTypeInBlock = block.blockTypes.find(bt => 
+      normalizeType(bt) === currentNormalized
     );
 
-    // Update block data
+    if (!currentTypeInBlock) {
+      return res.status(404).json({ message: 'Current room type not found in block' });
+    }
+
+    let formattedNewType = newType.trim();
+    if (newNormalized === 'suiteroom') formattedNewType = 'Suite Room';
+    if (newNormalized === 'barrack') formattedNewType = 'Barrack';
+    if (newNormalized === 'dormitory') formattedNewType = 'Dormitory';
+    if (newNormalized === 'room') formattedNewType = 'Room';
+
+    const updateResult = await Room.updateMany(
+      { 
+        blockName: block.blockName,
+        roomType: currentTypeInBlock
+      },
+      { $set: { roomType: formattedNewType } }
+    );
+
     block.blockTypeDetails = block.blockTypeDetails.map(bt => 
-      bt.type === type ? { ...bt, type: normalizedNewType, count } : bt
+      normalizeType(bt.type) === currentNormalized 
+        ? { ...bt, type: formattedNewType, count } 
+        : bt
     );
 
     block.blockTypes = block.blockTypes.map(bt => 
-      bt === type ? normalizedNewType : bt
+      normalizeType(bt) === currentNormalized ? formattedNewType : bt
     );
 
-    // Update counts
     block.roomCounts = {};
     block.blockTypeDetails.forEach(detail => {
       block.roomCounts[detail.type] = detail.count;
@@ -415,7 +540,8 @@ router.put('/:blockId/type/:type', async (req, res) => {
 
     res.status(200).json({
       message: `Room type updated successfully`,
-      updatedBlock: block
+      updatedBlock: block,
+      roomsUpdated: updateResult.modifiedCount
     });
   } catch (err) {
     console.error('Error updating room type:', err);
@@ -423,35 +549,103 @@ router.put('/:blockId/type/:type', async (req, res) => {
   }
 });
 
-
-
-
-
-
-// ===== Add Block Type to Existing Block =====
+// ✅ NEW: Add Block Type to Existing Block
 router.post('/:id/type', async (req, res) => {
-  const { type } = req.body;
+  const { type, count } = req.body;
 
-  if (!type) return res.status(400).json({ message: 'Block type is required' });
+  if (!type || !count) {
+    return res.status(400).json({ message: 'Block type and count are required' });
+  }
+
+  const roomCount = parseInt(count);
+  if (isNaN(roomCount) || roomCount <= 0) {
+    return res.status(400).json({ message: 'Count must be a positive number' });
+  }
 
   try {
     const block = await Block.findById(req.params.id);
     if (!block) return res.status(404).json({ message: 'Block not found' });
 
-    const exists = block.blockTypeDetails.some(bt => bt.type === type);
-    if (exists) return res.status(409).json({ message: 'Block type already exists' });
+    const normalizeType = (t) => t.trim().replace(/\s+/g, '').toLowerCase();
+    const normalizedType = normalizeType(type);
+
+    const exists = block.blockTypes.some(bt => normalizeType(bt) === normalizedType);
+    if (exists) {
+      return res.status(409).json({ message: 'Block type already exists' });
+    }
 
     block.blockTypes.push(type);
-    block.roomCounts[type] = 0;
-    block.blockTypeDetails.push({ type, count: 0, rooms: [] });
+    block.roomCounts[type] = roomCount;
+    block.blockTypeDetails.push({ type, count: roomCount, rooms: [] });
 
     await block.save();
-    res.status(200).json({ message: 'Block type added successfully' });
+    res.status(200).json({ 
+      message: 'Block type added successfully',
+      block 
+    });
   } catch (err) {
     console.error('Error adding block type:', err);
     res.status(500).json({ message: 'Server error while adding block type' });
   }
 });
+
+// ✅ NEW: Change Room Count for Existing Block Type
+router.put('/:blockId/type/:type/count', async (req, res) => {
+  const { blockId, type } = req.params;
+  const { newCount } = req.body;
+
+  if (newCount === undefined || newCount === null) {
+    return res.status(400).json({ message: 'New count is required' });
+  }
+
+  const count = parseInt(newCount);
+  if (isNaN(count) || count < 0) {
+    return res.status(400).json({ message: 'Count must be a non-negative number' });
+  }
+
+  try {
+    const block = await Block.findById(blockId);
+    if (!block) return res.status(404).json({ message: 'Block not found' });
+
+    const normalizeType = (t) => t.trim().replace(/\s+/g, '').toLowerCase();
+    const normalizedType = normalizeType(type);
+
+    const typeDetail = block.blockTypeDetails.find(bt => 
+      normalizeType(bt.type) === normalizedType
+    );
+
+    if (!typeDetail) {
+      return res.status(404).json({ message: 'Room type not found in block' });
+    }
+
+    const currentRoomCount = await Room.countDocuments({
+      blockName: block.blockName,
+      roomType: typeDetail.type
+    });
+
+    if (count < currentRoomCount) {
+      return res.status(400).json({ 
+        message: `Cannot decrease count. Current rooms: ${currentRoomCount}. Please delete rooms first.`
+      });
+    }
+
+    typeDetail.count = count;
+    block.roomCounts[typeDetail.type] = count;
+
+    await block.save();
+
+    res.status(200).json({
+      message: 'Room count updated successfully',
+      previousCount: currentRoomCount,
+      newCount: count,
+      additionalRoomsNeeded: count - currentRoomCount
+    });
+  } catch (err) {
+    console.error('Error updating room count:', err);
+    res.status(500).json({ message: 'Failed to update room count' });
+  }
+});
+
 
 // ===== Delete Block Type from Block =====
 router.delete('/:id/type/:type', async (req, res) => {

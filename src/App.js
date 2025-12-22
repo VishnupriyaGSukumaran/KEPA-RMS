@@ -28,6 +28,7 @@ import PaymentPage from './Block_Head/PaymentPage';
 import BlockHeadNotifications from './Block_Head/BlockHeadNotificationsPage';
 import BlockHeadReports from './Block_Head/BlockHeadReportsPage';
 import AdminReports from './Admin/AdminReports';
+import NewModifyRoom  from './system_adm/newroom'
 const App = () => {
   return (
     <Router>
@@ -109,6 +110,15 @@ const App = () => {
           element={
             <ProtectedRoute>
               <CreateRooms />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/superadmin/createMODIFYrooms"
+          element={
+            <ProtectedRoute>
+              <NewModifyRoom />
             </ProtectedRoute>
           }
         />
