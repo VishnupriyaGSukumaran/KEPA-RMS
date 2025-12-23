@@ -486,5 +486,76 @@ router.post('/block', async (req, res) => {
     });
   }
 });
+// ==========================================
+// 📊 BLOCK HEAD DETAILS REPORT
+// ==========================================
+router.post('/blockhead', async (req, res) => {
+  try {
+    console.log('📊 Block Head Report Request:', req.body);
+    
+    const { pen, blockName } = req.body;
+    const Account = require('../models/Account');
+    
+    let query = { userType: 'blockhead' };
+    
+    // ✅ PEN Filter
+    if (pen) {
+      query.pen = { $regex: `^${pen}$`, $options: 'i' };
+    }
+    
+    // ✅ Block Filter
+    if (blockName) {
+      query.assignedBlock = { $regex: `^${blockName}$`, $options: 'i' };
+    }
+
+    console.log('🔍 Query:', JSON.stringify(query, null, 2));
+
+    // Fetch block heads from Account model
+    const blockHeads = await Account.find(query)
+      .select('firstName lastName pen phoneNumber email assignedBlock createdAt')
+      .sort({ assignedBlock: 1, lastName: 1 })
+      .lean();
+
+    console.log(`✅ Found ${blockHeads.length} block heads`);
+
+    // Calculate summary
+    const totalBlockHeads = blockHeads.length;
+    const uniqueBlocks = [...new Set(blockHeads.map(bh => bh.assignedBlock).filter(Boolean))];
+    const unassignedCount = blockHeads.filter(bh => !bh.assignedBlock).length;
+
+    // Format data for response
+    const formattedData = blockHeads.map(blockHead => ({
+      firstName: blockHead.firstName,
+      lastName: blockHead.lastName,
+      pen: blockHead.pen,
+      phoneNumber: blockHead.phoneNumber,
+      email: blockHead.email,
+      assignedBlock: blockHead.assignedBlock || 'Not Assigned',
+      createdAt: blockHead.createdAt
+    }));
+
+    res.status(200).json({
+      success: true,
+      report: {
+        reportTitle: 'Block Head Details Report',
+        generatedAt: new Date(),
+        summary: {
+          totalBlockHeads,
+          assignedBlocks: uniqueBlocks.length,
+          unassignedCount
+        }
+      },
+      data: formattedData
+    });
+
+  } catch (error) {
+    console.error('❌ Error generating block head report:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate block head report',
+      message: error.message
+    });
+  }
+});
 
 module.exports = router;

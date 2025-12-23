@@ -23,7 +23,9 @@ const GenerateReport = () => {
   const [selectedBlock, setSelectedBlock] = useState('');
   const [selectedPurpose, setSelectedPurpose] = useState('');
   const [dateFilterType, setDateFilterType] = useState('');
-
+  // Add these state variables at the top with other state declarations
+const [selectedPEN, setSelectedPEN] = useState('');
+const [filterByType, setFilterByType] = useState(''); // 'pen' or 'block'
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
   const months = [
@@ -128,7 +130,8 @@ const GenerateReport = () => {
         year: selectedYear,
         years: selectedYears,
         blockName: selectedBlock,
-        purpose: selectedPurpose
+        purpose: selectedPurpose,
+        pen: selectedPEN  // ✅ Add PEN to payload
       };
 
       Object.keys(payload).forEach(key => {
@@ -192,8 +195,9 @@ const validateFilters = () => {
     case 'admin':
       return selectedYear !== '' || (selectedMonth !== '' && selectedYear !== '');
       
-    case 'blockhead':
-      return true;
+      case 'blockhead':
+      // ✅ Allow generation if PEN or Block is selected
+      return selectedPEN !== '' || selectedBlock !== '';
       
     default:
       return false;
@@ -803,23 +807,56 @@ case 'block':
           </>
         );
 
-      case 'blockhead':
-        return (
+      
+    case 'blockhead':
+      return (
+        <>
           <div className="filter-group">
-            <label>Select Block</label>
+            <label>Filter By</label>
             <select
-              value={selectedBlock}
-              onChange={(e) => setSelectedBlock(e.target.value)}
+              value={filterByType}
+              onChange={(e) => {
+                setFilterByType(e.target.value);
+                setSelectedPEN('');
+                setSelectedBlock('');
+              }}
             >
-              <option value="">All Blocks</option> 
-              {blocks.map(block => (
-                <option key={block._id} value={block.blockName}>
-                  {block.blockName}
-                </option>
-              ))}
+              <option value="">Select Filter Type</option>
+              <option value="pen">PEN Number</option>
+              <option value="block">Block</option>
             </select>
           </div>
-        );
+
+          {filterByType === 'pen' && (
+            <div className="filter-group">
+              <label>Enter PEN Number</label>
+              <input
+                type="text"
+                placeholder="Enter PEN number"
+                value={selectedPEN}
+                onChange={(e) => setSelectedPEN(e.target.value)}
+              />
+            </div>
+          )}
+
+          {filterByType === 'block' && (
+            <div className="filter-group">
+              <label>Select Block</label>
+              <select
+                value={selectedBlock}
+                onChange={(e) => setSelectedBlock(e.target.value)}
+              >
+                <option value="">All Blocks</option>
+                {blocks.map(block => (
+                  <option key={block._id} value={block.blockName}>
+                    {block.blockName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </>
+      );
 
       case 'block':
         return (
@@ -1051,6 +1088,8 @@ const renderReportTable = () => {
     setSelectedBlock('');
     setSelectedPurpose('');
     setDateFilterType('');
+     setSelectedPEN('');  // ✅ Add this
+  setFilterByType('');  // ✅ Add this
   };
 
   const handleBackToSelection = () => {
