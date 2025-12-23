@@ -534,9 +534,7 @@ function AdminReports() {
             <button className="nav-item active">
               <FaChartBar /> Generate Reports
             </button>
-            <button className="nav-item">
-              <FaBell /> Notifications
-            </button>
+           
           </div>
         </div>
       </div>

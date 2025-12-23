@@ -148,7 +148,7 @@ const NotificationsPage = () => {
                 onClick={() => handleNotificationClick(notification)}
               >
                 <div className="card-header">
-                  <div className="card-icon">
+                  <div className="card-iconS">
                     <FaFileAlt />
                   </div>
                   <button
