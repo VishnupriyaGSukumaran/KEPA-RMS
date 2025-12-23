@@ -172,5 +172,135 @@ router.post('/fetch-person', async (req, res) => {
 
 
 
+// ✅ DELETE ROUTE - Vacate Room with Record Keeping
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { vacatingDate, paid, vacatedBy, rate, daysStayed, totalAmount } = req.body;
+
+    console.log('🔴 DELETE request received for allocation:', id);
+    console.log('📋 Vacating details:', { vacatingDate, paid, vacatedBy, rate, daysStayed, totalAmount });
+
+    // Find the allocation
+    const allocation = await RoomAllocation.findById(id);
+    if (!allocation) {
+      return res.status(404).json({ error: 'Allocation not found' });
+    }
+
+    console.log('✅ Found allocation:', {
+      name: allocation.name,
+      block: allocation.blockName || allocation.block,
+      room: allocation.roomNumber,
+      bedIndex: allocation.bedIndex
+    });
+
+    // ✅ Get the block name - handle both fields
+    const blockName = allocation.blockName || allocation.block;
+    
+    if (!blockName) {
+      console.error('❌ No block name found in allocation');
+      return res.status(400).json({ error: 'Block name missing in allocation record' });
+    }
+
+    // ✅ CREATE VACATING RECORD (if vacating details provided)
+    if (vacatingDate && paid) {
+      console.log('💾 Creating vacating record with block:', blockName);
+      
+      const vacatingRecord = new VacatingRecord({
+        // Person Details
+        name: allocation.name,
+        pen: allocation.pen,
+        recruitmentNumber: allocation.recruitmentNumber,
+        mobileNumber: allocation.mobileNumber,
+        emergencyContact: allocation.emergencyContact,
+        designation: allocation.designation,
+        unit: allocation.unit,
+        district: allocation.district,
+        address: allocation.address,
+        
+        // Room Details - BOTH fields required by your model
+        block: blockName,              // ✅ CRITICAL: Required field
+        blockName: blockName,          // ✅ Also set this for consistency
+        roomNumber: allocation.roomNumber,
+        bedNumber: (allocation.bedIndex || 0) + 1, // Convert index to bed number
+        bedIndex: allocation.bedIndex,
+        trainingCompany: allocation.trainingCompany,
+        
+        // Allocation Details
+        allocationDate: allocation.allocationDate,
+        vacatingDate: new Date(vacatingDate),
+        purpose: allocation.purpose,
+        courseDetails: allocation.courseDetails,
+        remark: allocation.remark,
+        
+        // Vacating Details
+        paid: paid,
+        vacatedBy: vacatedBy || 'System',
+        originalAllocationId: allocation._id,
+        
+        // Payment details (if paid = Yes)
+        paymentAmount: totalAmount || null,
+        rate: rate || null,
+        daysStayed: daysStayed || null
+      });
+
+      console.log('💾 Vacating record data:', {
+        name: vacatingRecord.name,
+        block: vacatingRecord.block,
+        blockName: vacatingRecord.blockName,
+        roomNumber: vacatingRecord.roomNumber,
+        paid: vacatingRecord.paid
+      });
+
+      await vacatingRecord.save();
+      console.log('✅ Vacating record saved successfully:', vacatingRecord._id);
+    }
+
+    // Store info before deletion for sync
+    const roomNumber = allocation.roomNumber;
+
+    // ✅ DELETE THE ALLOCATION
+    await RoomAllocation.findByIdAndDelete(id);
+    console.log('✅ Allocation deleted from database');
+
+    // ✅ SYNC ROOM AND BLOCK IMMEDIATELY
+    console.log('🔄 Syncing room:', blockName, roomNumber);
+    await syncRoomBeds(blockName, roomNumber);
+    await syncBlockStats(blockName);
+    console.log('✅ Room and block synced successfully');
+
+    res.status(200).json({
+      success: true,
+      message: 'Room vacated successfully',
+      vacatingRecordSaved: !!(vacatingDate && paid)
+    });
+
+  } catch (error) {
+    console.error('❌ Error in DELETE route:', error);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error message:', error.message);
+    
+    // Handle validation errors specifically
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.keys(error.errors).map(key => ({
+        field: key,
+        message: error.errors[key].message
+      }));
+      console.error('❌ Validation errors:', validationErrors);
+      
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: validationErrors,
+        message: error.message
+      });
+    }
+    
+    res.status(500).json({
+      error: 'Failed to vacate room',
+      details: error.message
+    });
+  }
+});
+
 
 module.exports = router;
