@@ -558,4 +558,83 @@ router.post('/blockhead', async (req, res) => {
   }
 });
 
+
+
+router.post('/admin', async (req, res) => {
+  try {
+    console.log('📊 Admin Report Request:', req.body);
+    
+    const { filterType, pen } = req.body;
+    const Account = require('../models/Account');
+    
+    let query = { userType: 'admin' };
+    
+    // ✅ Filter Logic
+    if (filterType === 'individual') {
+      if (!pen) {
+        return res.status(400).json({
+          success: false,
+          error: 'PEN number is required for individual filter'
+        });
+      }
+      query.pen = { $regex: `^${pen}$`, $options: 'i' };
+    }
+    // If filterType is 'all', no additional filter needed
+
+    console.log('🔍 Query:', JSON.stringify(query, null, 2));
+
+    // Fetch admins from Account model
+    const admins = await Account.find(query)
+      .select('firstName lastName pen phoneNumber email createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    console.log(`✅ Found ${admins.length} admins`);
+
+    if (filterType === 'individual' && admins.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'No admin found with the provided PEN number'
+      });
+    }
+
+    // Calculate summary
+    const totalAdmins = admins.length;
+
+    // Format data for response
+    const formattedData = admins.map(admin => ({
+      firstName: admin.firstName,
+      lastName: admin.lastName,
+      pen: admin.pen,
+      phoneNumber: admin.phoneNumber,
+      email: admin.email,
+      createdAt: admin.createdAt
+    }));
+
+    res.status(200).json({
+      success: true,
+      report: {
+        reportTitle: filterType === 'individual' 
+          ? `Admin Details Report - ${admins[0]?.firstName} ${admins[0]?.lastName}` 
+          : 'Admin Details Report - All Admins',
+        generatedAt: new Date(),
+        summary: {
+          totalAdmins,
+          filterType: filterType === 'individual' ? 'Individual' : 'All Admins'
+        }
+      },
+      data: formattedData
+    });
+
+  } catch (error) {
+    console.error('❌ Error generating admin report:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate admin report',
+      message: error.message
+    });
+  }
+});
+
+
 module.exports = router;

@@ -23,9 +23,12 @@ const GenerateReport = () => {
   const [selectedBlock, setSelectedBlock] = useState('');
   const [selectedPurpose, setSelectedPurpose] = useState('');
   const [dateFilterType, setDateFilterType] = useState('');
+
+  const [adminFilterType, setAdminFilterType] = useState(''); // 'individual' or 'all'
+  const [adminPEN, setAdminPEN] = useState('');
   // Add these state variables at the top with other state declarations
-const [selectedPEN, setSelectedPEN] = useState('');
-const [filterByType, setFilterByType] = useState(''); // 'pen' or 'block'
+  const [selectedPEN, setSelectedPEN] = useState('');
+  const [filterByType, setFilterByType] = useState(''); // 'pen' or 'block'
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
   const months = [
@@ -131,7 +134,8 @@ const [filterByType, setFilterByType] = useState(''); // 'pen' or 'block'
         years: selectedYears,
         blockName: selectedBlock,
         purpose: selectedPurpose,
-        pen: selectedPEN  // ✅ Add PEN to payload
+        pen: reportType === 'blockhead' ? selectedPEN : (reportType === 'admin' && adminFilterType === 'individual' ? adminPEN : undefined),
+        filterType: reportType === 'admin' ? adminFilterType : undefined
       };
 
       Object.keys(payload).forEach(key => {
@@ -193,7 +197,11 @@ const validateFilters = () => {
       return true;
       
     case 'admin':
-      return selectedYear !== '' || (selectedMonth !== '' && selectedYear !== '');
+      // Admin must select filter type
+      if (adminFilterType === '') return false;
+      // If individual is selected, PEN is required
+      if (adminFilterType === 'individual' && adminPEN.trim() === '') return false;
+      return true;
       
       case 'blockhead':
       // ✅ Allow generation if PEN or Block is selected
@@ -304,15 +312,18 @@ case 'block':
     ];
   });
   break;
-        case 'admin':
-          headers = ['Name', 'Email', 'PEN Number', 'Phone Number'];
-          tableData = reportData.data.map(item => [
-            `${item.firstName || ''} ${item.lastName || ''}`.trim() || '-',
-            item.email || '-',
-            item.pen || '-',
-            item.phoneNumber || '-'
-          ]);
-          break;
+        
+// 6. Update handleExportPDF - Replace 'admin' case:
+case 'admin':
+  headers = ['Admin Name', 'PEN Number', 'Contact', 'Email', 'Created Date'];
+  tableData = reportData.data.map(item => [
+    `${item.firstName || ''} ${item.lastName || ''}`.trim() || '-',
+    item.pen || '-',
+    item.phoneNumber || '-',
+    item.email || '-',
+    item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-IN') : '-'
+  ]);
+  break;
         case 'blockhead':
           headers = ['Name', 'Email', 'PEN Number', 'Phone Number', 'Assigned Block'];
           tableData = reportData.data.map(item => [
@@ -423,14 +434,15 @@ case 'block':
   });
   break;
       case 'admin':
-        headers = ['Name', 'Email', 'PEN Number', 'Phone Number'];
-        rows = reportData.data.map(item => [
-          `${item.firstName || ''} ${item.lastName || ''}`.trim(),
-          item.email,
-          item.pen,
-          item.phoneNumber
-        ]);
-        break;
+  headers = ['Admin Name', 'PEN Number', 'Contact', 'Email', 'Created Date'];
+  rows = reportData.data.map(item => [
+    `${item.firstName || ''} ${item.lastName || ''}`.trim(),
+    item.pen,
+    item.phoneNumber,
+    item.email,
+    item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-IN') : '-'
+  ]);
+  break;
       
       case 'blockhead':
         headers = ['Name', 'Email', 'PEN Number', 'Phone Number', 'Assigned Block'];
@@ -773,39 +785,56 @@ case 'block':
           </>
         );
 
-      case 'admin':
-        return (
-          <>
-            <div className="filter-group">
-              <label>Year</label>
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-              >
-                <option value="">Select Year</option>
-                {years.map(year => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="filter-group">
-              <label>Month (Optional)</label>
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-              >
-                <option value="">Select Month</option>
-                {months.map(month => (
-                  <option key={month.value} value={month.value}>
-                    {month.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </>
-        );
+      // 4. Update renderFilterOptions - Replace the 'admin' case:
+case 'admin':
+  return (
+    <>
+      <div className="filter-group">
+        <label>Select Filter Type <span style={{color: 'red'}}>*</span></label>
+        <div className="radio-group">
+          <label className="radio-label">
+            <input
+              type="radio"
+              name="adminFilter"
+              value="individual"
+              checked={adminFilterType === 'individual'}
+              onChange={(e) => {
+                setAdminFilterType(e.target.value);
+                setAdminPEN('');
+              }}
+            />
+            <span>Individual Admin</span>
+          </label>
+          <label className="radio-label">
+            <input
+              type="radio"
+              name="adminFilter"
+              value="all"
+              checked={adminFilterType === 'all'}
+              onChange={(e) => {
+                setAdminFilterType(e.target.value);
+                setAdminPEN('');
+              }}
+            />
+            <span>All Admins</span>
+          </label>
+        </div>
+      </div>
+
+      {adminFilterType === 'individual' && (
+        <div className="filter-group">
+          <label>Enter PEN Number <span style={{color: 'red'}}>*</span></label>
+          <input
+            type="text"
+            placeholder="Enter admin PEN number"
+            value={adminPEN}
+            onChange={(e) => setAdminPEN(e.target.value)}
+            className="filter-input"
+          />
+        </div>
+      )}
+    </>
+  );
 
       
     case 'blockhead':
@@ -987,33 +1016,37 @@ const renderReportTable = () => {
         </div>
       );
 
-    case 'admin':
-      return (
-        <div className="table-wrapper">
-          <div className="table-container">
-            <table className="report-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>PEN Number</th>
-                  <th>Phone Number</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reportData.data.map((item, idx) => (
-                  <tr key={idx}>
-                    <td>{`${item.firstName || ''} ${item.lastName || ''}`.trim() || '-'}</td>
-                    <td>{item.email || '-'}</td>
-                    <td>{item.pen || '-'}</td>
-                    <td>{item.phoneNumber || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      );
+    
+// 5. Update renderReportTable - Replace the 'admin' case:
+case 'admin':
+  return (
+    <div className="table-wrapper">
+      <div className="table-container">
+        <table className="report-table">
+          <thead>
+            <tr>
+              <th>Admin Name</th>
+              <th>PEN Number</th>
+              <th>Contact</th>
+              <th>Email</th>
+              <th>Created Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reportData.data.map((item, idx) => (
+              <tr key={idx}>
+                <td><strong>{`${item.firstName || ''} ${item.lastName || ''}`.trim() || '-'}</strong></td>
+                <td>{item.pen || '-'}</td>
+                <td>{item.phoneNumber || '-'}</td>
+                <td>{item.email || '-'}</td>
+                <td>{item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-IN') : '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 
     case 'blockhead':
       return (
@@ -1090,6 +1123,8 @@ const renderReportTable = () => {
     setDateFilterType('');
      setSelectedPEN('');  // ✅ Add this
   setFilterByType('');  // ✅ Add this
+  setAdminFilterType('');  // Clear admin filter type
+  setAdminPEN('');  // Clear admin PEN
   };
 
   const handleBackToSelection = () => {
