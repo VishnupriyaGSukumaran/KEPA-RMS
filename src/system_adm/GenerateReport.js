@@ -268,18 +268,38 @@ const validateFilters = () => {
             item.status || '-'
           ]);
           break;
-        case 'block':
-          headers = ['Block Name', 'Total Rooms', 'Total Beds', 'Allocated', 'Vacant', 'Occupancy', 'Status'];
-          tableData = reportData.data.map(item => [
-            item.blockName || '-',
-            item.totalRooms || '0',
-            item.totalBeds || '0',
-            item.allocatedBeds || '0',
-            item.vacantBeds || '0',
-            item.occupancyRate || '0%',
-            item.status || '-'
-          ]);
-          break;
+        // Replace the 'block' case in handleExportPDF function:
+
+case 'block':
+  headers = ['Block Name', 'Rooms', 'Beds', 'Allocated', 'Vacant', 'Occupancy', 'Room Types', 'Block Head', 'Status'];
+  tableData = reportData.data.map(item => {
+    // Format room type breakdown
+    let roomTypesStr = '-';
+    if (item.roomTypeBreakdown) {
+      roomTypesStr = Object.entries(item.roomTypeBreakdown)
+        .map(([type, data]) => `${type}: ${data.count} (${data.allocatedBeds}/${data.totalBeds})`)
+        .join('\n');
+    }
+
+    // Format block head info
+    let blockHeadStr = 'Not Assigned';
+    if (item.assignedBlockHead) {
+      blockHeadStr = `${item.assignedBlockHead.name}\nPEN: ${item.assignedBlockHead.pen}\n${item.assignedBlockHead.phoneNumber}`;
+    }
+
+    return [
+      item.blockName || '-',
+      item.totalRooms || '0',
+      item.totalBeds || '0',
+      item.allocatedBeds || '0',
+      item.vacantBeds || '0',
+      item.occupancyRate || '0%',
+      roomTypesStr,
+      blockHeadStr,
+      item.status || '-'
+    ];
+  });
+  break;
         case 'admin':
           headers = ['Name', 'Email', 'PEN Number', 'Phone Number'];
           tableData = reportData.data.map(item => [
@@ -369,19 +389,35 @@ const validateFilters = () => {
         ]);
         break;
 
-      case 'block':
-        headers = ['Block Name', 'Total Rooms', 'Total Beds', 'Allocated Beds', 'Vacant Beds', 'Occupancy Rate', 'Status'];
-        rows = reportData.data.map(item => [
-          item.blockName,
-          item.totalRooms || '0',
-          item.totalBeds || '0',
-          item.allocatedBeds || '0',
-          item.vacantBeds || '0',
-          item.occupancyRate || '0%',
-          item.status
-        ]);
-        break;
-      
+      // Replace the 'block' case in handleExportCSV function:
+
+case 'block':
+  headers = ['Block Name', 'Total Rooms', 'Total Beds', 'Allocated Beds', 'Vacant Beds', 'Occupancy Rate', 'Room Types', 'Block Head Name', 'Block Head PEN', 'Block Head Phone', 'Block Head Email', 'Status'];
+  rows = reportData.data.map(item => {
+    // Format room type breakdown for CSV
+    let roomTypesStr = '';
+    if (item.roomTypeBreakdown) {
+      roomTypesStr = Object.entries(item.roomTypeBreakdown)
+        .map(([type, data]) => `${type}: ${data.count} rooms (${data.allocatedBeds}/${data.totalBeds} beds)`)
+        .join('; ');
+    }
+
+    return [
+      item.blockName,
+      item.totalRooms || '0',
+      item.totalBeds || '0',
+      item.allocatedBeds || '0',
+      item.vacantBeds || '0',
+      item.occupancyRate || '0%',
+      roomTypesStr || 'N/A',
+      item.assignedBlockHead?.name || 'Not Assigned',
+      item.assignedBlockHead?.pen || '-',
+      item.assignedBlockHead?.phoneNumber || '-',
+      item.assignedBlockHead?.email || '-',
+      item.status
+    ];
+  });
+  break;
       case 'admin':
         headers = ['Name', 'Email', 'PEN Number', 'Phone Number'];
         rows = reportData.data.map(item => [
@@ -808,171 +844,203 @@ const validateFilters = () => {
     }
   };
 
-  const renderReportTable = () => {
-    if (!reportData?.data || reportData.data.length === 0) return null;
+ // Replace the ENTIRE renderReportTable() function with this corrected version:
 
-    switch (reportType) {
-      case 'allocation':
+const renderReportTable = () => {
+  if (!reportData?.data || reportData.data.length === 0) return null;
+
+  switch (reportType) {
+    case 'allocation':
+      return (
+        <div className="table-wrapper">
+          <div className="table-container">
+            <table className="report-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>PEN/Recruit No</th>
+                  <th>Block</th>
+                  <th>Room</th>
+                  <th>Purpose</th>
+                  <th>Designation</th>
+                  <th>Unit</th>
+                  <th>Allocation Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportData.data.map((item, idx) => (
+                  <tr key={idx}>
+                    <td>{item.name}</td>
+                    <td>{item.pen || item.recruitmentNumber || '-'}</td>
+                    <td>{item.block}</td>
+                    <td>{item.roomNumber}</td>
+                    <td>{item.purpose}</td>
+                    <td>{item.designation}</td>
+                    <td>{item.unit || '-'}</td>
+                    <td>{item.allocationDate ? new Date(item.allocationDate).toLocaleDateString('en-IN') : '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+
+    case 'block':
+      return (
+        <div className="table-wrapper">
+          <div className="table-container">
+            <table className="report-table">
+              <thead>
+                <tr>
+                  <th>Block Name</th>
+                  <th>Total Rooms</th>
+                  <th>Total Beds</th>
+                  <th>Allocated</th>
+                  <th>Vacant</th>
+                  <th>Occupancy</th>
+                  <th>Room Types</th>
+                  <th>Assigned Block Head</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportData.data.map((item, idx) => (
+                  <tr key={idx}>
+                    <td><strong>{item.blockName || '-'}</strong></td>
+                    <td>{item.totalRooms || 0}</td>
+                    <td>{item.totalBeds || 0}</td>
+                    <td>{item.allocatedBeds || 0}</td>
+                    <td>{item.vacantBeds || 0}</td>
+                    <td>{item.occupancyRate || '0%'}</td>
+                    <td>
+                      {item.roomTypeBreakdown ? (
+                        <div className="room-type-breakdown">
+                          {Object.entries(item.roomTypeBreakdown).map(([type, data]) => (
+                            <div key={type} className="type-item">
+                              <strong>{type}:</strong> {data.count} rooms 
+                              ({data.allocatedBeds}/{data.totalBeds} beds)
+                            </div>
+                          ))}
+                        </div>
+                      ) : '-'}
+                    </td>
+                    <td>
+                      {item.assignedBlockHead ? (
+                        <div className="blockhead-info">
+                          <div><strong>{item.assignedBlockHead.name}</strong></div>
+                          <div>PEN: {item.assignedBlockHead.pen}</div>
+                          <div>📞 {item.assignedBlockHead.phoneNumber}</div>
+                          <div>✉️ {item.assignedBlockHead.email}</div>
+                        </div>
+                      ) : (
+                        <span className="no-blockhead">Not Assigned</span>
+                      )}
+                    </td>
+                    <td>
+                      <span className={`status-badge ${item.status?.toLowerCase()}`}>
+                        {item.status || '-'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+
+    case 'admin':
+      return (
+        <div className="table-wrapper">
+          <div className="table-container">
+            <table className="report-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>PEN Number</th>
+                  <th>Phone Number</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportData.data.map((item, idx) => (
+                  <tr key={idx}>
+                    <td>{`${item.firstName || ''} ${item.lastName || ''}`.trim() || '-'}</td>
+                    <td>{item.email || '-'}</td>
+                    <td>{item.pen || '-'}</td>
+                    <td>{item.phoneNumber || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+
+    case 'blockhead':
+      return (
+        <div className="table-wrapper">
+          <div className="table-container">
+            <table className="report-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>PEN Number</th>
+                  <th>Phone Number</th>
+                  <th>Assigned Block</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportData.data.map((item, idx) => (
+                  <tr key={idx}>
+                    <td>{`${item.firstName || ''} ${item.lastName || ''}`.trim() || '-'}</td>
+                    <td>{item.email || '-'}</td>
+                    <td>{item.pen || '-'}</td>
+                    <td>{item.phoneNumber || '-'}</td>
+                    <td>{item.assignedBlock || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+
+    default:
+      if (reportData.data.length > 0) {
+        const headers = Object.keys(reportData.data[0]);
         return (
           <div className="table-wrapper">
             <div className="table-container">
               <table className="report-table">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>PEN/Recruit No</th>
-                    <th>Block</th>
-                    <th>Room</th>
-                    <th>Purpose</th>
-                    <th>Designation</th>
-                    <th>Unit</th>
-                    <th>Allocation Date</th>
+                    {headers.map(header => (
+                      <th key={header}>
+                        {header.replace(/([A-Z])/g, ' $1').replace(/\b\w/g, l => l.toUpperCase())}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {reportData.data.map((item, idx) => (
                     <tr key={idx}>
-                      <td>{item.name}</td>
-                      <td>{item.pen || item.recruitmentNumber || '-'}</td>
-                      <td>{item.block}</td>
-                      <td>{item.roomNumber}</td>
-                      <td>{item.purpose}</td>
-                      <td>{item.designation}</td>
-                      <td>{item.unit || '-'}</td>
-                      <td>{item.allocationDate ? new Date(item.allocationDate).toLocaleDateString('en-IN') : '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        );
-
-      case 'block':
-        return (
-          <div className="table-wrapper">
-            <div className="table-container">
-              <table className="report-table">
-                <thead>
-                  <tr>
-                    <th>Block Name</th>
-                    <th>Total Rooms</th>
-                    <th>Total Beds</th>
-                    <th>Allocated Beds</th>
-                    <th>Vacant Beds</th>
-                    <th>Occupancy Rate</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportData.data.map((item, idx) => (
-                    <tr key={idx}>
-                      <td>{item.blockName || '-'}</td>
-                      <td>{item.totalRooms || 0}</td>
-                      <td>{item.totalBeds || 0}</td>
-                      <td>{item.allocatedBeds || 0}</td>
-                      <td>{item.vacantBeds || 0}</td>
-                      <td>{item.occupancyRate || '0%'}</td>
-                      <td>{item.status || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        );
-
-      case 'admin':
-        return (
-          <div className="table-wrapper">
-            <div className="table-container">
-              <table className="report-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>PEN Number</th>
-                    <th>Phone Number</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportData.data.map((item, idx) => (
-                    <tr key={idx}>
-                      <td>{`${item.firstName || ''} ${item.lastName || ''}`.trim() || '-'}</td>
-                      <td>{item.email || '-'}</td>
-                      <td>{item.pen || '-'}</td>
-                      <td>{item.phoneNumber || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        );
-
-      case 'blockhead':
-        return (
-          <div className="table-wrapper">
-            <div className="table-container">
-              <table className="report-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>PEN Number</th>
-                    <th>Phone Number</th>
-                    <th>Assigned Block</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportData.data.map((item, idx) => (
-                    <tr key={idx}>
-                      <td>{`${item.firstName || ''} ${item.lastName || ''}`.trim() || '-'}</td>
-                      <td>{item.email || '-'}</td>
-                      <td>{item.pen || '-'}</td>
-                      <td>{item.phoneNumber || '-'}</td>
-                      <td>{item.assignedBlock || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        );
-
-      default:
-        if (reportData.data.length > 0) {
-          const headers = Object.keys(reportData.data[0]);
-          return (
-            <div className="table-wrapper">
-              <div className="table-container">
-                <table className="report-table">
-                  <thead>
-                    <tr>
                       {headers.map(header => (
-                        <th key={header}>
-                          {header.replace(/([A-Z])/g, ' $1').replace(/\b\w/g, l => l.toUpperCase())}
-                        </th>
+                        <td key={header}>{item[header] || '-'}</td>
                       ))}
                     </tr>
-                  </thead>
-                  <tbody>
-                    {reportData.data.map((item, idx) => (
-                      <tr key={idx}>
-                        {headers.map(header => (
-                          <td key={header}>{item[header] || '-'}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          );
-        }
-        return null;
-    }
-  };
+          </div>
+        );
+      }
+      return null;
+  }
+};
 
   const clearFilters = () => {
     setStartDate('');

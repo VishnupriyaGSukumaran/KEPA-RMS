@@ -6,6 +6,7 @@ const VacatingRecord = require('../models/VacatingRecord');
 const Room = require('../models/Room');
 const Block = require('../models/Block');
 const BlockHead = require('../models/blockHeadModel');
+const User = require('../models/Account'); // ✅ ADD THIS - Import User model
 
 // Helper function to build date filter
 const buildDateFilter = (query) => {
@@ -13,7 +14,6 @@ const buildDateFilter = (query) => {
   const filter = {};
 
   if (date) {
-    // Specific date
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(date);
@@ -21,26 +21,22 @@ const buildDateFilter = (query) => {
     filter.$gte = startOfDay;
     filter.$lte = endOfDay;
   } else if (month && year) {
-    // Specific month and year
     const startOfMonth = new Date(year, month - 1, 1);
     const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
     filter.$gte = startOfMonth;
     filter.$lte = endOfMonth;
   } else if (month) {
-    // Specific month (current year)
     const currentYear = new Date().getFullYear();
     const startOfMonth = new Date(currentYear, month - 1, 1);
     const endOfMonth = new Date(currentYear, month, 0, 23, 59, 59, 999);
     filter.$gte = startOfMonth;
     filter.$lte = endOfMonth;
   } else if (year) {
-    // Specific year
     const startOfYear = new Date(year, 0, 1);
     const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
     filter.$gte = startOfYear;
     filter.$lte = endOfYear;
   } else if (startDate && endDate) {
-    // Date range
     const start = new Date(startDate);
     start.setHours(0, 0, 0, 0);
     const end = new Date(endDate);
@@ -60,12 +56,10 @@ router.get('/allocated', async (req, res) => {
     
     let matchQuery = {};
     
-    // Block filter
     if (block) {
       matchQuery.blockName = { $regex: new RegExp(`^${block}$`, 'i') };
     }
     
-    // Date filter
     const dateFilter = buildDateFilter(req.query);
     if (dateFilter) {
       matchQuery.allocationDate = dateFilter;
@@ -122,12 +116,10 @@ router.get('/vacated', async (req, res) => {
     
     let matchQuery = {};
     
-    // Block filter
     if (block) {
       matchQuery.blockName = { $regex: new RegExp(`^${block}$`, 'i') };
     }
     
-    // Date filter
     const dateFilter = buildDateFilter(req.query);
     if (dateFilter) {
       matchQuery.vacatingDate = dateFilter;
@@ -188,7 +180,6 @@ router.get('/availability', async (req, res) => {
     
     let matchQuery = {};
     
-    // Block filter
     if (block) {
       matchQuery.blockName = { $regex: new RegExp(`^${block}$`, 'i') };
     }
@@ -224,7 +215,6 @@ router.get('/availability', async (req, res) => {
       };
     });
 
-    // Calculate summary
     const summary = {
       total_rooms: reportData.length,
       total_beds: reportData.reduce((sum, r) => sum + r.total_beds, 0),
@@ -253,8 +243,7 @@ router.get('/availability', async (req, res) => {
     });
   }
 });
-
-// ===== 4. BLOCK HEAD DETAILS REPORT =====
+// ===== 4. BLOCK HEAD DETAILS REPORT ===== ✅ SIMPLIFIED
 router.get('/blockhead-detail', async (req, res) => {
   try {
     console.log('📊 Generating Block Head Details Report');
@@ -262,50 +251,30 @@ router.get('/blockhead-detail', async (req, res) => {
     
     let matchQuery = {};
     
-    // Block filter
     if (block) {
-      matchQuery.block = { $regex: new RegExp(`^${block}$`, 'i') };
+      matchQuery.assignedBlock = { $regex: new RegExp(`^${block}$`, 'i') };
     }
 
-    const blockHeads = await BlockHead.find(matchQuery)
-      .select('-__v -updatedAt')
-      .sort({ block: 1 })
+    // ✅ Fetch blockheads from User model where userType = 'blockhead'
+    const blockHeads = await User.find({
+      ...matchQuery,
+      userType: 'blockhead'
+    })
+      .select('firstName lastName pen phoneNumber email assignedBlock createdAt')
+      .sort({ assignedBlock: 1 })
       .lean();
 
-    const reportData = await Promise.all(blockHeads.map(async (bh) => {
-      // Get block statistics
-      const blockDoc = await Block.findOne({ 
-        blockName: { $regex: new RegExp(`^${bh.block}$`, 'i') } 
-      });
-      
-      const rooms = await Room.find({ 
-        blockName: { $regex: new RegExp(`^${bh.block}$`, 'i') } 
-      });
+    console.log(`Found ${blockHeads.length} blockheads:`, blockHeads);
 
-      const totalRooms = rooms.length;
-      const totalBeds = rooms.reduce((sum, r) => sum + (r.bedCount || 0), 0);
-      const allocatedBeds = rooms.reduce((sum, r) => sum + (r.allocatedBeds || 0), 0);
-      const vacantBeds = totalBeds - allocatedBeds;
-
-      const allocations = await RoomAllocation.find({ 
-        blockName: { $regex: new RegExp(`^${bh.block}$`, 'i') } 
-      });
-
-      return {
-        block_name: bh.block,
-        blockhead_name: bh.name,
-        pen_number: bh.penNumber,
-        designation: bh.designation,
-        contact: bh.contact,
-        email: bh.email || '-',
-        total_rooms: totalRooms,
-        total_beds: totalBeds,
-        allocated_beds: allocatedBeds,
-        vacant_beds: vacantBeds,
-        current_occupants: allocations.length,
-        created_date: bh.createdAt ? 
-          new Date(bh.createdAt).toLocaleDateString() : '-'
-      };
+    // ✅ Simple mapping without room statistics
+    const reportData = blockHeads.map((bh) => ({
+      block_name: bh.assignedBlock || '-',
+      blockhead_name: `${bh.firstName || ''} ${bh.lastName || ''}`.trim() || '-',
+      pen_number: bh.pen || '-',
+      contact: bh.phoneNumber || '-',
+      email: bh.email || '-',
+      created_date: bh.createdAt ? 
+        new Date(bh.createdAt).toLocaleDateString() : '-'
     }));
 
     console.log(`✅ Generated block head report for ${reportData.length} block heads`);
@@ -327,7 +296,7 @@ router.get('/blockhead-detail', async (req, res) => {
   }
 });
 
-// ===== 5. BLOCK DETAILS REPORT =====
+// ===== 5. BLOCK DETAILS REPORT ===== ✅ FIXED
 router.get('/block-detail', async (req, res) => {
   try {
     console.log('📊 Generating Block Details Report');
@@ -335,7 +304,6 @@ router.get('/block-detail', async (req, res) => {
     
     let matchQuery = {};
     
-    // Block filter
     if (block) {
       matchQuery.blockName = { $regex: new RegExp(`^${block}$`, 'i') };
     }
@@ -346,9 +314,11 @@ router.get('/block-detail', async (req, res) => {
       .lean();
 
     const reportData = await Promise.all(blocks.map(async (blockDoc) => {
+      const blockName = blockDoc.blockName;
+      
       // Get room statistics
       const rooms = await Room.find({ 
-        blockName: { $regex: new RegExp(`^${blockDoc.blockName}$`, 'i') } 
+        blockName: { $regex: new RegExp(`^${blockName}$`, 'i') } 
       });
 
       const totalRooms = rooms.length;
@@ -368,17 +338,23 @@ router.get('/block-detail', async (req, res) => {
 
       // Get current allocations
       const allocations = await RoomAllocation.find({ 
-        blockName: { $regex: new RegExp(`^${blockDoc.blockName}$`, 'i') } 
+        blockName: { $regex: new RegExp(`^${blockName}$`, 'i') } 
       });
 
-      // Get block head
-      const blockHead = await BlockHead.findOne({ 
-        block: { $regex: new RegExp(`^${blockDoc.blockName}$`, 'i') } 
-      });
+      // ✅ Get block head from User model
+      const blockHead = await User.findOne({ 
+        userType: 'blockhead',
+        assignedBlock: { $regex: new RegExp(`^${blockName}$`, 'i') }
+      }).select('firstName lastName');
+
+      // ✅ Format blockhead name properly
+      const blockHeadName = blockHead 
+        ? `${blockHead.firstName || ''} ${blockHead.lastName || ''}`.trim()
+        : 'Not Assigned';
 
       return {
-        block_name: blockDoc.blockName,
-        block_head: blockHead ? blockHead.name : 'Not Assigned',
+        block_name: blockName,
+        block_head: blockHeadName,
         total_rooms: totalRooms,
         room_types: Object.entries(roomTypes)
           .map(([type, count]) => `${type}: ${count}`)

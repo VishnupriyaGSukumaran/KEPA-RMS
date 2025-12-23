@@ -359,12 +359,19 @@ router.post('/vacancy', async (req, res) => {
 
 // ==========================================
 // 📊 BLOCK REPORT
+
+
+
+
+// ==========================================
+// 📊 BLOCK REPORT (COMPLETE FIX - Room Types & Block Heads)
 // ==========================================
 router.post('/block', async (req, res) => {
   try {
     console.log('📊 Block Report Request:', req.body);
     
     const { blockName } = req.body;
+    const Account = require('../models/Account');
     
     let query = {};
     
@@ -373,19 +380,66 @@ router.post('/block', async (req, res) => {
       query.blockName = { $regex: `^${blockName}$`, $options: 'i' };
     }
 
-    // Fetch blocks with room details
-    const blocks = await Block.find(query);
+    // Fetch blocks
+    const blocks = await Block.find(query).lean();
+    console.log(`📦 Found ${blocks.length} blocks`);
     
     const blockData = await Promise.all(blocks.map(async (block) => {
+      console.log(`\n🔍 Processing block: ${block.blockName}`);
+      
+      // ✅ Fetch ALL rooms for this block
       const rooms = await Room.find({
         blockName: { $regex: `^${block.blockName}$`, $options: 'i' }
-      });
+      }).lean();
 
+      console.log(`   📋 Found ${rooms.length} rooms in Room collection`);
+
+      // ✅ Calculate overall stats
       const totalRooms = rooms.length;
       const totalBeds = rooms.reduce((sum, room) => sum + (room.bedCount || 0), 0);
       const allocatedBeds = rooms.reduce((sum, room) => sum + (room.allocatedBeds || 0), 0);
       const vacantBeds = totalBeds - allocatedBeds;
       const occupancyRate = totalBeds > 0 ? `${((allocatedBeds / totalBeds) * 100).toFixed(1)}%` : '0%';
+
+      console.log(`   📊 Stats: ${totalRooms} rooms, ${totalBeds} beds, ${allocatedBeds} allocated`);
+
+      // ✅ CRITICAL FIX: Get room type breakdown from ACTUAL rooms
+      const roomTypeBreakdown = {};
+      
+      rooms.forEach(room => {
+        const type = room.roomType || 'Unknown';
+        
+        if (!roomTypeBreakdown[type]) {
+          roomTypeBreakdown[type] = {
+            count: 0,
+            totalBeds: 0,
+            allocatedBeds: 0,
+            vacantBeds: 0
+          };
+        }
+        
+        roomTypeBreakdown[type].count += 1;
+        roomTypeBreakdown[type].totalBeds += room.bedCount || 0;
+        roomTypeBreakdown[type].allocatedBeds += room.allocatedBeds || 0;
+        roomTypeBreakdown[type].vacantBeds += (room.bedCount || 0) - (room.allocatedBeds || 0);
+      });
+
+      console.log(`   🏷️  Room Types:`, Object.keys(roomTypeBreakdown));
+      Object.entries(roomTypeBreakdown).forEach(([type, data]) => {
+        console.log(`      - ${type}: ${data.count} rooms, ${data.totalBeds} beds`);
+      });
+
+      // ✅ Find assigned block head from Account collection
+      const assignedBlockHead = await Account.findOne({
+        userType: 'blockhead',
+        assignedBlock: { $regex: `^${block.blockName}$`, $options: 'i' }
+      }).select('firstName lastName pen phoneNumber email').lean();
+
+      if (assignedBlockHead) {
+        console.log(`   👤 Block Head: ${assignedBlockHead.firstName} ${assignedBlockHead.lastName}`);
+      } else {
+        console.log(`   ⚠️  No Block Head assigned`);
+      }
 
       return {
         blockName: block.blockName,
@@ -394,9 +448,18 @@ router.post('/block', async (req, res) => {
         allocatedBeds,
         vacantBeds,
         occupancyRate,
-        status: block.status || 'Active'
+        status: block.status || 'Active',
+        roomTypeBreakdown,  // ✅ This should now have data
+        assignedBlockHead: assignedBlockHead ? {
+          name: `${assignedBlockHead.firstName || ''} ${assignedBlockHead.lastName || ''}`.trim(),
+          pen: assignedBlockHead.pen,
+          phoneNumber: assignedBlockHead.phoneNumber,
+          email: assignedBlockHead.email
+        } : null
       };
     }));
+
+    console.log(`\n✅ Block report generated successfully`);
 
     res.status(200).json({
       success: true,
