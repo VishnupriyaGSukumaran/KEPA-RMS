@@ -1,3 +1,4 @@
+// AdminReports.js - FIXED: Full Modal Functionality
 import React, { useState, useEffect } from 'react';
 import './AdminReports.css';
 import {
@@ -25,6 +26,25 @@ function AdminReports() {
   const [blockHeads, setBlockHeads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState([]);
+
+  // ✅ Modal states for allocation and course order
+  const [showAllocForm, setShowAllocForm] = useState(false);
+  const [showCourseModal, setShowCourseModal] = useState(false);
+
+  // ✅ Allocation form states
+  const [purpose, setPurpose] = useState('');
+  const [officerCount, setOfficerCount] = useState('');
+  const [requestedBlock, setRequestedBlock] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [notes, setNotes] = useState('');
+  const [officerFile, setOfficerFile] = useState(null);
+  const [loadingBlocks, setLoadingBlocks] = useState(false);
+
+  // ✅ Course form states
+  const [courseTitle, setCourseTitle] = useState('');
+  const [courseDesc, setCourseDesc] = useState('');
+  const [courseFile, setCourseFile] = useState(null);
 
   // Admin User Details State
   const [adminUser, setAdminUser] = useState({
@@ -85,6 +105,33 @@ function AdminReports() {
     fetchBlockHeads();
   }, []);
 
+  // ✅ Fetch blocks when allocation form opens
+  useEffect(() => {
+    const fetchBlocksForAllocation = async () => {
+      if (showAllocForm) {
+        try {
+          setLoadingBlocks(true);
+          const response = await axios.get('http://localhost:5000/api/block');
+          console.log('Blocks fetched:', response.data);
+          
+          if (Array.isArray(response.data) && response.data.length > 0) {
+            const blockNames = response.data.map(block => block.blockName).filter(Boolean);
+            setBlocks(blockNames);
+          } else {
+            setBlocks([]);
+          }
+        } catch (error) {
+          console.error('Failed to fetch blocks:', error);
+          setBlocks([]);
+        } finally {
+          setLoadingBlocks(false);
+        }
+      }
+    };
+
+    fetchBlocksForAllocation();
+  }, [showAllocForm]);
+
   const fetchBlocks = async () => {
     try {
       const response = await axios.get('http://localhost:5000/api/block');
@@ -104,6 +151,70 @@ function AdminReports() {
     } catch (error) {
       console.error('Failed to fetch blockheads:', error);
       toast.error('Failed to load block heads');
+    }
+  };
+
+  // ✅ Allocation form submit handler
+  const handleAllocSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const formData = new FormData();
+      formData.append('purpose', purpose);
+      formData.append('officerCount', officerCount);
+      formData.append('requestedBlock', requestedBlock);
+      formData.append('fromDate', fromDate);
+      formData.append('toDate', toDate);
+      formData.append('notes', notes);
+      if (officerFile) {
+        formData.append('officerFile', officerFile);
+      }
+      await axios.post('http://localhost:5000/api/allocations', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      toast.success('Allocation order sent successfully!');
+      setShowAllocForm(false);
+      setPurpose('');
+      setOfficerCount('');
+      setRequestedBlock('');
+      setFromDate('');
+      setToDate('');
+      setNotes('');
+      setOfficerFile(null);
+    } catch (err) {
+      console.error('Failed to send allocation:', err);
+      toast.error('Failed to send allocation.');
+    }
+  };
+
+  // ✅ Course form submit handler
+  const handleCourseSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!courseTitle || !courseDesc) {
+      toast.warning('Please enter both title and description.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('courseTitle', courseTitle);
+    formData.append('courseDesc', courseDesc);
+    if (courseFile) {
+      formData.append('courseFile', courseFile);
+    }
+
+    try {
+      await axios.post('http://localhost:5000/api/course-orders', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      toast.success('Course order sent to SuperAdmin.');
+      setCourseTitle('');
+      setCourseDesc('');
+      setCourseFile(null);
+      setShowCourseModal(false);
+    } catch (error) {
+      console.error('Error submitting course order:', error);
+      toast.error('Failed to send course order.');
     }
   };
 
@@ -387,7 +498,7 @@ function AdminReports() {
 
   return (
     <div className="admin-reports-container">
-      {/* Sidebar - Same as AdminDashboard */}
+      {/* Sidebar */}
       <div className="reports-sidebar">
         <div className="sidebar-content">
           <div className="user-info">
@@ -411,13 +522,13 @@ function AdminReports() {
             <button className="nav-item" onClick={() => navigate('/admin/blockheads')}>
               <FaUsers /> Assign Block Heads
             </button>
-            <button className="nav-item">
+            <button className="nav-item" onClick={() => setShowAllocForm(true)}>
               <FaPlus /> Create Allocation Order
             </button>
             <button className="nav-item" onClick={() => navigate('/admin/display-block')}>
               <FaCubes /> Display Block Structure
             </button>
-            <button className="nav-item">
+            <button className="nav-item" onClick={() => setShowCourseModal(true)}>
               <FaBook /> Forward Course Order
             </button>
             <button className="nav-item active">
@@ -483,6 +594,207 @@ function AdminReports() {
           {renderReportTable()}
         </div>
       </div>
+
+      {/* ✅ ALLOCATION MODAL - Full functionality from AdminDashboard */}
+      {showAllocForm && (
+        <div className="alloc-modal-backdrop">
+          <div className="alloc-modal-container">
+            <div className="alloc-modal-header">
+              <h2 className="alloc-modal-title">Allocation Order</h2>
+            </div>
+            <form onSubmit={handleAllocSubmit} className="alloc-modal-body">
+              <div className="alloc-form-row">
+                <div className="alloc-form-field">
+                  <label htmlFor="purpose" className="alloc-label">Purpose of Visit</label>
+                  <select 
+                    id="purpose"
+                    value={purpose} 
+                    onChange={(e) => setPurpose(e.target.value)} 
+                    required
+                    className="alloc-input alloc-select"
+                  >
+                    <option value="">Select Purpose</option>
+                    <option value="Training">Basic Training</option>
+                    <option value="Workshop">Inservice Training</option>
+                    <option value="Meeting">Faculty/Guest</option>
+                    <option value="Inspection">KEPA Officers</option>
+                    <option value="Guest Accommodation">Others</option>
+                  </select>
+                </div>
+                
+                <div className="alloc-form-field">
+                  <label htmlFor="officerCount" className="alloc-label">Number of Officers</label>
+                  <input 
+                    id="officerCount"
+                    type="number" 
+                    value={officerCount} 
+                    onChange={(e) => setOfficerCount(e.target.value)} 
+                    required
+                    className="alloc-input"
+                    placeholder="Enter number of officers"
+                    min="1"
+                  />
+                </div>
+              </div>
+
+              <div className="alloc-form-row">
+                <div className="alloc-form-field">
+                  <label htmlFor="requestedBlock" className="alloc-label">Requested Block</label>
+                  <select 
+                    id="requestedBlock"
+                    value={requestedBlock} 
+                    onChange={(e) => setRequestedBlock(e.target.value)} 
+                    required
+                    className="alloc-input alloc-select"
+                    disabled={loadingBlocks}
+                  >
+                    <option value="">
+                      {loadingBlocks ? 'Loading blocks...' : 'Select Block'}
+                    </option>
+                    {blocks.map((blockName, index) => (
+                      <option key={index} value={blockName}>
+                        {blockName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="alloc-form-field">
+                  <label htmlFor="officerFile" className="alloc-label">Upload Officer List</label>
+                  <div className="alloc-file-wrapper">
+                    <input 
+                      id="officerFile"
+                      type="file" 
+                      accept=".pdf,.xlsx,.xls" 
+                      onChange={(e) => setOfficerFile(e.target.files[0])}
+                      className="alloc-file-input"
+                    />
+                    <div className="alloc-file-display">
+                      {officerFile ? officerFile.name : 'Choose File'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="alloc-form-row">
+                <div className="alloc-form-field">
+                  <label htmlFor="fromDate" className="alloc-label">From Date</label>
+                  <input 
+                    id="fromDate"
+                    type="date" 
+                    value={fromDate} 
+                    onChange={(e) => setFromDate(e.target.value)} 
+                    required
+                    className="alloc-input alloc-date"
+                  />
+                </div>
+                
+                <div className="alloc-form-field">
+                  <label htmlFor="toDate" className="alloc-label">To Date</label>
+                  <input 
+                    id="toDate"
+                    type="date" 
+                    value={toDate} 
+                    onChange={(e) => setToDate(e.target.value)} 
+                    required
+                    className="alloc-input alloc-date"
+                  />
+                </div>
+              </div>
+
+              <div className="alloc-form-row">
+                <div className="alloc-form-field alloc-field-full">
+                  <label htmlFor="notes" className="alloc-label">Remarks / Notes</label>
+                  <textarea 
+                    id="notes"
+                    value={notes} 
+                    onChange={(e) => setNotes(e.target.value)} 
+                    rows={4}
+                    className="alloc-input alloc-textarea"
+                    placeholder="Enter any additional remarks or notes..."
+                  />
+                </div>
+              </div>
+              
+              <div className="alloc-modal-footer">
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setShowAllocForm(false);
+                    setPurpose('');
+                    setOfficerCount('');
+                    setRequestedBlock('');
+                    setFromDate('');
+                    setToDate('');
+                    setNotes('');
+                    setOfficerFile(null);
+                    navigate('/admin/dashboard');
+                  }} 
+                  className="alloc-btn alloc-btn-cancel"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="alloc-btn alloc-btn-submit">Submit</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ COURSE MODAL - Full functionality from AdminDashboard */}
+      {showCourseModal && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <h3>Forward Course Order</h3>
+            <form onSubmit={handleCourseSubmit}>
+              <div className="form-group">
+                <label>Course Title</label>
+                <input
+                  type="text"
+                  value={courseTitle}
+                  onChange={(e) => setCourseTitle(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Course Description</label>
+                <textarea
+                  value={courseDesc}
+                  onChange={(e) => setCourseDesc(e.target.value)}
+                  rows={4}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Upload Course Order (PDF)</label>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setCourseFile(e.target.files[0])}
+                />
+              </div>
+
+              <div className="form-buttons">
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setShowCourseModal(false);
+                    setCourseTitle('');
+                    setCourseDesc('');
+                    setCourseFile(null);
+                    navigate('/admin/dashboard');
+                  }}
+                >
+                  Cancel
+                </button>
+                <button type="submit">Send</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <ToastContainer position="top-right" autoClose={3000} theme="colored" />
     </div>
