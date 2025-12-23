@@ -1,216 +1,385 @@
-// routes/report.js - COMPLETE FIXED VERSION
-const express = require("express");
+// File: routes/reportRoutes.js
+const express = require('express');
 const router = express.Router();
-const Report = require("../models/Report");
-const RoomAllocation = require("../models/RoomAllocation");
-const Room = require("../models/Room");
-const Block = require("../models/Block");
-const Course = require("../models/Course");
-const Account = require("../models/Account");
+const RoomAllocation = require('../models/RoomAllocation');
+const VacatingRecord = require('../models/VacatingRecord');
+const Room = require('../models/Room');
+const Block = require('../models/Block');
 
-console.log('🟢 Report routes module loaded');
-
-// Utility functions
-const getMonthName = (m) =>
-  [
-    "January","February","March","April","May","June",
-    "July","August","September","October","November","December"
-  ][m - 1];
-
-const getDateRangeDescription = (month, year, years, startDate, endDate) => {
-  if (month && year) return `${getMonthName(month)} ${year}`;
-  if (year && !month) return `Year ${year}`;
-  if (years?.length) return `Years: ${years.join(", ")}`;
-  if (startDate && endDate)
-    return `${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`;
-  return "All Time";
-};
-
-// ✅ TEST ROUTE
-router.get("/test", (req, res) => {
-  console.log("✅ TEST ROUTE HIT!");
-  res.json({ 
-    success: true,
-    message: "Report routes are working!",
-    timestamp: new Date().toISOString()
-  });
-});
-
-// ✅ COURSE REPORT
-router.post("/course", async (req, res) => {
+// ==========================================
+// 📊 ALLOCATION REPORT
+// ==========================================
+router.post('/allocation', async (req, res) => {
   try {
-    console.log('🟢 COURSE REPORT ROUTE HIT');
-    console.log('Request body:', req.body);
+    console.log('📊 Allocation Report Request:', req.body);
     
-    const { startDate, endDate, month, year, years, generatedBy } = req.body;
+    const { startDate, endDate, month, year, years, blockName, purpose } = req.body;
     
     let query = {};
-    
-    if (month && year) {
-      const start = new Date(year, month - 1, 1);
-      const end = new Date(year, month, 0, 23, 59, 59);
-      query.startdate = { 
-        $gte: start.toISOString().split('T')[0],
-        $lte: end.toISOString().split('T')[0]
-      };
-    } else if (year && !month) {
-      query.startdate = {
-        $gte: `${year}-01-01`,
-        $lte: `${year}-12-31`
+    let dateFilter = {};
+
+    // ✅ Date Filters
+    if (startDate && !endDate) {
+      // Date Only
+      const date = new Date(startDate);
+      const nextDay = new Date(date);
+      nextDay.setDate(date.getDate() + 1);
+      dateFilter = {
+        allocationDate: {
+          $gte: date,
+          $lt: nextDay
+        }
       };
     } else if (startDate && endDate) {
-      query.startdate = {
-        $gte: new Date(startDate).toISOString().split('T')[0],
-        $lte: new Date(endDate).toISOString().split('T')[0]
+      // Date Range
+      dateFilter = {
+        allocationDate: {
+          $gte: new Date(startDate),
+          $lte: new Date(endDate)
+        }
+      };
+    } else if (month && year) {
+      // Month & Year
+      const startOfMonth = new Date(year, month - 1, 1);
+      const endOfMonth = new Date(year, month, 0, 23, 59, 59);
+      dateFilter = {
+        allocationDate: {
+          $gte: startOfMonth,
+          $lte: endOfMonth
+        }
+      };
+    } else if (month && !year) {
+      // Month Only (current year)
+      const currentYear = new Date().getFullYear();
+      const startOfMonth = new Date(currentYear, month - 1, 1);
+      const endOfMonth = new Date(currentYear, month, 0, 23, 59, 59);
+      dateFilter = {
+        allocationDate: {
+          $gte: startOfMonth,
+          $lte: endOfMonth
+        }
+      };
+    } else if (year && !month) {
+      // Year Only
+      const startOfYear = new Date(year, 0, 1);
+      const endOfYear = new Date(year, 11, 31, 23, 59, 59);
+      dateFilter = {
+        allocationDate: {
+          $gte: startOfYear,
+          $lte: endOfYear
+        }
+      };
+    } else if (years && years.length > 0) {
+      // Year Range (multiple years)
+      const minYear = Math.min(...years);
+      const maxYear = Math.max(...years);
+      const startOfRange = new Date(minYear, 0, 1);
+      const endOfRange = new Date(maxYear, 11, 31, 23, 59, 59);
+      dateFilter = {
+        allocationDate: {
+          $gte: startOfRange,
+          $lte: endOfRange
+        }
       };
     }
 
-    console.log('Query:', query);
-
-    const courses = await Course.find(query).lean();
-    console.log(`Found ${courses.length} courses`);
-    
-    const summary = {
-      totalCourses: courses.length,
-      dateRange: getDateRangeDescription(month, year, years, startDate, endDate),
-      generatedBy: generatedBy || 'System',
-      generatedAt: new Date().toISOString()
-    };
-
-    res.status(200).json({
-      success: true,
-      report: { 
-        summary, 
-        reportTitle: "Course Report" 
-      },
-      data: courses,
-    });
-  } catch (error) {
-    console.error("❌ Course report error:", error);
-    res.status(500).json({ 
-      success: false,
-      error: "Failed to generate course report: " + error.message 
-    });
-  }
-});
-
-// ✅ ALLOCATION REPORT
-router.post("/allocation", async (req, res) => {
-  try {
-    console.log('🟢 ALLOCATION REPORT ROUTE HIT');
-    const { startDate, endDate, month, year, blockName, purpose, generatedBy } = req.body;
-
-    const query = {};
-    if (blockName) query.block = blockName;
-    if (purpose) query.purpose = purpose;
-
-    if (month && year) {
-      const start = new Date(year, month - 1, 1);
-      const end = new Date(year, month, 0, 23, 59, 59);
-      query.allocationDate = { $gte: start, $lte: end };
-    } else if (year && !month) {
-      query.allocationDate = {
-        $gte: new Date(year, 0, 1),
-        $lte: new Date(year, 11, 31, 23, 59, 59),
-      };
-    } else if (startDate && endDate) {
-      query.allocationDate = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
-      };
+    // Apply date filter if exists
+    if (Object.keys(dateFilter).length > 0) {
+      query = { ...query, ...dateFilter };
     }
 
-    const allocations = await RoomAllocation.find(query).lean();
-    console.log(`Found ${allocations.length} allocations`);
+    // ✅ Block Filter
+    if (blockName) {
+      query.blockName = { $regex: `^${blockName}$`, $options: 'i' };
+    }
 
-    const summary = {
-      totalRecords: allocations.length,
-      filteredByBlock: blockName || "All Blocks",
-      filteredByPurpose: purpose || "All",
-      dateRange: getDateRangeDescription(month, year, null, startDate, endDate),
-    };
+    // ✅ Purpose Filter
+    if (purpose) {
+      query.purpose = purpose;
+    }
+
+    console.log('🔍 Query:', JSON.stringify(query, null, 2));
+
+    // Fetch allocations
+    const allocations = await RoomAllocation.find(query).sort({ allocationDate: -1 });
+
+    console.log(`✅ Found ${allocations.length} allocations`);
+
+    // Calculate summary
+    const totalAllocations = allocations.length;
+    const uniqueBlocks = [...new Set(allocations.map(a => a.blockName || a.block))];
+    const uniqueRooms = [...new Set(allocations.map(a => a.roomNumber))];
+    
+    const purposeBreakdown = allocations.reduce((acc, curr) => {
+      acc[curr.purpose] = (acc[curr.purpose] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Format date range for summary
+    let dateRange = 'All Time';
+    if (startDate && endDate) {
+      dateRange = `${new Date(startDate).toLocaleDateString('en-IN')} - ${new Date(endDate).toLocaleDateString('en-IN')}`;
+    } else if (startDate) {
+      dateRange = new Date(startDate).toLocaleDateString('en-IN');
+    } else if (month && year) {
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                         'July', 'August', 'September', 'October', 'November', 'December'];
+      dateRange = `${monthNames[month - 1]} ${year}`;
+    } else if (year) {
+      dateRange = `Year ${year}`;
+    } else if (years && years.length > 0) {
+      dateRange = `Years ${years.sort().join(', ')}`;
+    }
+
+    // Format data for response
+    const formattedData = allocations.map(allocation => ({
+      name: allocation.name,
+      pen: allocation.pen,
+      recruitmentNumber: allocation.recruitmentNumber,
+      block: allocation.blockName || allocation.block,
+      roomNumber: allocation.roomNumber,
+      bedIndex: allocation.bedIndex,
+      purpose: allocation.purpose,
+      designation: allocation.designation,
+      unit: allocation.unit,
+      district: allocation.district,
+      mobileNumber: allocation.mobileNumber,
+      emergencyContact: allocation.emergencyContact,
+      trainingCompany: allocation.trainingCompany,
+      courseDetails: allocation.courseDetails,
+      allocationDate: allocation.allocationDate,
+      allocatedBy: allocation.allocatedBy,
+      remark: allocation.remark
+    }));
 
     res.status(200).json({
       success: true,
       report: {
-        summary,
-        reportTitle: "Room Allocation Report",
+        reportTitle: 'Room Allocation Report',
+        generatedAt: new Date(),
+        summary: {
+          dateRange,
+          totalAllocations,
+          totalBlocks: uniqueBlocks.length,
+          totalRooms: uniqueRooms.length,
+          purposeBreakdown
+        }
       },
-      data: allocations,
+      data: formattedData
     });
+
   } catch (error) {
-    console.error("❌ Allocation report error:", error);
-    res.status(500).json({ 
+    console.error('❌ Error generating allocation report:', error);
+    res.status(500).json({
       success: false,
-      error: "Failed to generate allocation report" 
+      error: 'Failed to generate allocation report',
+      message: error.message
     });
   }
 });
 
-// ✅ VACANCY REPORT
-router.post("/vacancy", async (req, res) => {
+// ==========================================
+// 📊 VACANCY (VACATED) REPORT
+// ==========================================
+router.post('/vacancy', async (req, res) => {
   try {
-    console.log('🟢 VACANCY REPORT ROUTE HIT');
-    const { blockName, month, year } = req.body;
-    const query = {};
-    if (blockName) query.blockName = blockName;
+    console.log('📊 Vacancy Report Request:', req.body);
+    
+    const { startDate, endDate, month, year, years, blockName } = req.body;
+    
+    let query = {};
+    let dateFilter = {};
 
-    const rooms = await Room.find(query).lean();
+    // ✅ Date Filters
+    if (startDate && !endDate) {
+      // Date Only
+      const date = new Date(startDate);
+      const nextDay = new Date(date);
+      nextDay.setDate(date.getDate() + 1);
+      dateFilter = {
+        vacatingDate: {
+          $gte: date,
+          $lt: nextDay
+        }
+      };
+    } else if (startDate && endDate) {
+      // Date Range
+      dateFilter = {
+        vacatingDate: {
+          $gte: new Date(startDate),
+          $lte: new Date(endDate)
+        }
+      };
+    } else if (month && year) {
+      // Month & Year
+      const startOfMonth = new Date(year, month - 1, 1);
+      const endOfMonth = new Date(year, month, 0, 23, 59, 59);
+      dateFilter = {
+        vacatingDate: {
+          $gte: startOfMonth,
+          $lte: endOfMonth
+        }
+      };
+    } else if (month && !year) {
+      // Month Only (current year)
+      const currentYear = new Date().getFullYear();
+      const startOfMonth = new Date(currentYear, month - 1, 1);
+      const endOfMonth = new Date(currentYear, month, 0, 23, 59, 59);
+      dateFilter = {
+        vacatingDate: {
+          $gte: startOfMonth,
+          $lte: endOfMonth
+        }
+      };
+    } else if (year && !month) {
+      // Year Only
+      const startOfYear = new Date(year, 0, 1);
+      const endOfYear = new Date(year, 11, 31, 23, 59, 59);
+      dateFilter = {
+        vacatingDate: {
+          $gte: startOfYear,
+          $lte: endOfYear
+        }
+      };
+    } else if (years && years.length > 0) {
+      // Year Range (multiple years)
+      const minYear = Math.min(...years);
+      const maxYear = Math.max(...years);
+      const startOfRange = new Date(minYear, 0, 1);
+      const endOfRange = new Date(maxYear, 11, 31, 23, 59, 59);
+      dateFilter = {
+        vacatingDate: {
+          $gte: startOfRange,
+          $lte: endOfRange
+        }
+      };
+    }
 
-    const data = rooms.map((room) => ({
-      blockName: room.blockName,
-      roomName: room.roomName,
-      roomType: room.roomType || 'Standard',
-      totalBeds: room.bedCount || 0,
-      allocatedBeds: room.allocatedBeds || 0,
-      currentVacantBeds: (room.bedCount || 0) - (room.allocatedBeds || 0),
-      historicalAllocations: 0,
-      lastAllocation: null,
-      status:
-        room.allocatedBeds === 0
-          ? "Vacant"
-          : room.allocatedBeds === room.bedCount
-          ? "Full"
-          : "Partial",
+    // Apply date filter if exists
+    if (Object.keys(dateFilter).length > 0) {
+      query = { ...query, ...dateFilter };
+    }
+
+    // ✅ Block Filter
+    if (blockName) {
+      query.blockName = { $regex: `^${blockName}$`, $options: 'i' };
+    }
+
+    console.log('🔍 Query:', JSON.stringify(query, null, 2));
+
+    // Fetch vacating records
+    const vacatedRecords = await VacatingRecord.find(query).sort({ vacatingDate: -1 });
+
+    console.log(`✅ Found ${vacatedRecords.length} vacated records`);
+
+    // Calculate summary
+    const totalVacated = vacatedRecords.length;
+    const paidCount = vacatedRecords.filter(r => r.paid === 'Yes').length;
+    const unpaidCount = vacatedRecords.filter(r => r.paid === 'No').length;
+    const uniqueBlocks = [...new Set(vacatedRecords.map(r => r.blockName || r.block))];
+    
+    const totalRevenue = vacatedRecords
+      .filter(r => r.paid === 'Yes' && r.paymentAmount)
+      .reduce((sum, r) => sum + (r.paymentAmount || 0), 0);
+
+    const purposeBreakdown = vacatedRecords.reduce((acc, curr) => {
+      acc[curr.purpose] = (acc[curr.purpose] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Format date range for summary
+    let dateRange = 'All Time';
+    if (startDate && endDate) {
+      dateRange = `${new Date(startDate).toLocaleDateString('en-IN')} - ${new Date(endDate).toLocaleDateString('en-IN')}`;
+    } else if (startDate) {
+      dateRange = new Date(startDate).toLocaleDateString('en-IN');
+    } else if (month && year) {
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                         'July', 'August', 'September', 'October', 'November', 'December'];
+      dateRange = `${monthNames[month - 1]} ${year}`;
+    } else if (year) {
+      dateRange = `Year ${year}`;
+    } else if (years && years.length > 0) {
+      dateRange = `Years ${years.sort().join(', ')}`;
+    }
+
+    // Format data for response
+    const formattedData = vacatedRecords.map(record => ({
+      name: record.name,
+      pen: record.pen,
+      recruitmentNumber: record.recruitmentNumber,
+      block: record.blockName || record.block,
+      roomNumber: record.roomNumber,
+      bedNumber: record.bedNumber,
+      purpose: record.purpose,
+      designation: record.designation,
+      unit: record.unit,
+      district: record.district,
+      mobileNumber: record.mobileNumber,
+      allocationDate: record.allocationDate,
+      vacatingDate: record.vacatingDate,
+      daysStayed: record.daysStayed,
+      paid: record.paid,
+      paymentAmount: record.paymentAmount,
+      rate: record.rate,
+      paymentMethod: record.paymentMethod,
+      paymentDate: record.paymentDate,
+      paymentReference: record.paymentReference,
+      vacatedBy: record.vacatedBy,
+      remark: record.remark
     }));
-
-    const summary = {
-      totalRooms: data.length,
-      totalBeds: data.reduce((a, b) => a + b.totalBeds, 0),
-      allocatedBeds: data.reduce((a, b) => a + b.allocatedBeds, 0),
-      vacantBeds: data.reduce((a, b) => a + b.currentVacantBeds, 0),
-      dateRange: getDateRangeDescription(month, year),
-    };
 
     res.status(200).json({
       success: true,
-      report: { summary, reportTitle: "Vacancy Report" },
-      data,
+      report: {
+        reportTitle: 'Room Vacancy (Vacated) Report',
+        generatedAt: new Date(),
+        summary: {
+          dateRange,
+          totalVacated,
+          paidCount,
+          unpaidCount,
+          totalRevenue: `₹${totalRevenue.toFixed(2)}`,
+          totalBlocks: uniqueBlocks.length,
+          purposeBreakdown
+        }
+      },
+      data: formattedData
     });
+
   } catch (error) {
-    console.error("❌ Vacancy report error:", error);
-    res.status(500).json({ 
+    console.error('❌ Error generating vacancy report:', error);
+    res.status(500).json({
       success: false,
-      error: "Failed to generate vacancy report" 
+      error: 'Failed to generate vacancy report',
+      message: error.message
     });
   }
 });
 
-// ✅ BLOCK REPORT
-// ✅ BLOCK REPORT
-router.post("/block", async (req, res) => {
+// ==========================================
+// 📊 BLOCK REPORT
+// ==========================================
+router.post('/block', async (req, res) => {
   try {
-    console.log('🟢 BLOCK REPORT ROUTE HIT');
-    console.log('Request body:', req.body);
-
+    console.log('📊 Block Report Request:', req.body);
+    
     const { blockName } = req.body;
-    const blockQuery = blockName ? { blockName } : {};
+    
+    let query = {};
+    
+    // ✅ Block Filter
+    if (blockName) {
+      query.blockName = { $regex: `^${blockName}$`, $options: 'i' };
+    }
 
-    const blocks = await Block.find(blockQuery).lean();
-    console.log(`Found ${blocks.length} blocks`);
-
-    const detailedData = await Promise.all(blocks.map(async (block) => {
-      const rooms = await Room.find({ blockName: block.blockName }).lean();
+    // Fetch blocks with room details
+    const blocks = await Block.find(query);
+    
+    const blockData = await Promise.all(blocks.map(async (block) => {
+      const rooms = await Room.find({
+        blockName: { $regex: `^${block.blockName}$`, $options: 'i' }
+      });
 
       const totalRooms = rooms.length;
       const totalBeds = rooms.reduce((sum, room) => sum + (room.bedCount || 0), 0);
@@ -225,158 +394,34 @@ router.post("/block", async (req, res) => {
         allocatedBeds,
         vacantBeds,
         occupancyRate,
-        status: allocatedBeds === 0 ? 'Empty' : allocatedBeds === totalBeds ? 'Full' : 'Partial'
+        status: block.status || 'Active'
       };
     }));
 
-    const summary = {
-      totalBlocks: blocks.length,
-      filteredBy: blockName || 'All Blocks',
-      totalRooms: detailedData.reduce((sum, b) => sum + b.totalRooms, 0),
-      totalBeds: detailedData.reduce((sum, b) => sum + b.totalBeds, 0),
-      totalAllocated: detailedData.reduce((sum, b) => sum + b.allocatedBeds, 0),
-      totalVacant: detailedData.reduce((sum, b) => sum + b.vacantBeds, 0)
-    };
-
     res.status(200).json({
       success: true,
-      report: { summary, reportTitle: "Block Report" },
-      data: detailedData,
+      report: {
+        reportTitle: 'Block Report',
+        generatedAt: new Date(),
+        summary: {
+          totalBlocks: blockData.length,
+          totalRooms: blockData.reduce((sum, b) => sum + b.totalRooms, 0),
+          totalBeds: blockData.reduce((sum, b) => sum + b.totalBeds, 0),
+          allocatedBeds: blockData.reduce((sum, b) => sum + b.allocatedBeds, 0),
+          vacantBeds: blockData.reduce((sum, b) => sum + b.vacantBeds, 0)
+        }
+      },
+      data: blockData
     });
+
   } catch (error) {
-    console.error("❌ Block report error:", error);
+    console.error('❌ Error generating block report:', error);
     res.status(500).json({
       success: false,
-      error: "Failed to generate block report: " + error.message
+      error: 'Failed to generate block report',
+      message: error.message
     });
   }
 });
-
-
-// ✅ ADMIN REPORT
-router.post("/admin", async (req, res) => {
-  try {
-    console.log('🟢 ADMIN REPORT ROUTE HIT');
-    const admins = await Account.find({ role: { $in: ["Admin", "SuperAdmin"] } }).lean();
-    res.status(200).json({
-      success: true,
-      report: {
-        summary: { totalUsers: admins.length },
-        reportTitle: "Admin Report",
-      },
-      data: admins,
-    });
-  } catch (error) {
-    console.error("❌ Admin report error:", error);
-    res.status(500).json({ 
-      success: false,
-      error: "Failed to generate admin report" 
-    });
-  }
-});
-
-// ✅ BLOCKHEAD REPORT
-// ✅ BLOCKHEAD REPORT - FIXED VERSION
-router.post("/blockhead", async (req, res) => {
-  try {
-    console.log('🟢 BLOCKHEAD REPORT ROUTE HIT');
-    console.log('Request body:', req.body);
-    
-    const { blockName } = req.body;
-    
-    // Build base query for blockheads - check multiple possible field values
-    let query = { 
-      $or: [
-        { role: "BlockHead" },
-        { role: "blockhead" },
-        { userType: "blockhead" }
-      ]
-    };
-    
-    // If specific block is selected, add to query
-    if (blockName && blockName !== '' && blockName !== 'All Blocks') {
-      // Add block filter to each OR condition
-      query = {
-        $and: [
-          { $or: [
-            { role: "BlockHead" },
-            { role: "blockhead" },
-            { userType: "blockhead" }
-          ]},
-          { assignedBlock: blockName }
-        ]
-      };
-    }
-    
-    console.log('Mongoose Query:', JSON.stringify(query, null, 2));
-    
-    const blockheads = await Account.find(query).lean();
-    console.log(`Found ${blockheads.length} block heads`);
-    
-    if (blockheads.length > 0) {
-      console.log('Sample data:', blockheads[0]);
-    } else {
-      console.log('No blockheads found. Checking all users with role/userType fields...');
-      const allUsers = await Account.find({}).select('role userType assignedBlock pen firstName lastName').limit(5).lean();
-      console.log('Sample users in database:', allUsers);
-    }
-    
-    const summary = {
-      totalBlockHeads: blockheads.length,
-      filteredBy: blockName || 'All Blocks',
-      generatedAt: new Date().toISOString()
-    };
-    
-    res.status(200).json({
-      success: true,
-      report: {
-        summary,
-        reportTitle: blockName && blockName !== 'All Blocks'
-          ? `Block Head Report - ${blockName}` 
-          : "Block Head Report - All Blocks",
-      },
-      data: blockheads,
-    });
-  } catch (error) {
-    console.error("❌ Blockhead report error:", error);
-    res.status(500).json({ 
-      success: false,
-      error: "Failed to generate blockhead report: " + error.message 
-    });
-  }
-});
-
-// ✅ SYSTEM REPORT
-router.post("/system", async (req, res) => {
-  try {
-    console.log('🟢 SYSTEM REPORT ROUTE HIT');
-    const totalRooms = await Room.countDocuments();
-    const totalBlocks = await Block.countDocuments();
-    const totalCourses = await Course.countDocuments();
-    const totalAccounts = await Account.countDocuments();
-
-    res.status(200).json({
-      success: true,
-      report: {
-        summary: { 
-          totalRooms, 
-          totalBlocks, 
-          totalCourses, 
-          totalAccounts 
-        },
-        reportTitle: "System Overview Report",
-      },
-      data: []
-    });
-  } catch (error) {
-    console.error("❌ System report error:", error);
-    res.status(500).json({ 
-      success: false,
-      error: "Failed to generate system report" 
-    });
-  }
-});
-
-console.log('🟢 All report routes registered successfully');
 
 module.exports = router;

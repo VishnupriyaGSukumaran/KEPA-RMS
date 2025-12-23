@@ -113,7 +113,6 @@ const GenerateReport = () => {
       return;
     }
 
-    // Validate filters based on report type
     if (!validateFilters()) {
       alert('Please select at least one filter before generating the report');
       return;
@@ -172,23 +171,34 @@ const GenerateReport = () => {
     }
   };
 
-  const validateFilters = () => {
-    switch (reportType) {
-      case 'allocation':
-      case 'vacancy':
-        return dateFilterType !== '';
-      case 'course':
-        return dateFilterType !== '';
-      case 'block':
-        return true; // Block report doesn't require filters
-      case 'admin':
-        return selectedYear !== '' || (selectedMonth !== '' && selectedYear !== '');
-      case 'blockhead':
-        return true;
-      default:
-        return false;
-    }
-  };
+  // Replace the validateFilters function in GenerateReport.jsx with this:
+
+const validateFilters = () => {
+  switch (reportType) {
+    case 'allocation':
+      // Allow report generation if either date filter OR block is selected
+      return dateFilterType !== '' || selectedBlock !== '' || selectedPurpose !== '';
+      
+    case 'vacancy':
+      // Allow report generation if either date filter OR block is selected
+      return dateFilterType !== '' || selectedBlock !== '';
+      
+    case 'course':
+      return dateFilterType !== '';
+      
+    case 'block':
+      return true;
+      
+    case 'admin':
+      return selectedYear !== '' || (selectedMonth !== '' && selectedYear !== '');
+      
+    case 'blockhead':
+      return true;
+      
+    default:
+      return false;
+  }
+};
 
   const handleYearSelection = (year) => {
     setSelectedYears(prev => {
@@ -229,45 +239,6 @@ const GenerateReport = () => {
 
     let yPos = 75;
 
-    if (reportData.report?.summary) {
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0, 0, 128);
-      doc.text('EXECUTIVE SUMMARY', 14, yPos);
-      yPos += 10;
-
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(0, 0, 0);
-      
-      const summary = reportData.report.summary;
-      const mainStats = [
-        ['Total Records', summary.totalRecords || summary.totalAllocations],
-        ['Total Beds', summary.totalBeds],
-        ['Allocated Beds', summary.allocatedBeds],
-        ['Vacant Beds', summary.vacantBeds],
-        ['Occupancy Rate', summary.occupancyRate]
-      ].filter(stat => stat[1] !== undefined);
-
-      mainStats.forEach(([label, value], index) => {
-        if (index % 2 === 0) {
-          doc.text(`${label}: ${value}`, 14, yPos);
-        } else {
-          doc.text(`${label}: ${value}`, pageWidth / 2 + 10, yPos);
-          yPos += 6;
-        }
-      });
-      if (mainStats.length % 2 !== 0) yPos += 6;
-      
-      yPos += 10;
-    }
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 128);
-    doc.text('DETAILED DATA', 14, yPos);
-    yPos += 15;
-
     if (reportData.data && reportData.data.length > 0) {
       let tableData = [];
       let headers = [];
@@ -297,8 +268,7 @@ const GenerateReport = () => {
             item.status || '-'
           ]);
           break;
-
-                    case 'block':
+        case 'block':
           headers = ['Block Name', 'Total Rooms', 'Total Beds', 'Allocated', 'Vacant', 'Occupancy', 'Status'];
           tableData = reportData.data.map(item => [
             item.blockName || '-',
@@ -310,9 +280,6 @@ const GenerateReport = () => {
             item.status || '-'
           ]);
           break;
-
-
-
         case 'admin':
           headers = ['Name', 'Email', 'PEN Number', 'Phone Number'];
           tableData = reportData.data.map(item => [
@@ -402,8 +369,6 @@ const GenerateReport = () => {
         ]);
         break;
 
-
-
       case 'block':
         headers = ['Block Name', 'Total Rooms', 'Total Beds', 'Allocated Beds', 'Vacant Beds', 'Occupancy Rate', 'Status'];
         rows = reportData.data.map(item => [
@@ -416,12 +381,6 @@ const GenerateReport = () => {
           item.status
         ]);
         break;
-
-
-
-
-
-
       
       case 'admin':
         headers = ['Name', 'Email', 'PEN Number', 'Phone Number'];
@@ -826,61 +785,27 @@ const GenerateReport = () => {
           </div>
         );
 
-      
-                 case 'block':
-      return (
-        <div className="filter-group">
-          <label>Select Block (Optional)</label>
-          <select
-            value={selectedBlock}
-            onChange={(e) => setSelectedBlock(e.target.value)}
-          >
-            <option value="">All Blocks</option>
-            {blocks.map(block => (
-              <option key={block._id} value={block.blockName}>
-                {block.blockName}
-              </option>
-            ))}
-          </select>
-        </div>
-      );
-
-
-
-
+      case 'block':
+        return (
+          <div className="filter-group">
+            <label>Select Block (Optional)</label>
+            <select
+              value={selectedBlock}
+              onChange={(e) => setSelectedBlock(e.target.value)}
+            >
+              <option value="">All Blocks</option>
+              {blocks.map(block => (
+                <option key={block._id} value={block.blockName}>
+                  {block.blockName}
+                </option>
+              ))}
+            </select>
+          </div>
+        );
 
       default:
         return null;
     }
-  };
-
-  const renderEnhancedSummary = () => {
-    if (!reportData?.report?.summary) return null;
-
-    const summary = reportData.report.summary;
-    const selectedReport = reportTypes.find(r => r.id === reportType);
-
-    return (
-      <div className="enhanced-summary" style={{ '--summary-color': selectedReport?.color }}>
-        <div className="summary-cards">
-          {Object.entries(summary).map(([key, value]) => {
-            if (typeof value === 'object' || Array.isArray(value)) return null;
-            
-            const formattedKey = key
-              .replace(/([A-Z])/g, ' $1')
-              .replace(/\b\w/g, l => l.toUpperCase())
-              .trim();
-            
-            return (
-              <div key={key} className="summary-card">
-                <h4>{formattedKey}</h4>
-                <p className="value">{value}</p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
   };
 
   const renderReportTable = () => {
@@ -923,45 +848,39 @@ const GenerateReport = () => {
           </div>
         );
 
-
-
-case 'block':
-  return (
-    <div className="table-wrapper">
-      <div className="table-container">
-        <table className="report-table">
-          <thead>
-            <tr>
-              <th>Block Name</th>
-              <th>Total Rooms</th>
-              <th>Total Beds</th>
-              <th>Allocated Beds</th>
-              <th>Vacant Beds</th>
-              <th>Occupancy Rate</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {reportData.data.map((item, idx) => (
-              <tr key={idx}>
-                <td>{item.blockName || '-'}</td>
-                <td>{item.totalRooms || 0}</td>
-                <td>{item.totalBeds || 0}</td>
-                <td>{item.allocatedBeds || 0}</td>
-                <td>{item.vacantBeds || 0}</td>
-                <td>{item.occupancyRate || '0%'}</td>
-                <td>{item.status || '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-
-
-
-
+      case 'block':
+        return (
+          <div className="table-wrapper">
+            <div className="table-container">
+              <table className="report-table">
+                <thead>
+                  <tr>
+                    <th>Block Name</th>
+                    <th>Total Rooms</th>
+                    <th>Total Beds</th>
+                    <th>Allocated Beds</th>
+                    <th>Vacant Beds</th>
+                    <th>Occupancy Rate</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.data.map((item, idx) => (
+                    <tr key={idx}>
+                      <td>{item.blockName || '-'}</td>
+                      <td>{item.totalRooms || 0}</td>
+                      <td>{item.totalBeds || 0}</td>
+                      <td>{item.allocatedBeds || 0}</td>
+                      <td>{item.vacantBeds || 0}</td>
+                      <td>{item.occupancyRate || '0%'}</td>
+                      <td>{item.status || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
 
       case 'admin':
         return (
@@ -1176,8 +1095,6 @@ case 'block':
             <div id="report-content">
               <h2 className="section-title">{reportData.report?.reportTitle || 'Generated Report'}</h2>
               
-              {renderEnhancedSummary()}
-
               <div className="report-display">
                 {renderReportTable()}
               </div>

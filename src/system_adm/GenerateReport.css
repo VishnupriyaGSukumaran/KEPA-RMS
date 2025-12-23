@@ -444,45 +444,6 @@ html, body {
   color: #64748b;
 }
 
-/* Summary Cards */
-.enhanced-summary {
-  margin: 25px 0;
-}
-
-.summary-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 18px;
-}
-
-.summary-card {
-  background: #14008e;
-  color: white;
-  padding: 22px;
-  border-radius: 12px;
-  text-align: center;
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
-  transition: transform 0.3s ease;
-}
-
-.summary-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
-}
-
-.summary-card h4 {
-  margin: 0 0 10px 0;
-  font-size: 13px;
-  opacity: 0.95;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.summary-card .value {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 800;
-}
 
 /* Table Styles - FIXED SCROLLBAR ISSUE */
 .table-wrapper {
